@@ -361,8 +361,7 @@ export const LITTLE_GUYS: LittleGuy[] = [
     accentColor: '#ff80ab',
     glowClass: 'shadow-[0_0_20px_rgba(255,128,171,0.45)] border-[#ff80ab]',
     badgeLabel: 'BREEDER',
-  }
-,
+  },
   {
     id: 'scale-witch',
     name: 'SCALE WITCH',
