@@ -10,6 +10,30 @@ export interface LittleGuy {
   badgeLabel: string;
 }
 
+export type MindFamily =
+  | 'mutation'
+  | 'causal'
+  | 'temporal'
+  | 'semantic'
+  | 'perception'
+  | 'ontology'
+  | 'constraint'
+  | 'systems'
+  | 'selection'
+  | 'meta'
+  | 'narrative'
+  | 'memory'
+  | 'representation';
+
+export interface MindMetadata {
+  family: MindFamily;
+  chaos: 1 | 2 | 3 | 4 | 5;
+  compatibilityTags: string[];
+  frictionTags: string[];
+  recommendedPairings: string[];
+  roleHint: string;
+}
+
 export type BoxType = 'style' | 'lyrics' | 'caption';
 
 export interface MusicFingerprint {
