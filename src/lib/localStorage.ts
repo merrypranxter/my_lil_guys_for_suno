@@ -166,7 +166,7 @@ export function getLikedPreferenceSignals(limit = 10): string[] {
 }
 
 function safeFence(text: string): string {
-  return text.replace(/\`\`\`/g, '\`\`\\\`');
+  return text.split('```').join('``\\`');
 }
 
 export function runToMarkdown(run: ArchivedRun): string {
