@@ -1,14 +1,17 @@
 import { LITTLE_GUYS } from '../data/littleGuys';
-import { BoxType, LittleGuy } from '../types';
+import { MUSICAL_VOCABULARY_PROMPT, fingerprintToLine } from '../data/musicTaxonomy';
+import { BoxType, LittleGuy, MusicFingerprint } from '../types';
 
 export interface GenerationPromptParams {
   guyIds: string[];
   seed?: string;
   energy: number;
+  recentFingerprints?: MusicFingerprint[];
+  likedSignals?: string[];
 }
 
 export function buildMasterPrompt(params: GenerationPromptParams): { systemInstruction: string; userPrompt: string } {
-  const { guyIds, seed, energy } = params;
+  const { guyIds, seed, energy, recentFingerprints = [], likedSignals = [] } = params;
 
   const selectedGuys: LittleGuy[] = guyIds
     .map((id) => LITTLE_GUYS.find((g) => g.id === id))
@@ -21,114 +24,77 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
   const secondaryGuys: LittleGuy[] = guys.slice(1);
 
   const energyLabels: Record<number, string> = {
-    1: 'ENERGY LEVEL 1: Latent Drift / Subsurface Mutation (controlled, subtle creeping distortions, persistent undercurrent)',
-    2: 'ENERGY LEVEL 2: Low Hum / Controlled Asymmetry (unsettling regularities, steady motoric pulse, sharp occasional glitches)',
-    3: 'ENERGY LEVEL 3: Steady Combustion / High Kinetic Tension (active propulsion, driving rhythm, pronounced structural fractures)',
-    4: 'ENERGY LEVEL 4: High Reactor / Rapid Phase Shift (frenetic tempo, dense sonic pressure, severe operational mutations)',
-    5: 'ENERGY LEVEL 5: Critical Meltdown / Hyper-Drive Overload (maximum kinetic velocity, hyper-dense collision, extreme structural stress)',
+    1: 'ENERGY LEVEL 1: Latent Drift / Subsurface Mutation (controlled but still engaging; subtle tension and motion)',
+    2: 'ENERGY LEVEL 2: Low Hum / Controlled Asymmetry (steady propulsion, occasional structural interruptions)',
+    3: 'ENERGY LEVEL 3: Steady Combustion / High Kinetic Tension (active propulsion, driving rhythm, pronounced transformations)',
+    4: 'ENERGY LEVEL 4: High Reactor / Rapid Phase Shift (frenetic momentum, dense pressure, severe operational mutations)',
+    5: 'ENERGY LEVEL 5: Critical Meltdown / Hyper-Drive Overload (maximum kinetic velocity and extreme structural stress)',
   };
 
   const stackBreakdown = guys
     .map((g, idx) => {
       if (idx === 0) {
-        return `[POSITION 1 - PRIMARY GENERATIVE FOUNDATION]: ${g.name} (${g.subtitle})
-Jurisdiction: ${g.defaultJurisdiction}
-Operational Rule: ${g.rule}
-Role: Establishes the core generative ontology, default baseline mechanics, and primary structural world.`;
+        return '[POSITION 1 - PRIMARY GENERATIVE FOUNDATION]: ' + g.name + ' (' + g.subtitle + ')\n' +
+          'Jurisdiction: ' + g.defaultJurisdiction + '\n' +
+          'Operational Rule: ' + g.rule + '\n' +
+          'Role: Establishes the core generative ontology, default baseline mechanics, and primary structural world.';
       }
-      return `[POSITION ${idx + 1} - MUTATOR / REGULATOR]: ${g.name} (${g.subtitle})
-Jurisdiction: ${g.defaultJurisdiction}
-Operational Rule: ${g.rule}
-Role: Must actively mutate, constrain, damage, invert, or regulate Position 1's mechanism without overriding its existence. Force these two to negotiate in their respective jurisdictions.`;
+      return '[POSITION ' + (idx + 1) + ' - MUTATOR / REGULATOR]: ' + g.name + ' (' + g.subtitle + ')\n' +
+        'Jurisdiction: ' + g.defaultJurisdiction + '\n' +
+        'Operational Rule: ' + g.rule + '\n' +
+        'Role: Must actively mutate, constrain, damage, invert, or regulate Position 1 without erasing it. Force the systems to negotiate in separate jurisdictions.';
     })
     .join('\n\n');
 
-  const systemInstruction = `YOU ARE THE CORE INFERENCE ENGINE OF THE LITTLE GUY MACHINE.
-Your purpose is to produce three precisely engineered creative outputs for SUNO AI music generation using cognitive/generative rules called "Little Guys".
+  const recentBlock = recentFingerprints.length
+    ? recentFingerprints.slice(0, 12).map((f, i) => (i + 1) + '. ' + fingerprintToLine(f)).join('\n')
+    : 'No recent fingerprints recorded yet.';
 
-CRITICAL ARCHITECTURAL DIRECTIVES:
-1. NEVER produce generic "weirdness salad" or superficial surrealism. The cognitive rules are operational constraints and physical laws, not costume labels.
-2. STACK NEGOTIATION IS MANDATORY:
-   - The PRIMARY GUY (${primaryGuy.name}) dictates the baseline generative ontology and system logic.
-   - The SECONDARY GUYS (${secondaryGuys.map((g) => g.name).join(', ') || 'None'}) exert pressure on their specific jurisdictions (semantic meaning, memory, causality, attention, narration, representation, classification, temporal structure, emotional weighting, observation, information loss, ontology, lyric syntax).
-   - They MUST negotiate. Example: If Guy 1 establishes an administrative inventory and Guy 2 deletes a primitive, the inventory must actively log the missing primitive as an unfulfillable requisition code.
-3. OUTPUT FORMAT:
-   You MUST return a valid, parseable JSON object with exactly three string keys:
-   {
-     "style": "...",
-     "lyrics": "...",
-     "caption": "..."
-   }
+  const likedBlock = likedSignals.length
+    ? likedSignals.slice(0, 10).join('\n')
+    : 'No explicit positive feedback recorded yet.';
 
-==================================================
-TARGET CHARACTER COUNT RULES (INCLUDING SPACES & LINE BREAKS):
-==================================================
-BOX 1 — "style": TARGET EXACTLY 975 TO 999 CHARACTERS.
-BOX 2 — "lyrics": TARGET EXACTLY 4900 TO 4999 CHARACTERS.
-BOX 3 — "caption": TARGET EXACTLY 490 TO 499 CHARACTERS.
+  const systemInstruction = 'YOU ARE THE CORE INFERENCE ENGINE OF THE LITTLE GUY MACHINE.\n' +
+    'Your purpose is to produce three precisely engineered creative outputs for SUNO music generation using cognitive/generative rules called Little Guys, plus compact metadata describing the musical territory selected.\n\n' +
+    'CRITICAL ARCHITECTURAL DIRECTIVES:\n' +
+    '1. NEVER produce generic weirdness salad or superficial surrealism. Cognitive rules are operational constraints and physical laws.\n' +
+    '2. STACK NEGOTIATION IS MANDATORY. The primary guy establishes the world; secondary guys exert pressure only through their jurisdictions.\n' +
+    '3. MUSICAL TRADITIONS ARE RULE SYSTEMS, NOT LABELS. Harmony, melody, rhythm, timbre, vocal behavior, performance attitude, and production must receive separate jurisdiction. Do not simply write genre A + genre B + genre C.\n' +
+    '4. ANTI-MONOCULTURE: recent musical fingerprints are evidence of territory already explored. Unless the user seed explicitly asks for repetition, move to genuinely different musical ancestry rather than swapping synonyms. If the last several runs were electronic, industrial, synth-heavy, glitchy, or mechanically clinical, preferentially move toward acoustic, vocal, ensemble, folk, dance-band, rock, theatrical, orchestral, communal, or other contrasting systems. Industrial/electronic is one option among many, never the default.\n' +
+    '5. POSITIVE FEEDBACK IS A SOFT PREFERENCE SIGNAL. Starred runs and user notes indicate mechanisms worth revisiting, but do not clone a past song. Infer what property was liked, then express that property through new material.\n' +
+    '6. OUTPUT FORMAT: valid JSON with keys style, lyrics, caption, fingerprint. fingerprint must contain genreFamily, harmony, melody, rhythm, timbre, vocal, performance, production.\n\n' +
+    'TARGET CHARACTER COUNTS INCLUDING SPACES AND LINE BREAKS:\n' +
+    'style: 975 to 999 characters.\n' +
+    'lyrics: 4900 to 4999 characters.\n' +
+    'caption: 490 to 499 characters.';
 
-Plan token pacing deliberately to hit these exact character windows!`;
-
-  const userPrompt = `EXECUTE SUNO GENERATION REQUEST.
-
-ACTIVE LITTLE GUY STACK:
-${stackBreakdown}
-
-ENERGY PARAMETER:
-${energyLabels[energy] || energyLabels[3]}
-
-OPTIONAL SEED / SUBJECT / EXPERIMENT:
-${seed && seed.trim() ? `"${seed.trim()}"` : 'NONE PROVIDED (Derive subject organically from the primary Little Guy ontology)'}
-
-==================================================
-DETAILED SPECIFICATIONS FOR THE THREE RETURNED BOXES:
-==================================================
-
---------------------------------------------------
-BOX 1: STYLE
---------------------------------------------------
-TARGET LENGTH: 975–999 CHARACTERS (Including all spaces and punctuation).
-METHOD: Productive Contradiction Under Constraint.
-Music must be ACTIVE, ENERGETIC, AND HIGHLY ENGAGING (avoid slow, drab, sad, or boring music unless seed demands it).
-Do NOT mention artist names or produce lazy genre lists.
-Internally synthesize and format using these distinct systems:
-- [HARMONY SYSTEM]: chord behavior, consonance/dissonance, tension, voicing
-- [MELODIC SYSTEM]: pitch movement, ornament, phrasing, contour, slides, repetition
-- [RHYTHMIC SYSTEM]: pulse, subdivision, meter, syncopation, acceleration, density
-- [TIMBRE / ATMOSPHERE SYSTEM]: texture, instrumentation, space, surface quality, sonic materials
-- [PERFORMANCE ATTITUDE]: emotional and theatrical behavior
-- [ANCHOR / INVARIANT]: element that stays recognizable while surroundings mutate
-- Apply 5–10 operational transformation operators (e.g., "hold rhythm fixed while harmony slips microtonally", "compress percussion into ultra-dense bursts while stretching vocals", "alternate surgical precision with sudden physical collapse").
-Make the weirdness operational.
-
---------------------------------------------------
-BOX 2: LYRICS / CONTROL
---------------------------------------------------
-TARGET LENGTH: 4900–4999 CHARACTERS (Including all spaces, linebreaks, and tags).
-STRUCTURE:
-- Every non-sung cue, instrumental direction, structural section, sound effect, and tempo shift MUST be enclosed in [SQUARE BRACKETS], such as:
-  [Intro - Sub-Bass Calibration], [Verse 1 - Dry Telemetry], [Tempo Accelerates 1.3x], [Pre-Chorus - Acoustic Fissure], [Drop - Percussive Glitch], [Outro - Signal Decay].
-- LYRICAL CONTENT:
-  - Can include dry technical narration, procedural explanation, clinical observation, bureaucratic description, literal descriptions of what the audio system is doing, phonetic nonsense.
-  - Avoid neat standard pop rhyming schemes; make it feel like an internal cognitive event.
-  - Follow the mutation cycle: FORM → DESTABILIZE → FRACTURE → COLLAPSE → ANCHOR RETURNS → REFORM STRANGER.
-  - If phonetic nonsense is used, use it functionally (hard consonants for percussion, nasals for resonance, open vowels for sustained soaring tones, dense syllables for rapid compressed runs).
-  - The Little Guy stack MUST actively dictate the lyric logic and mechanics, not just be mentioned in passing.
-- Make sure this reaches the 4900–4999 character range! Write extensive, fully realized song structure with multiple verses, dynamic shifts, bridges, breakdowns, and cognitive cycles.
-
---------------------------------------------------
-BOX 3: CAPTION
---------------------------------------------------
-TARGET LENGTH: 490–499 CHARACTERS (Including all spaces).
-- A compact, publishable, serious explanation of what the song is doing, what generative mechanisms were deployed, and why the resulting structure is strange.
-- Take the mechanism completely seriously. Do NOT mention AI prompts or system guidelines.
-
-Now return ONLY the valid JSON object:
-{
-  "style": "...",
-  "lyrics": "...",
-  "caption": "..."
-}`;
+  const userPrompt = 'EXECUTE SUNO GENERATION REQUEST.\n\n' +
+    'ACTIVE LITTLE GUY STACK:\n' + stackBreakdown + '\n\n' +
+    'ENERGY PARAMETER:\n' + (energyLabels[energy] || energyLabels[3]) + '\n\n' +
+    'OPTIONAL SEED / SUBJECT / EXPERIMENT:\n' +
+    (seed && seed.trim() ? '"' + seed.trim() + '"' : 'NONE PROVIDED — derive subject organically from the primary Little Guy ontology') + '\n\n' +
+    'RECENT TERRITORY — AVOID ACCIDENTAL REPETITION:\n' + recentBlock + '\n\n' +
+    'POSITIVE PREFERENCE SIGNALS — PRESERVE THE LIKED PRINCIPLE, NOT THE SURFACE COPY:\n' + likedBlock + '\n\n' +
+    'MUSICAL POSSIBILITY SPACE — THIS IS A LIBRARY, NOT A REQUIRED CHECKLIST:\n' + MUSICAL_VOCABULARY_PROMPT + '\n\n' +
+    'BOX 1 — STYLE\n' +
+    'TARGET: 975–999 characters. Use PRODUCTIVE CONTRADICTION UNDER CONSTRAINT. First choose distinct systems, then give each separate jurisdiction:\n' +
+    '[HARMONY SYSTEM] chord behavior, voicing, consonance, dissonance, tension.\n' +
+    '[MELODIC SYSTEM] ornament, pitch movement, contour, slides, runs, repetition.\n' +
+    '[RHYTHMIC SYSTEM] pulse, subdivision, meter, syncopation, acceleration, silence, density.\n' +
+    '[TIMBRE / ATMOSPHERE SYSTEM] instrumentation, sonic material, production character, space, surface.\n' +
+    '[PERFORMANCE ATTITUDE] emotional and theatrical behavior.\n' +
+    '[ANCHOR / INVARIANT] one recognizable element preserved while the rest mutates.\n' +
+    'Invent 5–10 operators that transform behavior: hold A fixed while B migrates; compress X while stretching Y; make A behave like B without becoming B; preserve X while destabilizing everything around it; force incompatible temporal scales to coexist; return to the anchor in a more mutated form.\n' +
+    'Do not begin from an industrial/electronic baseline. Choose musical ancestry deliberately and vary it from recent runs. Music should stay active and engaging unless the seed explicitly demands otherwise. No artist names.\n\n' +
+    'BOX 2 — LYRICS / CONTROL\n' +
+    'TARGET: 4900–4999 characters. Every non-sung cue, instrumental instruction, section name, sound effect, and tempo change goes in [SQUARE BRACKETS]. Lyrics may be dry explanation, procedural narration, factual description of what the song is doing, absurdly serious administrative language, phonetic nonsense, or combinations. Avoid neat default pop rhyme. Follow FORM → DESTABILIZE → FRACTURE → COLLAPSE → ANCHOR RETURNS → REFORM STRANGER.\n' +
+    'VOCALS ARE A MUSICAL SYSTEM. Choose among many possibilities: scat, nonsense vocables, yodeling, melisma, hocketing, call-and-response, polyphony, dry speech-song, patter, recitative, falsetto flips, whistle register, nasal drones, overtone-rich sustain, ululation, choral writing, rhythmic consonants. If phonetic nonsense is used, hard consonants act as percussion, nasals as resonance, open vowels as sustained melody, rolled consonants as acceleration, dense syllables as compression, long vowels as stretched time, heavy syllables as bass weight.\n' +
+    'The Little Guy stack must control lyric logic rather than merely being named.\n\n' +
+    'BOX 3 — CAPTION\n' +
+    'TARGET: 490–499 characters. Compact publishable explanation of what the song does, which mechanisms govern it, and why the structure is strange. Take the mechanism seriously. Do not mention prompts or system instructions.\n\n' +
+    'FINGERPRINT METADATA\n' +
+    'Return a concise factual description of the actual musical choices you used. Each fingerprint field should be a short phrase, not a paragraph.\n\n' +
+    'Return ONLY valid JSON with style, lyrics, caption, fingerprint.';
 
   return { systemInstruction, userPrompt };
 }
@@ -144,25 +110,14 @@ export function buildRepairPrompt(boxType: BoxType, currentText: string): { syst
   const isShort = currentLen < targets.min;
   const diff = isShort ? targets.min - currentLen : currentLen - targets.max;
 
-  const systemInstruction = `YOU ARE THE PRECISION LENGTH CALIBRATOR OF THE LITTLE GUY MACHINE.
-Your task is to rewrite or adjust the provided text for the ${targets.name} box so that its EXACT character count (including spaces and linebreaks) falls strictly between ${targets.min} and ${targets.max} characters.
+  const systemInstruction = 'YOU ARE THE PRECISION LENGTH CALIBRATOR OF THE LITTLE GUY MACHINE.\n' +
+    'Rewrite or adjust the provided ' + targets.name + ' text so its exact character count, including spaces and line breaks, falls between ' + targets.min + ' and ' + targets.max + '.\n\n' +
+    'Current length: ' + currentLen + '. Target: ' + targets.min + '–' + targets.max + '. ' +
+    (isShort ? 'Expand by at least ' + diff + ' characters.' : 'Trim by at least ' + diff + ' characters.') + '\n\n' +
+    'Preserve core musical operators, brackets, themes, cognitive logic, and tone. Expand with meaningful operational details, not padding. Trim redundancy before substance. Return only JSON: {"repairedText":"..."}';
 
-Current length: ${currentLen} characters.
-Target range: ${targets.min} to ${targets.max} characters.
-Action needed: ${isShort ? `EXPAND by at least ${diff} characters` : `TRIM by at least ${diff} characters`}.
-
-CRITICAL RULES:
-1. Preserve all core musical operators, brackets, themes, cognitive logic, and tone intact.
-2. If expanding, add rich operational details, bracketed performance cues, or procedural lyric lines consistent with the current style.
-3. If trimming, cut redundant phrases or compress phrasing while keeping the essential structural trajectory.
-4. Count characters accurately before outputting.
-5. Return ONLY a JSON object: { "repairedText": "..." }`;
-
-  const userPrompt = `CALIBRATE THIS TEXT TO BE BETWEEN ${targets.min} AND ${targets.max} CHARACTERS:
-
-${currentText}
-
-Return JSON with "repairedText".`;
+  const userPrompt = 'CALIBRATE THIS TEXT TO ' + targets.min + '–' + targets.max + ' CHARACTERS:\n\n' +
+    currentText + '\n\nReturn JSON with repairedText.';
 
   return { systemInstruction, userPrompt };
 }

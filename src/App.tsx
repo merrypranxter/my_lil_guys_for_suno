@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { LITTLE_GUYS } from './data/littleGuys';
-import { LittleGuy, BoxType, SavedStack, GenerationResponse } from './types';
+import { ArchivedRun, LittleGuy, BoxType, SavedStack, GenerationResponse } from './types';
 import { generateProceduralTrack, clampAndPad, TARGETS } from './lib/proceduralGenerator';
 import { Header } from './components/Header';
 import { GuyCard } from './components/GuyCard';
@@ -17,48 +17,58 @@ import {
   getSavedStacks,
   saveStackToFavorites,
   deleteSavedStack,
+  getRunArchive,
+  saveGeneratedRun,
+  updateArchivedRun,
+  getRecentFingerprints,
+  getLikedPreferenceSignals,
+  runToMarkdown,
+  archiveToMarkdown,
 } from './lib/localStorage';
-import { AlertCircle, Layers, SlidersHorizontal, Sparkles } from 'lucide-react';
+import { AlertCircle, Archive, Download, Layers, MessageSquare, Sparkles, Star, X } from 'lucide-react';
+
+function downloadText(filename: string, text: string) {
+  const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.download = filename;
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
 
 export default function App() {
-  // Model & Server Status
   const [modelName, setModelName] = useState('gemini-3.1-flash-lite');
   const [hasApiKey, setHasApiKey] = useState(true);
 
-  // Stack State
   const [stackGuyIds, setStackGuyIds] = useState<string[]>(() => {
     const saved = getLastStack();
     if (saved && saved.length > 0) return saved;
-    // Default stack: Taxonomy Goblin -> Recall Mold -> Cosmic Clerk (from user prompt example!)
     return ['taxonomy-goblin', 'recall-mold', 'cosmic-clerk'];
   });
 
-  // Saved Stacks
   const [savedStacks, setSavedStacks] = useState<SavedStack[]>(() => getSavedStacks());
-
-  // Input & Energy State
   const [seed, setSeed] = useState<string>(() => getSavedSeed());
   const [energy, setEnergy] = useState<number>(() => getSavedEnergy());
 
-  // Generation Output State
-  const [outputs, setOutputs] = useState<{
-    style: string;
-    lyrics: string;
-    caption: string;
-  }>({
+  const [outputs, setOutputs] = useState({
     style: '',
     lyrics: '',
     caption: '',
   });
 
+  const [currentRun, setCurrentRun] = useState<ArchivedRun | null>(null);
+  const [archiveCount, setArchiveCount] = useState(() => getRunArchive().length);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [feedbackDraft, setFeedbackDraft] = useState('');
+
   const [isGenerating, setIsGenerating] = useState(false);
   const [repairingBox, setRepairingBox] = useState<BoxType | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  // Search filter for menagerie
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Fetch server info on mount
   useEffect(() => {
     fetch('/api/info')
       .then(async (res) => {
@@ -74,7 +84,6 @@ export default function App() {
       });
   }, []);
 
-  // Sync to localStorage
   useEffect(() => {
     setLastStack(stackGuyIds);
   }, [stackGuyIds]);
@@ -89,14 +98,10 @@ export default function App() {
     setSavedEnergy(level);
   };
 
-  // Stack Operations
   const handleToggleGuy = (guyId: string) => {
     setStackGuyIds((prev) => {
-      if (prev.includes(guyId)) {
-        return prev.filter((id) => id !== guyId);
-      } else {
-        return [...prev, guyId];
-      }
+      if (prev.includes(guyId)) return prev.filter((id) => id !== guyId);
+      return [...prev, guyId];
     });
   };
 
@@ -118,26 +123,20 @@ export default function App() {
     setStackGuyIds([]);
   };
 
-  // Quick Roll Actions
   const handleRollOne = () => {
     const randomGuy = LITTLE_GUYS[Math.floor(Math.random() * LITTLE_GUYS.length)];
     setStackGuyIds([randomGuy.id]);
   };
 
   const handleRollStack = () => {
-    // Pick 2 to 4 unique guys
-    const count = Math.floor(Math.random() * 3) + 2; // 2, 3, or 4
+    const count = Math.floor(Math.random() * 3) + 2;
     const shuffled = [...LITTLE_GUYS].sort(() => 0.5 - Math.random());
-    const selected = shuffled.slice(0, count).map((g) => g.id);
-    setStackGuyIds(selected);
+    setStackGuyIds(shuffled.slice(0, count).map((g) => g.id));
   };
 
   const handleFuckMeUp = () => {
-    // Select 3 to 5 strongly varied guys with distinct jurisdictions
-    const count = Math.floor(Math.random() * 3) + 3; // 3, 4, or 5
+    const count = Math.floor(Math.random() * 3) + 3;
     const shuffled = [...LITTLE_GUYS].sort(() => 0.5 - Math.random());
-
-    // Filter to guarantee distinct jurisdictions if possible
     const chosen: LittleGuy[] = [];
     const usedJurisdictions = new Set<string>();
 
@@ -149,12 +148,9 @@ export default function App() {
       if (chosen.length >= count) break;
     }
 
-    // Fill remaining if needed
     if (chosen.length < count) {
       for (const guy of shuffled) {
-        if (!chosen.some((c) => c.id === guy.id)) {
-          chosen.push(guy);
-        }
+        if (!chosen.some((c) => c.id === guy.id)) chosen.push(guy);
         if (chosen.length >= count) break;
       }
     }
@@ -162,10 +158,8 @@ export default function App() {
     setStackGuyIds(chosen.map((g) => g.id));
   };
 
-  // Saved Stacks Operations
   const handleSaveStack = (name: string) => {
-    const updated = saveStackToFavorites(name, stackGuyIds);
-    setSavedStacks(updated);
+    setSavedStacks(saveStackToFavorites(name, stackGuyIds));
   };
 
   const handleLoadSavedStack = (saved: SavedStack) => {
@@ -173,17 +167,41 @@ export default function App() {
   };
 
   const handleDeleteSavedStack = (id: string) => {
-    const updated = deleteSavedStack(id);
-    setSavedStacks(updated);
+    setSavedStacks(deleteSavedStack(id));
   };
 
-  // Generation Handler
+  const archiveGeneration = (data: GenerationResponse, effectiveModel: string) => {
+    const style = data.style || '';
+    const lyrics = data.lyrics || '';
+    const caption = data.caption || '';
+    const run = saveGeneratedRun({
+      guyIds: [...stackGuyIds],
+      seed,
+      energy,
+      model: effectiveModel,
+      style,
+      lyrics,
+      caption,
+      charCounts: data.charCounts || {
+        style: style.length,
+        lyrics: lyrics.length,
+        caption: caption.length,
+      },
+      fingerprint: data.fingerprint,
+    });
+    setCurrentRun(run);
+    setArchiveCount(getRunArchive().length);
+  };
+
   const handleGenerate = async () => {
     if (stackGuyIds.length === 0 || isGenerating) return;
 
     setIsGenerating(true);
     setErrorMessage(null);
+    setCurrentRun(null);
 
+    const recentFingerprints = getRecentFingerprints(12);
+    const likedSignals = getLikedPreferenceSignals(10);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 45000);
 
@@ -195,46 +213,39 @@ export default function App() {
           guyIds: stackGuyIds,
           seed,
           energy,
+          recentFingerprints,
+          likedSignals,
         }),
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
 
       const rawText = await response.text();
-      let data: any = null;
+      let data: GenerationResponse & { notice?: string };
 
       try {
         data = JSON.parse(rawText);
       } catch {
-        if (!response.ok) {
-          throw new Error(`Server returned HTTP ${response.status}. Please try again.`);
-        }
+        if (!response.ok) throw new Error('Server returned HTTP ' + response.status + '. Please try again.');
         throw new Error('Server returned an unreadable response format.');
       }
 
-      if (!response.ok) {
-        throw new Error(data?.error || `HTTP error ${response.status}`);
-      }
+      if (!response.ok) throw new Error(data?.error || 'HTTP error ' + response.status);
 
-      if (data.model) {
-        setModelName(data.model);
-      }
+      const effectiveModel = data.model || modelName;
+      if (data.model) setModelName(data.model);
+
       setOutputs({
         style: data.style || '',
         lyrics: data.lyrics || '',
         caption: data.caption || '',
       });
+      archiveGeneration(data, effectiveModel);
 
-      if (data.notice) {
-        setErrorMessage(data.notice);
-      }
+      if (data.notice) setErrorMessage(data.notice);
 
-      // Smooth scroll to output on mobile
       setTimeout(() => {
-        const outputElem = document.getElementById('output-section');
-        if (outputElem) {
-          outputElem.scrollIntoView({ behavior: 'smooth' });
-        }
+        document.getElementById('output-section')?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
     } catch (err: any) {
       clearTimeout(timeoutId);
@@ -248,21 +259,34 @@ export default function App() {
         err.message?.includes('pattern') ||
         err.message?.includes('NetworkError');
 
-      // Seamless offline / high-demand fallback directly in browser
       if (isNetworkOrPattern || isAbort || err.message?.includes('high demand') || err.message?.includes('quota')) {
         try {
           const fallback = generateProceduralTrack({
             guyIds: stackGuyIds,
             seed,
             energy,
+            recentFingerprints,
           });
+          const fallbackResponse: GenerationResponse = {
+            style: fallback.style,
+            lyrics: fallback.lyrics,
+            caption: fallback.caption,
+            fingerprint: fallback.fingerprint,
+            model: 'procedural-synthesizer',
+            charCounts: {
+              style: fallback.style.length,
+              lyrics: fallback.lyrics.length,
+              caption: fallback.caption.length,
+            },
+          };
           setModelName('procedural-synthesizer');
           setOutputs({
             style: fallback.style,
             lyrics: fallback.lyrics,
             caption: fallback.caption,
           });
-          setErrorMessage('Notice: Output synthesized using the Little Guy procedural engine.');
+          archiveGeneration(fallbackResponse, 'procedural-synthesizer');
+          setErrorMessage('Notice: Output synthesized using the diverse Little Guy procedural engine.');
           return;
         } catch (localErr) {
           console.error('Local fallback failed:', localErr);
@@ -272,7 +296,7 @@ export default function App() {
       const friendlyMsg = isAbort
         ? 'Generation timed out. Please try again with a smaller stack or single guy.'
         : isNetworkOrPattern
-        ? 'Network connection interrupted. Please click "Generate" again.'
+        ? 'Network connection interrupted. Please click Generate again.'
         : err.message || 'Generation failed. Please try again.';
       setErrorMessage(friendlyMsg);
     } finally {
@@ -280,7 +304,19 @@ export default function App() {
     }
   };
 
-  // Repair Individual Box Length Handler
+  const persistRepairToArchive = (type: BoxType, repairedText: string) => {
+    if (!currentRun) return;
+    const patch: any = {
+      charCounts: {
+        ...currentRun.charCounts,
+        [type]: repairedText.length,
+      },
+    };
+    patch[type] = repairedText;
+    const updated = updateArchivedRun(currentRun.id, patch);
+    if (updated) setCurrentRun(updated);
+  };
+
   const handleRepairBox = async (type: BoxType) => {
     const currentText = outputs[type];
     if (!currentText || repairingBox) return;
@@ -295,10 +331,7 @@ export default function App() {
       const response = await fetch('/api/repair', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          boxType: type,
-          currentText,
-        }),
+        body: JSON.stringify({ boxType: type, currentText }),
         signal: controller.signal,
       });
       clearTimeout(timeoutId);
@@ -309,53 +342,75 @@ export default function App() {
       try {
         data = JSON.parse(rawText);
       } catch {
-        if (!response.ok) {
-          throw new Error(`Server returned HTTP ${response.status}`);
-        }
+        if (!response.ok) throw new Error('Server returned HTTP ' + response.status);
         throw new Error('Server returned an unreadable response format.');
       }
 
-      if (!response.ok) {
-        throw new Error(data?.error || `HTTP repair error ${response.status}`);
-      }
+      if (!response.ok) throw new Error(data?.error || 'HTTP repair error ' + response.status);
 
-      if (data.model && data.model !== 'calibrator-engine') {
-        setModelName(data.model);
-      }
+      if (data.model && data.model !== 'calibrator-engine') setModelName(data.model);
       if (data.repairedText) {
-        setOutputs((prev) => ({
-          ...prev,
-          [type]: data.repairedText,
-        }));
+        setOutputs((prev) => ({ ...prev, [type]: data.repairedText }));
+        persistRepairToArchive(type, data.repairedText);
       }
     } catch (err: any) {
       clearTimeout(timeoutId);
       console.warn('Network/API repair unavailable; applying local algorithmic calibration:', err?.message || err);
 
-      // Local precision calibrator guarantees instant resolution
       const target = TARGETS[type];
       if (target) {
-        const paddingSnippet = `[CALIBRATION INVARIANT: Maintaining operational trajectory for ${type.toUpperCase()}. Baseline protocol sustained.]`;
+        const paddingSnippet = '[CALIBRATION INVARIANT: Maintaining operational trajectory for ' + type.toUpperCase() + '. Baseline protocol sustained.]';
         const calibrated = clampAndPad(currentText, target.min, target.max, paddingSnippet);
-        setOutputs((prev) => ({
-          ...prev,
-          [type]: calibrated,
-        }));
-        setErrorMessage(`Calibrated ${type.toUpperCase()} to ${calibrated.length} characters (Target: ${target.min}–${target.max}).`);
+        setOutputs((prev) => ({ ...prev, [type]: calibrated }));
+        persistRepairToArchive(type, calibrated);
+        setErrorMessage('Calibrated ' + type.toUpperCase() + ' to ' + calibrated.length + ' characters (Target: ' + target.min + '–' + target.max + ').');
       } else {
-        setErrorMessage(`Failed to calibrate ${type} length: ${err.message}`);
+        setErrorMessage('Failed to calibrate ' + type + ' length: ' + err.message);
       }
     } finally {
       setRepairingBox(null);
     }
   };
 
-  // Active Little Guy objects in order
+  const openFeedback = () => {
+    if (!currentRun) return;
+    setFeedbackDraft(currentRun.feedback || '');
+    setFeedbackOpen(true);
+  };
+
+  const savePositiveFeedback = () => {
+    if (!currentRun) return;
+    const updated = updateArchivedRun(currentRun.id, {
+      starred: true,
+      feedback: feedbackDraft.trim(),
+    });
+    if (updated) setCurrentRun(updated);
+    setFeedbackOpen(false);
+  };
+
+  const unstarCurrent = () => {
+    if (!currentRun) return;
+    const updated = updateArchivedRun(currentRun.id, { starred: false });
+    if (updated) setCurrentRun(updated);
+    setFeedbackOpen(false);
+  };
+
+  const exportCurrent = () => {
+    if (!currentRun) return;
+    const stamp = new Date(currentRun.createdAt).toISOString().replace(/[:.]/g, '-');
+    downloadText('little-guy-run-' + stamp + '.md', runToMarkdown(currentRun));
+  };
+
+  const exportAll = () => {
+    const runs = getRunArchive();
+    const stamp = new Date().toISOString().slice(0, 10);
+    downloadText('little-guy-machine-archive-' + stamp + '.md', archiveToMarkdown(runs));
+  };
+
   const activeStackGuys: LittleGuy[] = stackGuyIds
     .map((id) => LITTLE_GUYS.find((g) => g.id === id))
     .filter((g): g is LittleGuy => Boolean(g));
 
-  // Filtered guys for menagerie
   const filteredGuys = LITTLE_GUYS.filter((guy) => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
@@ -369,12 +424,9 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#0b0c10] text-[#e0e6ed]">
-      {/* Header */}
       <Header modelName={modelName} hasApiKey={hasApiKey} />
 
-      {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-6 md:py-8 space-y-6">
-        {/* Error Banner */}
         {errorMessage && (
           <div className="p-4 rounded-xl bg-[#2b1216] border border-[#7f1d1d] text-[#fca5a5] flex flex-wrap items-center justify-between gap-3 text-xs md:text-sm font-mono shadow-lg animate-shake">
             <div className="flex items-center gap-2">
@@ -401,9 +453,7 @@ export default function App() {
           </div>
         )}
 
-        {/* Section 1 & 2: Active Stack & Machine Controls */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Stack Panel (Order & Jurisdiction) */}
           <div className="lg:col-span-7">
             <StackPanel
               stackGuys={activeStackGuys}
@@ -420,7 +470,6 @@ export default function App() {
             />
           </div>
 
-          {/* Controls Panel (Seed, Energy & Generate) */}
           <div className="lg:col-span-5">
             <ControlsPanel
               seed={seed}
@@ -434,29 +483,79 @@ export default function App() {
           </div>
         </div>
 
-        {/* Section 3: The Three Suno Output Boxes */}
         <div id="output-section" className="space-y-4 pt-4 border-t border-[#1a202c]">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+          <div className="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-3">
             <div>
               <h2 className="text-base md:text-lg font-bold font-mono tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-[#00f0ff] to-[#39ff14] flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-[#00f0ff]" />
                 <span>THREE SUNO GENERATION BOXES</span>
               </h2>
               <p className="text-xs font-mono text-[#7d8ba1]">
-                Generated via single inference pass. Copy each box directly into Suno.
+                Every completed run is archived locally. Recent musical territory is used to fight accidental genre monoculture.
               </p>
             </div>
 
-            {outputs.style && (
-              <div className="text-xs font-mono text-[#39ff14] bg-[#0d2215] border border-[#1b502e] px-2.5 py-1 rounded">
-                Output ready for Suno v3.5/v4
-              </div>
-            )}
+            <div className="flex flex-wrap gap-2 text-xs font-mono">
+              <button
+                type="button"
+                onClick={exportAll}
+                disabled={archiveCount === 0}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#334155] bg-[#111827] text-[#cbd5e1] hover:border-[#00f0ff] hover:text-white disabled:opacity-40"
+              >
+                <Archive className="w-3.5 h-3.5" />
+                EXPORT ALL .MD ({archiveCount})
+              </button>
+
+              {currentRun && (
+                <>
+                  <button
+                    type="button"
+                    onClick={exportCurrent}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#334155] bg-[#111827] text-[#cbd5e1] hover:border-[#39ff14] hover:text-white"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    EXPORT CURRENT .MD
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={openFeedback}
+                    className={
+                      'inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border font-bold transition-colors ' +
+                      (currentRun.starred
+                        ? 'border-[#ffd84d] bg-[#2d2508] text-[#ffe680] hover:bg-[#3a3009]'
+                        : 'border-[#ff4fd8] bg-[#251020] text-[#ff9dea] hover:bg-[#35152d]')
+                    }
+                  >
+                    <Star className="w-3.5 h-3.5" fill={currentRun.starred ? 'currentColor' : 'none'} />
+                    {currentRun.starred ? 'LIKED — EDIT FEEDBACK' : 'STAR THIS'}
+                  </button>
+                </>
+              )}
+            </div>
           </div>
 
-          {/* Three Grid/Stacked Output Boxes */}
+          {currentRun?.fingerprint && (
+            <div className="rounded-xl border border-[#252d3b] bg-[#0d1017] px-4 py-3">
+              <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#7d8ba1] mb-2">
+                musical fingerprint saved with this run
+              </div>
+              <div className="flex flex-wrap gap-2 text-[11px] font-mono">
+                {[
+                  currentRun.fingerprint.genreFamily,
+                  currentRun.fingerprint.rhythm,
+                  currentRun.fingerprint.vocal,
+                  currentRun.fingerprint.production,
+                ].map((item) => (
+                  <span key={item} className="px-2 py-1 rounded border border-[#273248] bg-[#111827] text-[#a8d8ff]">
+                    {item}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-            {/* BOX 1: STYLE (Target 975–999 chars) */}
             <div className="lg:col-span-12">
               <OutputBox
                 type="style"
@@ -469,7 +568,6 @@ export default function App() {
               />
             </div>
 
-            {/* BOX 2: LYRICS / CONTROL (Target 4900–4999 chars) */}
             <div className="lg:col-span-12">
               <OutputBox
                 type="lyrics"
@@ -482,7 +580,6 @@ export default function App() {
               />
             </div>
 
-            {/* BOX 3: CAPTION (Target 490–499 chars) */}
             <div className="lg:col-span-12">
               <OutputBox
                 type="caption"
@@ -497,7 +594,6 @@ export default function App() {
           </div>
         </div>
 
-        {/* Section 4: Little Guy Menagerie */}
         <div className="space-y-4 pt-6 border-t border-[#1a202c]">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
@@ -510,7 +606,6 @@ export default function App() {
               </p>
             </div>
 
-            {/* Search filter input */}
             <div className="w-full sm:w-64">
               <input
                 type="text"
@@ -522,7 +617,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* Menagerie Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
             {filteredGuys.map((guy) => {
               const stackIndex = stackGuyIds.indexOf(guy.id);
@@ -547,13 +641,90 @@ export default function App() {
         </div>
       </main>
 
-      {/* Footer */}
       <footer className="border-t border-[#161a24] bg-[#090b0e] py-6 px-4 text-center font-mono text-xs text-[#526077]">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
           <span>THE LITTLE GUY MACHINE • SUNO COGNITIVE PROMPT GENERATOR</span>
-          <span>1 MODEL PASS • LOCAL PRESETS • ZERO BLOAT</span>
+          <span>DIVERSE MUSIC MEMORY • STAR FEEDBACK • MARKDOWN ARCHIVE</span>
         </div>
       </footer>
+
+      {feedbackOpen && currentRun && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-xl rounded-2xl border border-[#ff4fd8]/50 bg-[#0d1017] shadow-2xl overflow-hidden">
+            <div className="flex items-start justify-between gap-4 p-5 border-b border-[#252d3b]">
+              <div>
+                <h3 className="font-mono font-bold text-[#ffe680] flex items-center gap-2">
+                  <Star className="w-4 h-4" fill="currentColor" />
+                  TEACH THE LITTLE BASTARD
+                </h3>
+                <p className="mt-1 text-xs font-mono text-[#8d99aa]">
+                  Tell it what worked. Future runs receive this as a positive preference signal without simply cloning the song.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFeedbackOpen(false)}
+                className="p-1 text-[#7d8ba1] hover:text-white"
+                aria-label="Close feedback"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <label className="block">
+                <span className="text-xs font-mono text-[#ff9dea] flex items-center gap-2 mb-2">
+                  <MessageSquare className="w-3.5 h-3.5" />
+                  WHAT DID YOU LIKE ABOUT THIS?
+                </span>
+                <textarea
+                  value={feedbackDraft}
+                  onChange={(e) => setFeedbackDraft(e.target.value)}
+                  placeholder="Examples: the scat fighting the barbershop harmony; the rhythm was peppy without becoming EDM; the dry narrator turning into animal noises; the acoustic instruments; the way the anchor kept mutating..."
+                  rows={6}
+                  className="w-full resize-y rounded-xl border border-[#30384a] bg-[#080a0f] p-3 text-sm text-white placeholder-[#566173] focus:outline-none focus:border-[#ff4fd8]"
+                />
+              </label>
+
+              {currentRun.fingerprint && (
+                <div className="text-[11px] font-mono text-[#7d8ba1] rounded-lg border border-[#232b3d] bg-[#0a0c12] p-3">
+                  <div className="text-[#a8d8ff] mb-1">It will also remember the musical fingerprint:</div>
+                  {currentRun.fingerprint.genreFamily} • {currentRun.fingerprint.rhythm} • {currentRun.fingerprint.vocal} • {currentRun.fingerprint.production}
+                </div>
+              )}
+
+              <div className="flex flex-wrap justify-between gap-2">
+                {currentRun.starred ? (
+                  <button
+                    type="button"
+                    onClick={unstarCurrent}
+                    className="px-4 py-2 rounded-lg border border-[#5b2330] text-[#ff9aa9] font-mono text-xs hover:bg-[#2b1216]"
+                  >
+                    UNSTAR
+                  </button>
+                ) : <span />}
+
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setFeedbackOpen(false)}
+                    className="px-4 py-2 rounded-lg border border-[#334155] text-[#a8b3c5] font-mono text-xs hover:text-white"
+                  >
+                    CANCEL
+                  </button>
+                  <button
+                    type="button"
+                    onClick={savePositiveFeedback}
+                    className="px-4 py-2 rounded-lg bg-[#ffd84d] text-black font-mono font-bold text-xs hover:bg-[#ffe680]"
+                  >
+                    ★ SAVE AS LIKED
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

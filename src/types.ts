@@ -5,23 +5,37 @@ export interface LittleGuy {
   rule: string;
   defaultJurisdiction: string;
   shortExplanation: string;
-  accentColor: string; // Tailwind color token or hex
+  accentColor: string;
   glowClass: string;
   badgeLabel: string;
 }
 
 export type BoxType = 'style' | 'lyrics' | 'caption';
 
+export interface MusicFingerprint {
+  genreFamily: string;
+  harmony: string;
+  melody: string;
+  rhythm: string;
+  timbre: string;
+  vocal: string;
+  performance: string;
+  production: string;
+}
+
 export interface GenerationRequest {
   guyIds: string[];
   seed?: string;
-  energy: number; // 1 to 5
+  energy: number;
+  recentFingerprints?: MusicFingerprint[];
+  likedSignals?: string[];
 }
 
 export interface GenerationResponse {
   style: string;
   lyrics: string;
   caption: string;
+  fingerprint?: MusicFingerprint;
   charCounts: {
     style: number;
     lyrics: number;
@@ -43,4 +57,24 @@ export interface SavedStack {
   name: string;
   guyIds: string[];
   createdAt: number;
+}
+
+export interface ArchivedRun {
+  id: string;
+  createdAt: number;
+  guyIds: string[];
+  seed: string;
+  energy: number;
+  model: string;
+  style: string;
+  lyrics: string;
+  caption: string;
+  charCounts: {
+    style: number;
+    lyrics: number;
+    caption: number;
+  };
+  fingerprint?: MusicFingerprint;
+  starred: boolean;
+  feedback: string;
 }
