@@ -24,6 +24,7 @@ import {
   updateArchivedRun,
   getRecentFingerprints,
   getLikedPreferenceSignals,
+  getLikedMindWeights,
   runToMarkdown,
   archiveToMarkdown,
 } from './lib/localStorage';
@@ -133,13 +134,13 @@ export default function App() {
 
   const handleRollStack = () => {
     const count = Math.floor(Math.random() * 3) + 2;
-    const chosen = buildSmartStack(count, 'balanced');
+    const chosen = buildSmartStack(count, 'balanced', LITTLE_GUYS, getLikedMindWeights());
     setStackGuyIds(chosen.map((g) => g.id));
   };
 
   const handleFuckMeUp = () => {
     const count = Math.floor(Math.random() * 3) + 3;
-    const chosen = buildSmartStack(count, 'feral');
+    const chosen = buildSmartStack(count, 'feral', LITTLE_GUYS, getLikedMindWeights());
     setStackGuyIds(chosen.map((g) => g.id));
   };
 
