@@ -1,0 +1,6 @@
+{
+  "name": "The Little Guy Machine",
+  "description": "Personal creative tool for generating highly experimental Suno music prompts using cognitive Little Guy stacks.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
