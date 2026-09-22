@@ -119,8 +119,20 @@ export function getRunArchive(): ArchivedRun[] {
 
 function writeRunArchive(runs: ArchivedRun[]): ArchivedRun[] {
   const clipped = runs.slice(0, MAX_ARCHIVE_RUNS);
-  localStorage.setItem(STORAGE_KEYS.RUN_ARCHIVE, JSON.stringify(clipped));
-  return clipped;
+  try {
+    localStorage.setItem(STORAGE_KEYS.RUN_ARCHIVE, JSON.stringify(clipped));
+    return clipped;
+  } catch (e) {
+    console.warn('Run archive hit browser storage limits; trimming older runs.', e);
+    const reduced = clipped.slice(0, 60);
+    try {
+      localStorage.setItem(STORAGE_KEYS.RUN_ARCHIVE, JSON.stringify(reduced));
+      return reduced;
+    } catch (inner) {
+      console.error('Could not persist run archive', inner);
+      return getRunArchive();
+    }
+  }
 }
 
 export function saveGeneratedRun(run: Omit<ArchivedRun, 'id' | 'createdAt' | 'starred' | 'feedback'>): ArchivedRun {
