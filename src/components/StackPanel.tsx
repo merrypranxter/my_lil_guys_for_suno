@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { LittleGuy, SavedStack } from '../types';
-import { ArrowUp, ArrowDown, X, Trash2, Bookmark, BookmarkCheck, Dices, Flame, Sparkles, FolderHeart } from 'lucide-react';
+import { ArrowUp, ArrowDown, X, Trash2, Bookmark, Dices, Flame, Sparkles, FolderHeart, FlaskConical } from 'lucide-react';
+import { getStackChemistry, STACK_RECIPES } from '../lib/mindStacking';
 
 interface StackPanelProps {
   stackGuys: LittleGuy[];
@@ -10,6 +11,7 @@ interface StackPanelProps {
   onRollOne: () => void;
   onRollStack: () => void;
   onFuckMeUp: () => void;
+  onLoadRecipe: (recipeId: string) => void;
   savedStacks: SavedStack[];
   onSaveStack: (name: string) => void;
   onLoadSavedStack: (stack: SavedStack) => void;
@@ -24,6 +26,7 @@ export function StackPanel({
   onRollOne,
   onRollStack,
   onFuckMeUp,
+  onLoadRecipe,
   savedStacks,
   onSaveStack,
   onLoadSavedStack,
@@ -32,6 +35,8 @@ export function StackPanel({
   const [saveName, setSaveName] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [showSavedList, setShowSavedList] = useState(false);
+  const [showRecipes, setShowRecipes] = useState(false);
+  const chemistry = getStackChemistry(stackGuys);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
@@ -81,6 +86,16 @@ export function StackPanel({
 
           <button
             type="button"
+            onClick={() => setShowRecipes(!showRecipes)}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-[#161b26] border border-[#2c354a] text-xs font-mono text-[#cbd5e1] hover:text-[#ff9dea] hover:border-[#ff4fd8] transition-colors active:scale-95"
+            title="Open curated high-chemistry mind recipes"
+          >
+            <FlaskConical className="w-3.5 h-3.5 text-[#ff4fd8]" />
+            <span>RECIPES</span>
+          </button>
+
+          <button
+            type="button"
             onClick={onFuckMeUp}
             className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-gradient-to-r from-[#ff0055] to-[#ff7700] text-white font-mono text-xs font-extrabold shadow-[0_0_15px_rgba(255,0,85,0.4)] hover:brightness-110 active:scale-95 transition-all"
             title="Randomly select 3–5 strongly divergent Little Guys for maximum cognitive friction"
@@ -101,6 +116,40 @@ export function StackPanel({
           )}
         </div>
       </div>
+
+      {showRecipes && (
+        <div className="p-3 bg-[#0a0c12] border border-[#40203d] rounded-lg space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <div className="text-xs font-mono font-bold text-[#ff9dea]">CURATED MIND RECIPES</div>
+              <div className="text-[10px] font-mono text-[#6f7890]">Hand-built combinations with productive friction instead of random brain soup.</div>
+            </div>
+            <button type="button" onClick={() => setShowRecipes(false)} className="text-[#7d8ba1] hover:text-white">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-1">
+            {STACK_RECIPES.map((recipe) => (
+              <button
+                key={recipe.id}
+                type="button"
+                onClick={() => {
+                  onLoadRecipe(recipe.id);
+                  setShowRecipes(false);
+                }}
+                className="text-left p-2.5 rounded-lg bg-[#12131d] border border-[#2b2840] hover:border-[#ff4fd8] transition-colors"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-mono font-bold text-white">{recipe.name}</span>
+                  <span className="text-[9px] font-mono text-[#ffb4a2]">CHAOS {recipe.chaos.toFixed(1)}</span>
+                </div>
+                <div className="text-[10px] text-[#8e99aa] mt-1 leading-snug">{recipe.description}</div>
+                <div className="text-[9px] font-mono text-[#6f7890] mt-1.5">{recipe.guyIds.length} minds</div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Stack Items List */}
       {stackGuys.length === 0 ? (
@@ -258,12 +307,17 @@ export function StackPanel({
           )}
         </div>
 
-        <div className="text-[11px] font-mono text-[#62728d]">
-          {stackGuys.length > 1
-            ? `${stackGuys.length} brains negotiating`
-            : stackGuys.length === 1
-            ? '1 brain operational'
-            : 'Idle'}
+        <div className="text-[11px] font-mono text-[#62728d] text-right">
+          {stackGuys.length > 0 ? (
+            <>
+              <div>
+                {stackGuys.length} {stackGuys.length === 1 ? 'brain' : 'brains'} • {chemistry.families.length} {chemistry.families.length === 1 ? 'family' : 'families'} • chaos {chemistry.averageChaos}/5
+              </div>
+              <div className="uppercase tracking-wider text-[#8b95a8]">{chemistry.label} chemistry • pairing {chemistry.pairingScore}</div>
+            </>
+          ) : (
+            'Idle'
+          )}
         </div>
       </div>
 
