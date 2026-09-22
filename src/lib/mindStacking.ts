@@ -95,9 +95,9 @@ function randomNoise(scale = 1): number {
   return Math.random() * scale;
 }
 
-function candidateScore(candidate: LittleGuy, chosen: LittleGuy[], mode: 'balanced' | 'feral'): number {
+function candidateScore(candidate: LittleGuy, chosen: LittleGuy[], mode: 'balanced' | 'feral', preferenceWeights: Record<string, number>): number {
   const meta = getMindMetadata(candidate.id);
-  let score = randomNoise(2.2);
+  let score = randomNoise(2.2) + Math.min(1.1, (preferenceWeights[candidate.id] || 0) * 0.9);
 
   const chosenFamilies = new Set(chosen.map((g) => getMindMetadata(g.id).family));
   const chosenJurisdictions = new Set(chosen.map((g) => g.defaultJurisdiction));
@@ -121,13 +121,13 @@ function candidateScore(candidate: LittleGuy, chosen: LittleGuy[], mode: 'balanc
   return score;
 }
 
-function choosePrimary(pool: LittleGuy[], mode: 'balanced' | 'feral'): LittleGuy {
+function choosePrimary(pool: LittleGuy[], mode: 'balanced' | 'feral', preferenceWeights: Record<string, number>): LittleGuy {
   const candidates = [...pool].sort((a, b) => {
     const am = getMindMetadata(a.id);
     const bm = getMindMetadata(b.id);
     const target = mode === 'feral' ? 4.5 : 3.2;
-    const as = -Math.abs(am.chaos - target) + randomNoise(1.7);
-    const bs = -Math.abs(bm.chaos - target) + randomNoise(1.7);
+    const as = -Math.abs(am.chaos - target) + randomNoise(1.7) + Math.min(0.9, (preferenceWeights[a.id] || 0) * 0.7);
+    const bs = -Math.abs(bm.chaos - target) + randomNoise(1.7) + Math.min(0.9, (preferenceWeights[b.id] || 0) * 0.7);
     return bs - as;
   });
   return candidates[0] || pool[0];
@@ -136,18 +136,19 @@ function choosePrimary(pool: LittleGuy[], mode: 'balanced' | 'feral'): LittleGuy
 export function buildSmartStack(
   count: number,
   mode: 'balanced' | 'feral' = 'balanced',
-  pool: LittleGuy[] = LITTLE_GUYS
+  pool: LittleGuy[] = LITTLE_GUYS,
+  preferenceWeights: Record<string, number> = {}
 ): LittleGuy[] {
   if (!pool.length || count <= 0) return [];
   const targetCount = Math.max(1, Math.min(count, pool.length));
-  const chosen: LittleGuy[] = [choosePrimary(pool, mode)];
+  const chosen: LittleGuy[] = [choosePrimary(pool, mode, preferenceWeights)];
 
   while (chosen.length < targetCount) {
     const remaining = pool.filter((g) => !chosen.some((c) => c.id === g.id));
     if (!remaining.length) break;
 
     const ranked = remaining
-      .map((candidate) => ({ candidate, score: candidateScore(candidate, chosen, mode) }))
+      .map((candidate) => ({ candidate, score: candidateScore(candidate, chosen, mode, preferenceWeights) }))
       .sort((a, b) => b.score - a.score);
 
     // Keep a little mutation pressure instead of always taking the mathematically top candidate.
