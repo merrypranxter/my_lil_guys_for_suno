@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { LITTLE_GUYS } from './data/littleGuys';
 import { ArchivedRun, LittleGuy, BoxType, SavedStack, GenerationResponse } from './types';
 import { generateProceduralTrack, clampAndPad, TARGETS } from './lib/proceduralGenerator';
+import { buildSmartStack, resolveRecipe } from './lib/mindStacking';
+import { getMindMetadata } from './data/mindMetadata';
 import { Header } from './components/Header';
 import { GuyCard } from './components/GuyCard';
 import { StackPanel } from './components/StackPanel';
@@ -131,32 +133,19 @@ export default function App() {
 
   const handleRollStack = () => {
     const count = Math.floor(Math.random() * 3) + 2;
-    const shuffled = [...LITTLE_GUYS].sort(() => 0.5 - Math.random());
-    setStackGuyIds(shuffled.slice(0, count).map((g) => g.id));
+    const chosen = buildSmartStack(count, 'balanced');
+    setStackGuyIds(chosen.map((g) => g.id));
   };
 
   const handleFuckMeUp = () => {
     const count = Math.floor(Math.random() * 3) + 3;
-    const shuffled = [...LITTLE_GUYS].sort(() => 0.5 - Math.random());
-    const chosen: LittleGuy[] = [];
-    const usedJurisdictions = new Set<string>();
-
-    for (const guy of shuffled) {
-      if (!usedJurisdictions.has(guy.defaultJurisdiction)) {
-        chosen.push(guy);
-        usedJurisdictions.add(guy.defaultJurisdiction);
-      }
-      if (chosen.length >= count) break;
-    }
-
-    if (chosen.length < count) {
-      for (const guy of shuffled) {
-        if (!chosen.some((c) => c.id === guy.id)) chosen.push(guy);
-        if (chosen.length >= count) break;
-      }
-    }
-
+    const chosen = buildSmartStack(count, 'feral');
     setStackGuyIds(chosen.map((g) => g.id));
+  };
+
+  const handleLoadRecipe = (recipeId: string) => {
+    const chosen = resolveRecipe(recipeId);
+    if (chosen.length > 0) setStackGuyIds(chosen.map((g) => g.id));
   };
 
   const handleSaveStack = (name: string) => {
@@ -422,7 +411,9 @@ export default function App() {
       guy.name.toLowerCase().includes(q) ||
       guy.subtitle.toLowerCase().includes(q) ||
       guy.rule.toLowerCase().includes(q) ||
-      guy.defaultJurisdiction.toLowerCase().includes(q)
+      guy.defaultJurisdiction.toLowerCase().includes(q) ||
+      getMindMetadata(guy.id).family.toLowerCase().includes(q) ||
+      getMindMetadata(guy.id).compatibilityTags.some((tag) => tag.toLowerCase().includes(q))
     );
   });
 
@@ -483,6 +474,7 @@ export default function App() {
               onRollOne={handleRollOne}
               onRollStack={handleRollStack}
               onFuckMeUp={handleFuckMeUp}
+              onLoadRecipe={handleLoadRecipe}
               savedStacks={savedStacks}
               onSaveStack={handleSaveStack}
               onLoadSavedStack={handleLoadSavedStack}
