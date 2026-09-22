@@ -78,7 +78,7 @@ export function StackPanel({
             type="button"
             onClick={onRollStack}
             className="flex items-center gap-1 px-2.5 py-1.5 rounded-md bg-[#161b26] border border-[#2c354a] text-xs font-mono text-[#cbd5e1] hover:text-[#39ff14] hover:border-[#39ff14] transition-colors active:scale-95"
-            title="Roll a random stack of 2 to 4 Little Guys"
+            title="Build a chemistry-aware stack of 2 to 4 compatible but distinct Little Guys"
           >
             <Sparkles className="w-3.5 h-3.5 text-[#39ff14]" />
             <span>ROLL A STACK</span>
@@ -98,7 +98,7 @@ export function StackPanel({
             type="button"
             onClick={onFuckMeUp}
             className="flex items-center gap-1 px-3 py-1.5 rounded-md bg-gradient-to-r from-[#ff0055] to-[#ff7700] text-white font-mono text-xs font-extrabold shadow-[0_0_15px_rgba(255,0,85,0.4)] hover:brightness-110 active:scale-95 transition-all"
-            title="Randomly select 3–5 strongly divergent Little Guys for maximum cognitive friction"
+            title="Build a high-chaos stack with maximum productive cognitive friction"
           >
             <Flame className="w-3.5 h-3.5 fill-current" />
             <span>FUCK ME UP</span>
@@ -170,7 +170,7 @@ export function StackPanel({
               onClick={onRollStack}
               className="px-3 py-1.5 rounded bg-[#1e2433] text-xs font-mono text-[#39ff14] hover:bg-[#283145]"
             >
-              Random Stack (2-4)
+              Smart Stack (2-4)
             </button>
             <button
               type="button"
