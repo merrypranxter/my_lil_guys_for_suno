@@ -1,5 +1,6 @@
 import { LITTLE_GUYS } from '../data/littleGuys';
 import { MUSICAL_VOCABULARY_PROMPT, fingerprintToLine } from '../data/musicTaxonomy';
+import { getMindMetadata } from '../data/mindMetadata';
 import { BoxType, LittleGuy, MusicFingerprint } from '../types';
 
 export interface GenerationPromptParams {
@@ -33,14 +34,18 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
 
   const stackBreakdown = guys
     .map((g, idx) => {
+      const meta = getMindMetadata(g.id);
+      const chemistryLine = 'Family: ' + meta.family + ' | Chaos: ' + meta.chaos + '/5 | Stack role: ' + meta.roleHint;
       if (idx === 0) {
         return '[POSITION 1 - PRIMARY GENERATIVE FOUNDATION]: ' + g.name + ' (' + g.subtitle + ')\n' +
           'Jurisdiction: ' + g.defaultJurisdiction + '\n' +
+          chemistryLine + '\n' +
           'Operational Rule: ' + g.rule + '\n' +
           'Role: Establishes the core generative ontology, default baseline mechanics, and primary structural world.';
       }
       return '[POSITION ' + (idx + 1) + ' - MUTATOR / REGULATOR]: ' + g.name + ' (' + g.subtitle + ')\n' +
         'Jurisdiction: ' + g.defaultJurisdiction + '\n' +
+        chemistryLine + '\n' +
         'Operational Rule: ' + g.rule + '\n' +
         'Role: Must actively mutate, constrain, damage, invert, or regulate Position 1 without erasing it. Force the systems to negotiate in separate jurisdictions.';
     })
@@ -59,10 +64,11 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
     'CRITICAL ARCHITECTURAL DIRECTIVES:\n' +
     '1. NEVER produce generic weirdness salad or superficial surrealism. Cognitive rules are operational constraints and physical laws.\n' +
     '2. STACK NEGOTIATION IS MANDATORY. The primary guy establishes the world; secondary guys exert pressure only through their jurisdictions.\n' +
-    '3. MUSICAL TRADITIONS ARE RULE SYSTEMS, NOT LABELS. Harmony, melody, rhythm, timbre, vocal behavior, performance attitude, and production must receive separate jurisdiction. Do not simply write genre A + genre B + genre C.\n' +
-    '4. ANTI-MONOCULTURE: recent musical fingerprints are evidence of territory already explored. Unless the user seed explicitly asks for repetition, move to genuinely different musical ancestry rather than swapping synonyms. If the last several runs were electronic, industrial, synth-heavy, glitchy, or mechanically clinical, preferentially move toward acoustic, vocal, ensemble, folk, dance-band, rock, theatrical, orchestral, communal, or other contrasting systems. Industrial/electronic is one option among many, never the default.\n' +
-    '5. POSITIVE FEEDBACK IS A SOFT PREFERENCE SIGNAL. Starred runs and user notes indicate mechanisms worth revisiting, but do not clone a past song. Infer what property was liked, then express that property through new material.\n' +
-    '6. OUTPUT FORMAT: valid JSON with keys style, lyrics, caption, fingerprint. fingerprint must contain genreFamily, harmony, melody, rhythm, timbre, vocal, performance, production.\n\n' +
+    '3. STACK CHEMISTRY IS OPERATIONAL. Mind family and chaos ratings are not decoration: low-chaos minds should stabilize, measure, narrate, or regulate; high-chaos minds should create real structural discontinuity. Do not let five minds all perform the same kind of weirdness. Preserve distinct jobs and productive friction.\n' +
+    '4. MUSICAL TRADITIONS ARE RULE SYSTEMS, NOT LABELS. Harmony, melody, rhythm, timbre, vocal behavior, performance attitude, and production must receive separate jurisdiction. Do not simply write genre A + genre B + genre C.\n' +
+    '5. ANTI-MONOCULTURE: recent musical fingerprints are evidence of territory already explored. Unless the user seed explicitly asks for repetition, move to genuinely different musical ancestry rather than swapping synonyms. If the last several runs were electronic, industrial, synth-heavy, glitchy, or mechanically clinical, preferentially move toward acoustic, vocal, ensemble, folk, dance-band, rock, theatrical, orchestral, communal, or other contrasting systems. Industrial/electronic is one option among many, never the default.\n' +
+    '6. POSITIVE FEEDBACK IS A SOFT PREFERENCE SIGNAL. Starred runs and user notes indicate mechanisms worth revisiting, but do not clone a past song. Infer what property was liked, then express that property through new material.\n' +
+    '7. OUTPUT FORMAT: valid JSON with keys style, lyrics, caption, fingerprint. fingerprint must contain genreFamily, harmony, melody, rhythm, timbre, vocal, performance, production.\n\n' +
     'TARGET CHARACTER COUNTS INCLUDING SPACES AND LINE BREAKS:\n' +
     'style: 975 to 999 characters.\n' +
     'lyrics: 4900 to 4999 characters.\n' +
