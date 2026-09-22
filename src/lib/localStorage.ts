@@ -178,6 +178,27 @@ export function getLikedPreferenceSignals(limit = 10): string[] {
     });
 }
 
+export function getLikedMindWeights(limit = 30): Record<string, number> {
+  const weights: Record<string, number> = {};
+  const starred = getRunArchive().filter((run) => run.starred).slice(0, limit);
+
+  for (const run of starred) {
+    const feedbackBoost = run.feedback.trim() ? 1.35 : 1;
+    run.guyIds.forEach((id, index) => {
+      const positionBoost = index === 0 ? 1.15 : 1;
+      weights[id] = (weights[id] || 0) + feedbackBoost * positionBoost;
+    });
+  }
+
+  const max = Math.max(0, ...Object.values(weights));
+  if (max <= 0) return weights;
+
+  for (const id of Object.keys(weights)) {
+    weights[id] = Math.round((weights[id] / max) * 100) / 100;
+  }
+  return weights;
+}
+
 function safeFence(text: string): string {
   return text.split('```').join('``\\`');
 }
