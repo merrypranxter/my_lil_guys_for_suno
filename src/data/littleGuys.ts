@@ -176,7 +176,6 @@ export const LITTLE_GUYS: LittleGuy[] = [
     glowClass: 'shadow-[0_0_20px_rgba(138,43,226,0.45)] border-[#8a2be2]',
     badgeLabel: 'LOG',
   },
-,
   {
     id: 'axiom-vandal',
     name: 'AXIOM VANDAL',
