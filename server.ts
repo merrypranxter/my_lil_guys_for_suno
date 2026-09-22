@@ -11,15 +11,16 @@ const PORT = 3000;
 
 app.use(express.json({ limit: '10mb' }));
 
-const CONFIGURED_MODEL = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
+const CONFIGURED_MODEL = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
 export const GEMINI_MODEL = CONFIGURED_MODEL;
 
 const CANDIDATE_MODELS = Array.from(
   new Set([
+    'gemini-3.5-flash-lite',
     'gemini-3.1-flash-lite',
-    'gemini-flash-latest',
-    'gemini-3.8-flash',
-    ...(CONFIGURED_MODEL !== 'gemini-2.5-flash' ? [CONFIGURED_MODEL] : []),
+    'gemini-2.5-flash',
+    'gemini-3.5-flash',
+    CONFIGURED_MODEL,
   ])
 );
 
@@ -85,7 +86,7 @@ function sanitizeLikedSignals(value: any): string[] {
 async function generateWithResilience(
   contents: string,
   config: any,
-  timeoutPerModelMs = 18000
+  timeoutPerModelMs = 38000
 ): Promise<{ response: any; usedModel: string }> {
   const ai = getGenAI();
   let lastError: any = null;

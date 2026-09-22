@@ -40,8 +40,9 @@ function downloadText(filename: string, text: string) {
 }
 
 export default function App() {
-  const [modelName, setModelName] = useState('gemini-3.1-flash-lite');
+  const [modelName, setModelName] = useState('gemini-3.5-flash-lite');
   const [hasApiKey, setHasApiKey] = useState(true);
+  const [noticeMessage, setNoticeMessage] = useState<string | null>(null);
 
   const [stackGuyIds, setStackGuyIds] = useState<string[]>(() => {
     const saved = getLastStack();
@@ -198,12 +199,13 @@ export default function App() {
 
     setIsGenerating(true);
     setErrorMessage(null);
+    setNoticeMessage(null);
     setCurrentRun(null);
 
     const recentFingerprints = getRecentFingerprints(12);
     const likedSignals = getLikedPreferenceSignals(10);
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 45000);
+    const timeoutId = setTimeout(() => controller.abort(), 65000);
 
     try {
       const response = await fetch('/api/generate', {
@@ -242,7 +244,7 @@ export default function App() {
       });
       archiveGeneration(data, effectiveModel);
 
-      if (data.notice) setErrorMessage(data.notice);
+      if (data.notice) setNoticeMessage(data.notice);
 
       setTimeout(() => {
         document.getElementById('output-section')?.scrollIntoView({ behavior: 'smooth' });
@@ -286,7 +288,7 @@ export default function App() {
             caption: fallback.caption,
           });
           archiveGeneration(fallbackResponse, 'procedural-synthesizer');
-          setErrorMessage('Notice: Output synthesized using the diverse Little Guy procedural engine.');
+          setNoticeMessage('Generated track using the diverse procedural engine while AI models recalibrate.');
           return;
         } catch (localErr) {
           console.error('Local fallback failed:', localErr);
@@ -323,6 +325,7 @@ export default function App() {
 
     setRepairingBox(type);
     setErrorMessage(null);
+    setNoticeMessage(null);
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 25000);
@@ -352,6 +355,7 @@ export default function App() {
       if (data.repairedText) {
         setOutputs((prev) => ({ ...prev, [type]: data.repairedText }));
         persistRepairToArchive(type, data.repairedText);
+        setNoticeMessage('Calibrated ' + type.toUpperCase() + ' to ' + data.repairedText.length + ' characters.');
       }
     } catch (err: any) {
       clearTimeout(timeoutId);
@@ -363,7 +367,7 @@ export default function App() {
         const calibrated = clampAndPad(currentText, target.min, target.max, paddingSnippet);
         setOutputs((prev) => ({ ...prev, [type]: calibrated }));
         persistRepairToArchive(type, calibrated);
-        setErrorMessage('Calibrated ' + type.toUpperCase() + ' to ' + calibrated.length + ' characters (Target: ' + target.min + '–' + target.max + ').');
+        setNoticeMessage('Calibrated ' + type.toUpperCase() + ' to ' + calibrated.length + ' characters (Target: ' + target.min + '–' + target.max + ').');
       } else {
         setErrorMessage('Failed to calibrate ' + type + ' length: ' + err.message);
       }
@@ -427,6 +431,22 @@ export default function App() {
       <Header modelName={modelName} hasApiKey={hasApiKey} />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-6 md:py-8 space-y-6">
+        {noticeMessage && !errorMessage && (
+          <div className="p-3.5 rounded-xl bg-[#1e1b12] border border-[#854d0e] text-[#fef08a] flex flex-wrap items-center justify-between gap-3 text-xs md:text-sm font-mono shadow-md">
+            <div className="flex items-center gap-2">
+              <span className="inline-block w-2 h-2 rounded-full bg-[#eab308] animate-pulse" />
+              <span>{noticeMessage}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setNoticeMessage(null)}
+              className="text-[#fef08a]/80 hover:text-white hover:underline text-xs"
+            >
+              Dismiss
+            </button>
+          </div>
+        )}
+
         {errorMessage && (
           <div className="p-4 rounded-xl bg-[#2b1216] border border-[#7f1d1d] text-[#fca5a5] flex flex-wrap items-center justify-between gap-3 text-xs md:text-sm font-mono shadow-lg animate-shake">
             <div className="flex items-center gap-2">
