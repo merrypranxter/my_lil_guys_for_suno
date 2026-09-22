@@ -161,7 +161,8 @@ export function getLikedPreferenceSignals(limit = 10): string[] {
     .map((run) => {
       const fingerprint = run.fingerprint ? fingerprintToLine(run.fingerprint) : 'fingerprint unavailable';
       const note = run.feedback.trim() ? ' User specifically liked: ' + run.feedback.trim() : '';
-      return 'POSITIVE EXAMPLE — ' + fingerprint + '.' + note;
+      const context = 'stack=' + run.guyIds.join(' > ') + ' | seed=' + (run.seed || '(none)') + ' | ';
+      return 'POSITIVE EXAMPLE — ' + context + fingerprint + '.' + note;
     });
 }
 
