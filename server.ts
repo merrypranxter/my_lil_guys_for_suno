@@ -3,18 +3,17 @@ import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI, Type } from '@google/genai';
 import { buildMasterPrompt, buildRepairPrompt } from './src/lib/buildGenerationPrompt';
-import { generateProceduralTrack, clampAndPad, TARGETS } from './src/lib/proceduralGenerator';
+import { generateProceduralTrack } from './src/lib/proceduralGenerator';
+import { MusicFingerprint } from './src/types';
 
 const app = express();
 const PORT = 3000;
 
 app.use(express.json({ limit: '10mb' }));
 
-// Configuration: Primary model and candidate fallback models for high demand resilience
 const CONFIGURED_MODEL = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
 export const GEMINI_MODEL = CONFIGURED_MODEL;
 
-// High-speed, high-quota models prioritized to prevent 503/429 latency spikes
 const CANDIDATE_MODELS = Array.from(
   new Set([
     'gemini-3.1-flash-lite',
@@ -58,6 +57,31 @@ function formatErrorMessage(err: any): string {
   return str;
 }
 
+function sanitizeFingerprints(value: any): MusicFingerprint[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item) => item && typeof item === 'object')
+    .slice(0, 12)
+    .map((item) => ({
+      genreFamily: String(item.genreFamily || ''),
+      harmony: String(item.harmony || ''),
+      melody: String(item.melody || ''),
+      rhythm: String(item.rhythm || ''),
+      timbre: String(item.timbre || ''),
+      vocal: String(item.vocal || ''),
+      performance: String(item.performance || ''),
+      production: String(item.production || ''),
+    }));
+}
+
+function sanitizeLikedSignals(value: any): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item) => typeof item === 'string')
+    .map((item) => item.slice(0, 900))
+    .slice(0, 10);
+}
+
 async function generateWithResilience(
   contents: string,
   config: any,
@@ -68,12 +92,12 @@ async function generateWithResilience(
 
   for (const model of CANDIDATE_MODELS) {
     try {
-      console.log(`[Gemini] Requesting model=${model}...`);
+      console.log('[Gemini] Requesting model=' + model + '...');
 
       let timeoutTimer: NodeJS.Timeout | undefined;
       const timeoutPromise = new Promise<never>((_, reject) => {
         timeoutTimer = setTimeout(() => {
-          reject(new Error(`Model ${model} inference timed out after ${timeoutPerModelMs}ms`));
+          reject(new Error('Model ' + model + ' inference timed out after ' + timeoutPerModelMs + 'ms'));
         }, timeoutPerModelMs);
       });
 
@@ -87,20 +111,18 @@ async function generateWithResilience(
         if (timeoutTimer) clearTimeout(timeoutTimer);
       });
 
-      console.log(`[Gemini] Success using model=${model}`);
+      console.log('[Gemini] Success using model=' + model);
       return { response, usedModel: model };
     } catch (err: any) {
       lastError = err;
       const errMsg = formatErrorMessage(err);
-      console.warn(`[Gemini] Model ${model} failed (${errMsg.slice(0, 160)}), trying next candidate...`);
-      // Immediately failover to next model
+      console.warn('[Gemini] Model ' + model + ' failed (' + errMsg.slice(0, 160) + '), trying next candidate...');
     }
   }
 
   throw lastError;
 }
 
-// Health & Info Endpoint
 app.get('/api/info', (_req, res) => {
   res.json({
     status: 'online',
@@ -109,52 +131,71 @@ app.get('/api/info', (_req, res) => {
   });
 });
 
-// Single Generation Endpoint (1 AI call per generation)
 app.post('/api/generate', async (req, res) => {
-  try {
-    const { guyIds = [], seed = '', energy = 4 } = req.body;
+  const guyIds = Array.isArray(req.body?.guyIds) ? req.body.guyIds : [];
+  const seed = typeof req.body?.seed === 'string' ? req.body.seed : '';
+  const energy = typeof req.body?.energy === 'number' ? req.body.energy : 4;
+  const recentFingerprints = sanitizeFingerprints(req.body?.recentFingerprints);
+  const likedSignals = sanitizeLikedSignals(req.body?.likedSignals);
 
+  try {
     const { systemInstruction, userPrompt } = buildMasterPrompt({
-      guyIds: Array.isArray(guyIds) ? guyIds : [],
-      seed: typeof seed === 'string' ? seed : '',
-      energy: typeof energy === 'number' ? energy : 4,
+      guyIds,
+      seed,
+      energy,
+      recentFingerprints,
+      likedSignals,
     });
+
+    const fingerprintProperties = {
+      genreFamily: { type: Type.STRING },
+      harmony: { type: Type.STRING },
+      melody: { type: Type.STRING },
+      rhythm: { type: Type.STRING },
+      timbre: { type: Type.STRING },
+      vocal: { type: Type.STRING },
+      performance: { type: Type.STRING },
+      production: { type: Type.STRING },
+    };
 
     const { response, usedModel } = await generateWithResilience(userPrompt, {
       systemInstruction,
-      temperature: 0.95,
+      temperature: 1.02,
       responseMimeType: 'application/json',
       responseSchema: {
         type: Type.OBJECT,
         properties: {
           style: {
             type: Type.STRING,
-            description: 'The complete Suno STYLE string, targeted to 975-999 characters.',
+            description: 'Complete Suno STYLE string, 975-999 characters.',
           },
           lyrics: {
             type: Type.STRING,
-            description: 'The complete Suno LYRICS / CONTROL string with bracketed directions, targeted to 4900-4999 characters.',
+            description: 'Complete Suno LYRICS / CONTROL string, 4900-4999 characters.',
           },
           caption: {
             type: Type.STRING,
-            description: 'The complete Suno CAPTION explanation, targeted to 490-499 characters.',
+            description: 'Publishable CAPTION, 490-499 characters.',
+          },
+          fingerprint: {
+            type: Type.OBJECT,
+            properties: fingerprintProperties,
+            required: ['genreFamily', 'harmony', 'melody', 'rhythm', 'timbre', 'vocal', 'performance', 'production'],
           },
         },
-        required: ['style', 'lyrics', 'caption'],
+        required: ['style', 'lyrics', 'caption', 'fingerprint'],
       },
     });
 
     const rawText = response.text || '{}';
-    let parsed: { style?: string; lyrics?: string; caption?: string } = {};
+    let parsed: any = {};
 
     try {
       parsed = JSON.parse(rawText);
     } catch {
-      // Fallback regex extraction if JSON wrapping got mangled
       const styleMatch = rawText.match(/"style"\s*:\s*"([\s\S]*?)(?<!\\)",/);
       const lyricsMatch = rawText.match(/"lyrics"\s*:\s*"([\s\S]*?)(?<!\\)",/);
-      const captionMatch = rawText.match(/"caption"\s*:\s*"([\s\S]*?)(?<!\\)"\s*\}/);
-
+      const captionMatch = rawText.match(/"caption"\s*:\s*"([\s\S]*?)(?<!\\)"/);
       parsed = {
         style: styleMatch ? styleMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"') : '',
         lyrics: lyricsMatch ? lyricsMatch[1].replace(/\\n/g, '\n').replace(/\\"/g, '"') : '',
@@ -165,11 +206,15 @@ app.post('/api/generate', async (req, res) => {
     const style = parsed.style || '';
     const lyrics = parsed.lyrics || '';
     const caption = parsed.caption || '';
+    const fingerprint = parsed.fingerprint && typeof parsed.fingerprint === 'object'
+      ? sanitizeFingerprints([parsed.fingerprint])[0]
+      : undefined;
 
     res.json({
       style,
       lyrics,
       caption,
+      fingerprint,
       model: usedModel,
       charCounts: {
         style: style.length,
@@ -178,29 +223,31 @@ app.post('/api/generate', async (req, res) => {
       },
     });
   } catch (error: any) {
-    console.warn('AI generation encountered high demand or quota across models, engaging procedural engine:', error?.message);
+    console.warn('AI generation unavailable, engaging diverse procedural engine:', error?.message);
 
     try {
       const fallback = generateProceduralTrack({
-        guyIds: Array.isArray(req.body?.guyIds) ? req.body.guyIds : [],
-        seed: typeof req.body?.seed === 'string' ? req.body.seed : '',
-        energy: typeof req.body?.energy === 'number' ? req.body.energy : 4,
+        guyIds,
+        seed,
+        energy,
+        recentFingerprints,
       });
 
       res.json({
         style: fallback.style,
         lyrics: fallback.lyrics,
         caption: fallback.caption,
+        fingerprint: fallback.fingerprint,
         model: 'procedural-synthesizer',
         charCounts: {
           style: fallback.style.length,
           lyrics: fallback.lyrics.length,
           caption: fallback.caption.length,
         },
-        notice: 'Synthesized via procedural engine due to high AI API demand',
+        notice: 'Synthesized via diverse procedural engine due to high AI API demand',
       });
     } catch (fallbackErr: any) {
-      console.error('Generation failed:', error);
+      console.error('Generation failed:', error, fallbackErr);
       res.status(500).json({
         error: formatErrorMessage(error),
       });
@@ -208,7 +255,6 @@ app.post('/api/generate', async (req, res) => {
   }
 });
 
-// Targeted Length Repair Endpoint (Only called if user explicitly requests "REPAIR LENGTH" on one box)
 app.post('/api/repair', async (req, res) => {
   const { boxType, currentText } = req.body;
 
@@ -236,7 +282,7 @@ app.post('/api/repair', async (req, res) => {
         properties: {
           repairedText: {
             type: Type.STRING,
-            description: 'The repaired text conforming to the strict target character length.',
+            description: 'Repaired text conforming to the strict target character length.',
           },
         },
         required: ['repairedText'],
@@ -248,9 +294,7 @@ app.post('/api/repair', async (req, res) => {
 
     try {
       const parsed = JSON.parse(rawText);
-      if (parsed.repairedText) {
-        repairedText = parsed.repairedText;
-      }
+      if (parsed.repairedText) repairedText = parsed.repairedText;
     } catch {
       const match = rawText.match(/"repairedText"\s*:\s*"([\s\S]*?)(?<!\\)"/);
       if (match) {
@@ -264,25 +308,18 @@ app.post('/api/repair', async (req, res) => {
       charCount: repairedText.length,
     });
   } catch (error: any) {
-    console.warn('AI length repair hit quota/demand; applying algorithmic calibration:', error?.message);
+    console.warn('AI length repair unavailable; applying algorithmic calibration:', error?.message);
 
-    // Algorithmic fallback calibration ensures user request never hangs or fails with 500
     let repairedText = currentText;
     if (repairedText.length > target.max) {
       repairedText = repairedText.slice(0, target.max);
     } else if (repairedText.length < target.min) {
-      const paddingComment = `\n[NOTE: Operational invariant preserved for ${boxType.toUpperCase()}. Continued procedural dynamics sustained.]`;
+      const paddingComment = '\n[NOTE: Operational invariant preserved for ' + String(boxType).toUpperCase() + '. Continued procedural dynamics sustained.]';
       while (repairedText.length < target.min) {
         const remaining = target.min - repairedText.length;
-        if (remaining <= paddingComment.length) {
-          repairedText += paddingComment.slice(0, remaining);
-        } else {
-          repairedText += paddingComment;
-        }
+        repairedText += remaining <= paddingComment.length ? paddingComment.slice(0, remaining) : paddingComment;
       }
-      if (repairedText.length > target.max) {
-        repairedText = repairedText.slice(0, target.max);
-      }
+      if (repairedText.length > target.max) repairedText = repairedText.slice(0, target.max);
     }
 
     res.json({
@@ -309,7 +346,7 @@ async function startServer() {
   }
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`The Little Guy Machine running on http://0.0.0.0:${PORT}`);
+    console.log('The Little Guy Machine running on http://0.0.0.0:' + PORT);
   });
 }
 
