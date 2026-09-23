@@ -140,6 +140,28 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
       ].join('\n')
     : 'No Signal Lab engine selected.';
 
+
+  const activeTuning = compositionEngines.find((engine) => engine.dimension === 'tuning');
+  const activeRhythmPhysics = compositionEngines.filter((engine) => engine.dimension === 'rhythmPhysics');
+  const activeSpatialAudio = compositionEngines.find((engine) => engine.dimension === 'spatialAudio');
+  const activeRoleExchange = compositionEngines.filter((engine) => engine.dimension === 'roleExchange');
+  const musicalPhysicsBlock = (activeTuning || activeRhythmPhysics.length || activeSpatialAudio || activeRoleExchange.length)
+    ? [
+        'TUNING / PITCH WORLD: ' + (activeTuning ? activeTuning.name : 'DEFAULT / UNSPECIFIED'),
+        'RHYTHMIC PHYSICS: ' + (activeRhythmPhysics.length ? activeRhythmPhysics.map((engine) => engine.name).join(' | ') : 'NONE'),
+        'STAGE GEOMETRY / SPATIAL AUDIO: ' + (activeSpatialAudio ? activeSpatialAudio.name : 'NONE'),
+        'MUSICAL ROLE EXCHANGE: ' + (activeRoleExchange.length ? activeRoleExchange.map((engine) => engine.name).join(' | ') : 'NONE'),
+        'MUSICAL-PHYSICS RULES:',
+        '- TUNING changes the allowable pitch relationships themselves. Do not write ordinary 12-TET material and sprinkle microtonal words over it.',
+        '- RHYTHMIC PHYSICS changes pulse, cycle, subdivision, phase, density, or alignment through an explicit process. Odd time alone is not enough.',
+        '- SPATIAL AUDIO changes who/what is where and how movement, distance, angle, elevation, occlusion, or room boundaries affect the arrangement.',
+        '- ROLE EXCHANGE transfers a musical job from one system to another while preserving enough source identity to hear the transfer.',
+        '- If two rhythm-physics engines are active, assign them different layers or nested time scales so both remain legible.',
+        '- If two role-exchange engines are active, specify the direction and timing of each exchange; do not let every layer swap jobs simultaneously.',
+        '- Culture-linked tuning/rhythm labels are structural references only; do not claim one fixed universal tuning or named tradition where the underlying practices are variable.',
+      ].join('\n')
+    : 'No Musical Physics engine selected.';
+
   const energyLabels: Record<number, string> = {
     1: 'ENERGY LEVEL 1: Latent Drift / Subsurface Mutation (controlled but still engaging; subtle tension and motion)',
     2: 'ENERGY LEVEL 2: Low Hum / Controlled Asymmetry (steady propulsion, occasional structural interruptions)',
@@ -194,7 +216,8 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
     '14. SOUND PALETTE FIDELITY: selected sound sources are physical/acoustic systems, not genre stickers. Preserve attack, sustain, resonance, register, noise content, articulation, and source-specific behavior. Give simultaneous sources separate musical jobs and avoid generic exoticism.\n' +
     '15. VOICE TOPOLOGY IS CAUSAL. ADDRESSEE changes disclosure and explanation; ENSEMBLE changes information distribution, turn-taking, overlap, and authority; GESTURE changes breath, timing, articulation, movement, and body-percussion. Do not reduce these choices to cast labels or stage directions.\n' +
     '16. SIGNAL LAB IS INFORMATION PHYSICS. TRANSMISSION controls delivery topology; TRANSDUCTION converts one variable into another through a stable mapping; RECORDING DAMAGE creates timed failure; TECHNOLOGY defines what operations exist and what they cost. Do not collapse all four into generic retro/noisy production.\n' +
-    '17. OUTPUT FORMAT: valid JSON with keys style, lyrics, caption, fingerprint. fingerprint must contain genreFamily, harmony, melody, rhythm, timbre, vocal, performance, production.\n\n' +
+    '17. MUSICAL PHYSICS CHANGES THE COORDINATE SYSTEM. TUNING changes interval geometry; RHYTHM PHYSICS changes time organization; SPATIAL AUDIO changes physical placement and motion; ROLE EXCHANGE changes which musical system performs which job. These are causal laws, not vibe adjectives.\n' +
+    '18. OUTPUT FORMAT: valid JSON with keys style, lyrics, caption, fingerprint. fingerprint must contain genreFamily, harmony, melody, rhythm, timbre, vocal, performance, production.\n\n' +
     'TARGET CHARACTER COUNTS INCLUDING SPACES AND LINE BREAKS:\n' +
     'style: 975 to 999 characters.\n' +
     'lyrics: 4900 to 4999 characters.\n' +
@@ -209,8 +232,9 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
     'SOUND PALETTE / SOURCE ASSIGNMENT:\n' + soundPaletteBlock + '\n\n' +
     'VOICE TOPOLOGY / ADDRESSEE / BODY:\n' + voiceTopologyBlock + '\n\n' +
     'SIGNAL LAB / INFORMATION PHYSICS:\n' + signalLabBlock + '\n\n' +
+    'MUSICAL PHYSICS / COORDINATE SYSTEM:\n' + musicalPhysicsBlock + '\n\n' +
     'COMPOSITION LAB NEGOTIATION RULE:\n' +
-    'Keep Composition Lab mechanisms separate from scenario decoration. Multiple active engines may coexist in the same dimension where the registry allows it. Each one must perform measurable work through its own jurisdiction. Sound sources should receive musical jobs; transmission must change information delivery; transduction must apply stable mappings; recording damage must occur as timed failure; technology must constrain the available workflow; language should alter mouth behavior; addressee must alter disclosure/assumption; ensemble topology must alter phrase and information distribution; gestures must alter timing/breath/motion; structural/control engines should create consequences that the song must respond to. Cross-domain chemistry is not yet precomputed, so preserve all mechanisms explicitly rather than averaging them.\n\n' +
+    'Keep Composition Lab mechanisms separate from scenario decoration. Multiple active engines may coexist in the same dimension where the registry allows it. Each one must perform measurable work through its own jurisdiction. Sound sources should receive musical jobs; transmission must change information delivery; transduction must apply stable mappings; recording damage must occur as timed failure; technology must constrain the available workflow; tuning must change actual pitch relationships; rhythm physics must change time organization; spatial audio must change placement/motion; role exchange must transfer a real musical job; language should alter mouth behavior; addressee must alter disclosure/assumption; ensemble topology must alter phrase and information distribution; gestures must alter timing/breath/motion; structural/control engines should create consequences that the song must respond to. Cross-domain chemistry is not yet precomputed, so preserve all mechanisms explicitly rather than averaging them.\n\n' +
     'REALITY ENGINE NEGOTIATION RULE:\n' +
     'Treat each selected engine as an operational law in its own jurisdiction. Do not merely name it or decorate lyrics with its vocabulary. If the format is a game show, the lyric architecture must actually behave like one. If the headspace is overloaded, attention and thread management must actually change. If an altered-state engine is active, use its defined phenomenological mechanism rather than generic drug imagery. Preserve productive incompatibility between layers. Use the collision map above to decide WHERE the song generates events: the high-friction seam should repeatedly force one jurisdiction to solve a problem created by another.\n\n' +
     'ENERGY PARAMETER:\n' + (energyLabels[energy] || energyLabels[3]) + '\n\n' +
