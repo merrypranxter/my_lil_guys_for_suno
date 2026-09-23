@@ -114,6 +114,7 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
   const compositionEngines = getCompositionEngines(compositionEngineIds);
   const activeLanguage = compositionEngines.find((engine) => engine.dimension === 'language');
   const activeLanguageMode = compositionEngines.find((engine) => engine.dimension === 'languageMode');
+  const activeSoundSources = compositionEngines.filter((engine) => engine.dimension === 'soundSource');
   const chemistry = analyzeRealityChemistry(realityEngineIds);
   const chaosMeta = REALITY_CHAOS_LABELS[realityChaos];
 
@@ -136,6 +137,11 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
     ? '[LANGUAGE SYSTEM: ' + activeLanguage.name + '; mode=' + (activeLanguageMode?.name || 'phonology/prosody guidance only') + '. Phonology first; no eye-dialect or ethnic caricature.]'
     : '[LANGUAGE SYSTEM: none selected.]';
 
+
+  const soundPaletteClause = activeSoundSources.length
+    ? '[SOUND PALETTE: ' + activeSoundSources.map((engine, index) => (index + 1) + '=' + engine.name).join('; ') + '. Give every source a separate job/register; preserve attack, sustain, resonance, and noise behavior; do not run every source constantly.]'
+    : '[SOUND PALETTE: no extra sources selected.]';
+
   const baseStyle =
     '[GENRE/PERFORMANCE FAMILY: ' + fingerprint.genreFamily + '] ' +
     '[TEMPO: ' + tempo + '] ' +
@@ -148,6 +154,7 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
     realityStyleClause + ' ' +
     compositionStyleClause + ' ' +
     languageStyleClause + ' ' +
+    soundPaletteClause + ' ' +
     '[ANCHOR / INVARIANT: a short recurring three-note or three-syllable figure returns recognizably after every mutation.] ' +
     '[OPERATOR 1: hold rhythmic identity fixed while harmony migrates.] ' +
     '[OPERATOR 2: make the vocal system behave like percussion without becoming percussion.] ' +
@@ -174,6 +181,7 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
   const sections = [
     '[FORM — establish the musical world]\n' +
       '[Arrangement: ' + fingerprint.timbre + ']\n' +
+      (activeSoundSources.length ? '[SOUND SOURCE ROLES: assign ' + activeSoundSources.map((engine, index) => engine.name + '=' + ['ANCHOR','PULSE','BASS','LEAD','TEXTURE','ORNAMENT','INTERRUPTION','NOISE FLOOR'][index % 8]).join('; ') + '.]\n' : '') +
       '[Production: ' + fingerprint.production + ']\n' +
       '[Rhythm establishes: ' + fingerprint.rhythm + ']\n' +
       '[Vocal behavior establishes: ' + fingerprint.vocal + ']\n' +
