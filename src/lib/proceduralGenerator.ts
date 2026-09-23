@@ -112,6 +112,8 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
 
   const realityEngines = getRealityEngines(realityEngineIds);
   const compositionEngines = getCompositionEngines(compositionEngineIds);
+  const activeLanguage = compositionEngines.find((engine) => engine.dimension === 'language');
+  const activeLanguageMode = compositionEngines.find((engine) => engine.dimension === 'languageMode');
   const chemistry = analyzeRealityChemistry(realityEngineIds);
   const chaosMeta = REALITY_CHAOS_LABELS[realityChaos];
 
@@ -129,6 +131,11 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
     ? '[COMPOSITION LAB: ' + compositionEngines.map((engine) => COMPOSITION_DIMENSION_LABELS[engine.dimension] + '=' + engine.name).join('; ') + '. Each mechanism must remain independently audible or structurally testable.]'
     : '[COMPOSITION LAB: no extra composition engines selected.]';
 
+
+  const languageStyleClause = activeLanguage
+    ? '[LANGUAGE SYSTEM: ' + activeLanguage.name + '; mode=' + (activeLanguageMode?.name || 'phonology/prosody guidance only') + '. Phonology first; no eye-dialect or ethnic caricature.]'
+    : '[LANGUAGE SYSTEM: none selected.]';
+
   const baseStyle =
     '[GENRE/PERFORMANCE FAMILY: ' + fingerprint.genreFamily + '] ' +
     '[TEMPO: ' + tempo + '] ' +
@@ -140,6 +147,7 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
     '[PERFORMANCE ATTITUDE: ' + fingerprint.performance + '.] ' +
     realityStyleClause + ' ' +
     compositionStyleClause + ' ' +
+    languageStyleClause + ' ' +
     '[ANCHOR / INVARIANT: a short recurring three-note or three-syllable figure returns recognizably after every mutation.] ' +
     '[OPERATOR 1: hold rhythmic identity fixed while harmony migrates.] ' +
     '[OPERATOR 2: make the vocal system behave like percussion without becoming percussion.] ' +
@@ -192,6 +200,7 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
 
     '[VOCAL ENGINE — use the mouth as part of the arrangement]\n' +
       '[Primary vocal technique: ' + fingerprint.vocal + ']\n' +
+      (activeLanguage ? '[LANGUAGE FIDELITY: ' + activeLanguage.name + ' with ' + (activeLanguageMode?.name || 'phonology/prosody guidance only') + '; preserve phonological mechanics without stereotype.]\n' : '') +
       '[Hard consonants become transient attacks: tk, kk, pt, dr.]\n' +
       '[Nasals become resonance: mm, nn, ng.]\n' +
       '[Open vowels become sustained melody: aa, oh, ee.]\n' +
