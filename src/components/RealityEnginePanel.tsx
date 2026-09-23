@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Dices, Lock, Search, Shuffle, Trash2, Unlock, X } from 'lucide-react';
+import { Dices, Lock, Search, Shuffle, Sparkles, Trash2, Unlock, X } from 'lucide-react';
 import { RealityDimension, RealityEngine } from '../types';
 import {
   REALITY_DIMENSION_JURISDICTIONS,
@@ -8,6 +8,12 @@ import {
   getRealityEngine,
   getRealityEnginesByDimension,
 } from '../data/realityEngines';
+import {
+  analyzeRealityCollision,
+  generateRealityStack,
+  REALITY_CHAOS_PRESETS,
+  RealityChaosLevel,
+} from '../data/realityCompatibility';
 
 interface RealityEnginePanelProps {
   selectedIds: string[];
@@ -57,6 +63,7 @@ export function RealityEnginePanel({ selectedIds, onChange }: RealityEnginePanel
   const [activeDimension, setActiveDimension] = useState<RealityDimension>('format');
   const [search, setSearch] = useState('');
   const [lockedDimensions, setLockedDimensions] = useState<RealityDimension[]>([]);
+  const [chaosLevel, setChaosLevel] = useState<RealityChaosLevel>(1);
 
   const selected = selectedIds
     .map((id) => getRealityEngine(id))
@@ -67,6 +74,8 @@ export function RealityEnginePanel({ selectedIds, onChange }: RealityEnginePanel
     selected.forEach((engine) => map.set(engine.dimension, engine));
     return map;
   }, [selectedIds.join('|')]);
+
+  const collisionReport = useMemo(() => analyzeRealityCollision(selected), [selectedIds.join('|')]);
 
   const visibleCards = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -102,31 +111,28 @@ export function RealityEnginePanel({ selectedIds, onChange }: RealityEnginePanel
     );
   };
 
-  const randomizeReality = () => {
-    let next = [...selectedIds];
-    RANDOM_POOL.forEach((dimension) => {
-      if (lockedDimensions.includes(dimension)) return;
-      const pick = choose(getRealityEnginesByDimension(dimension));
-      if (!pick) return;
-      next = next.filter((id) => getRealityEngine(id)?.dimension !== dimension);
-      next.push(pick.id);
-    });
-    onChange(next);
+  const intelligentRandomize = (forceAllDimensions: boolean) => {
+    const locked = selected.filter((engine) => lockedDimensions.includes(engine.dimension));
+    const dimensions = forceAllDimensions
+      ? RANDOM_POOL
+      : [...RANDOM_POOL].sort(() => Math.random() - 0.5);
+
+    const stack = generateRealityStack(dimensions, locked, forceAllDimensions ? Math.max(1, chaosLevel) as RealityChaosLevel : chaosLevel);
+
+    if (forceAllDimensions) {
+      const present = new Set(stack.map((engine) => engine.dimension));
+      RANDOM_POOL.forEach((dimension) => {
+        if (present.has(dimension) || lockedDimensions.includes(dimension)) return;
+        const pick = choose(getRealityEnginesByDimension(dimension));
+        if (pick) stack.push(pick);
+      });
+    }
+
+    onChange(stack.map((engine) => engine.id));
   };
 
-  const surpriseMe = () => {
-    const unlocked = RANDOM_POOL.filter((dimension) => !lockedDimensions.includes(dimension));
-    const shuffled = [...unlocked].sort(() => Math.random() - 0.5);
-    const count = Math.min(shuffled.length, 3 + Math.floor(Math.random() * 4));
-    let next = selectedIds.filter((id) => lockedDimensions.includes(getRealityEngine(id)?.dimension as RealityDimension));
-
-    shuffled.slice(0, count).forEach((dimension) => {
-      const pick = choose(getRealityEnginesByDimension(dimension));
-      if (pick) next.push(pick.id);
-    });
-
-    onChange(next);
-  };
+  const randomizeReality = () => intelligentRandomize(true);
+  const surpriseMe = () => intelligentRandomize(false);
 
   const clearUnlocked = () => {
     onChange(selectedIds.filter((id) => lockedDimensions.includes(getRealityEngine(id)?.dimension as RealityDimension)));
@@ -159,6 +165,31 @@ export function RealityEnginePanel({ selectedIds, onChange }: RealityEnginePanel
             <button type="button" onClick={clearUnlocked} className="px-3 py-2 rounded-lg border border-[#334155] bg-[#111827] text-[#9aa7ba] hover:text-white font-mono text-[11px] inline-flex items-center justify-center gap-1.5 sm:col-auto col-span-2">
               <Trash2 className="w-3.5 h-3.5" /> CLEAR UNLOCKED
             </button>
+          </div>
+        </div>
+
+        <div className="mt-4 rounded-xl border border-[#2b3447] bg-[#080b11] p-3">
+          <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+            <div className="flex items-center gap-2 min-w-fit">
+              <Sparkles className="w-3.5 h-3.5 text-[#ffe600]" />
+              <span className="text-[10px] font-mono font-black text-white tracking-wider">COLLISION INTELLIGENCE</span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 flex-1">
+              {REALITY_CHAOS_PRESETS.map((preset) => (
+                <button
+                  key={preset.level}
+                  type="button"
+                  onClick={() => setChaosLevel(preset.level)}
+                  title={preset.subtitle}
+                  className={'rounded-md border px-2 py-1.5 text-[9px] font-mono font-bold transition-all ' + (chaosLevel === preset.level ? 'border-[#ffe600] bg-[#2a2608] text-[#fff37a]' : 'border-[#293246] bg-[#0e121a] text-[#77859a] hover:text-white')}
+                >
+                  {preset.name}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="mt-2 text-[9px] font-mono text-[#69778c]">
+            Randomizers now search for combinations near this collision level instead of blindly picking cards.
           </div>
         </div>
 
@@ -291,6 +322,31 @@ export function RealityEnginePanel({ selectedIds, onChange }: RealityEnginePanel
         {visibleCards.length === 0 && (
           <div className="py-10 text-center font-mono text-xs text-[#64748b]">
             No reality card matched "{search}" in {REALITY_DIMENSION_LABELS[activeDimension]}.
+          </div>
+        )}
+
+        {selected.length >= 2 && (
+          <div className="mt-4 rounded-xl border border-[#30384a] bg-[#090c12] p-3.5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <div className="text-[9px] font-mono font-bold tracking-widest text-[#78869b]">CURRENT COLLISION</div>
+                <div className="text-xs font-mono font-black text-white">{collisionReport.label}</div>
+              </div>
+              <div className="rounded-full border border-[#3a4558] px-2.5 py-1 text-[10px] font-mono text-[#b8c3d4]">
+                friction {collisionReport.score > 0 ? '+' : ''}{collisionReport.score}
+              </div>
+            </div>
+            <p className="mt-2 text-[10px] leading-relaxed font-mono text-[#8d9aab]">{collisionReport.explanation}</p>
+            {collisionReport.strongestPairs.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {collisionReport.strongestPairs.map((pair, index) => (
+                  <div key={pair.a + pair.b + index} className="text-[9px] font-mono text-[#66758a]">
+                    <span className="text-[#aab6c7]">{pair.a}</span> × <span className="text-[#aab6c7]">{pair.b}</span>
+                    {' — '}{pair.reasons[0]}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
