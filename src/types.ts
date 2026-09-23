@@ -56,6 +56,51 @@ export interface RealityEngine {
   sourceNotes?: string[];
 }
 
+
+export type CompositionDomain =
+  | 'voice'
+  | 'signal'
+  | 'sonic'
+  | 'structure';
+
+export type CompositionDimension =
+  | 'language'
+  | 'languageMode'
+  | 'addressee'
+  | 'ensemble'
+  | 'gesture'
+  | 'transmission'
+  | 'transduction'
+  | 'recordingDamage'
+  | 'technology'
+  | 'soundSource'
+  | 'tuning'
+  | 'rhythmPhysics'
+  | 'spatialAudio'
+  | 'roleExchange'
+  | 'temporal'
+  | 'scale'
+  | 'audience'
+  | 'epistemology'
+  | 'constraint'
+  | 'economy'
+  | 'failureMode'
+  | 'controlAuthority'
+  | 'prop';
+
+export interface CompositionEngine {
+  id: string;
+  domain: CompositionDomain;
+  dimension: CompositionDimension;
+  name: string;
+  subtitle: string;
+  rule: string;
+  shortExplanation: string;
+  tags: string[];
+  accentColor?: string;
+  sourceNotes?: string[];
+}
+
 export type RealityChaosLevel = 1 | 2 | 3 | 4;
 
 export type BoxType = 'style' | 'lyrics' | 'caption';
@@ -74,6 +119,7 @@ export interface MusicFingerprint {
 export interface GenerationRequest {
   guyIds: string[];
   realityEngineIds?: string[];
+  compositionEngineIds?: string[];
   realityChaos?: RealityChaosLevel;
   seed?: string;
   energy: number;
@@ -101,6 +147,7 @@ export interface RepairRequest {
   seed?: string;
   guyIds: string[];
   realityEngineIds?: string[];
+  compositionEngineIds?: string[];
   realityChaos?: RealityChaosLevel;
 }
 
@@ -109,6 +156,7 @@ export interface SavedStack {
   name: string;
   guyIds: string[];
   realityEngineIds: string[];
+  compositionEngineIds: string[];
   realityChaos?: RealityChaosLevel;
   createdAt: number;
 }
@@ -118,6 +166,7 @@ export interface ArchivedRun {
   createdAt: number;
   guyIds: string[];
   realityEngineIds: string[];
+  compositionEngineIds: string[];
   realityChaos?: RealityChaosLevel;
   seed: string;
   energy: number;
