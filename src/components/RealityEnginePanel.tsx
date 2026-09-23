@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { Dices, Lock, Search, Shuffle, Sparkles, Trash2, Unlock, X } from 'lucide-react';
-import { RealityDimension, RealityEngine } from '../types';
+import { Dices, FlaskConical, Lock, Search, Shuffle, Sparkles, Trash2, Unlock, X } from 'lucide-react';
+import { RealityChaosLevel, RealityDimension, RealityEngine } from '../types';
 import {
   REALITY_DIMENSION_JURISDICTIONS,
   REALITY_DIMENSION_LABELS,
@@ -9,15 +9,19 @@ import {
   getRealityEnginesByDimension,
 } from '../data/realityEngines';
 import {
-  analyzeRealityCollision,
-  generateRealityStack,
-  REALITY_CHAOS_PRESETS,
-  RealityChaosLevel,
-} from '../data/realityCompatibility';
+  REALITY_CHAOS_LABELS,
+  analyzeRealityChemistry,
+  buildSmartRealitySet,
+  chooseSmartRealityEngine,
+  seededRandom,
+} from '../lib/realityChemistry';
 
 interface RealityEnginePanelProps {
   selectedIds: string[];
   onChange: (ids: string[]) => void;
+  chaosLevel: RealityChaosLevel;
+  onChaosChange: (level: RealityChaosLevel) => void;
+  preferenceWeights?: Record<string, number>;
 }
 
 const DIMENSIONS: RealityDimension[] = [
@@ -42,12 +46,12 @@ const DIMENSION_COLORS: Record<RealityDimension, string> = {
   tone: '#7df9ff',
 };
 
-const RANDOM_POOL: RealityDimension[] = ['format', 'role', 'world', 'species', 'venue', 'headspace', 'alteredState', 'tone'];
-
-function choose<T>(items: T[]): T | undefined {
-  if (!items.length) return undefined;
-  return items[Math.floor(Math.random() * items.length)];
-}
+const CHAOS_COLORS: Record<RealityChaosLevel, string> = {
+  1: '#39ff14',
+  2: '#00f0ff',
+  3: '#ff8a00',
+  4: '#ff0055',
+};
 
 function engineSearchText(engine: RealityEngine) {
   return [
@@ -59,11 +63,21 @@ function engineSearchText(engine: RealityEngine) {
   ].join(' ').toLowerCase();
 }
 
-export function RealityEnginePanel({ selectedIds, onChange }: RealityEnginePanelProps) {
+function randomSeed(prefix: string, selectedIds: string[], chaosLevel: RealityChaosLevel) {
+  return prefix + '|' + Date.now() + '|' + selectedIds.join('|') + '|chaos=' + chaosLevel;
+}
+
+export function RealityEnginePanel({
+  selectedIds,
+  onChange,
+  chaosLevel,
+  onChaosChange,
+  preferenceWeights = {},
+}: RealityEnginePanelProps) {
   const [activeDimension, setActiveDimension] = useState<RealityDimension>('format');
   const [search, setSearch] = useState('');
   const [lockedDimensions, setLockedDimensions] = useState<RealityDimension[]>([]);
-  const [chaosLevel, setChaosLevel] = useState<RealityChaosLevel>(1);
+  const [showChemistryDetails, setShowChemistryDetails] = useState(false);
 
   const selected = selectedIds
     .map((id) => getRealityEngine(id))
@@ -75,7 +89,7 @@ export function RealityEnginePanel({ selectedIds, onChange }: RealityEnginePanel
     return map;
   }, [selectedIds.join('|')]);
 
-  const collisionReport = useMemo(() => analyzeRealityCollision(selected), [selectedIds.join('|')]);
+  const chemistry = useMemo(() => analyzeRealityChemistry(selectedIds), [selectedIds.join('|')]);
 
   const visibleCards = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -99,7 +113,8 @@ export function RealityEnginePanel({ selectedIds, onChange }: RealityEnginePanel
 
   const randomizeDimension = (dimension: RealityDimension) => {
     if (lockedDimensions.includes(dimension)) return;
-    const pick = choose(getRealityEnginesByDimension(dimension));
+    const rng = seededRandom(randomSeed('dimension:' + dimension, selectedIds, chaosLevel));
+    const pick = chooseSmartRealityEngine(dimension, selectedIds, chaosLevel, rng, preferenceWeights);
     if (!pick) return;
     const withoutDimension = selectedIds.filter((id) => getRealityEngine(id)?.dimension !== dimension);
     onChange([...withoutDimension, pick.id]);
@@ -111,28 +126,32 @@ export function RealityEnginePanel({ selectedIds, onChange }: RealityEnginePanel
     );
   };
 
-  const intelligentRandomize = (forceAllDimensions: boolean) => {
-    const locked = selected.filter((engine) => lockedDimensions.includes(engine.dimension));
-    const dimensions = forceAllDimensions
-      ? RANDOM_POOL
-      : [...RANDOM_POOL].sort(() => Math.random() - 0.5);
-
-    const stack = generateRealityStack(dimensions, locked, forceAllDimensions ? Math.max(1, chaosLevel) as RealityChaosLevel : chaosLevel);
-
-    if (forceAllDimensions) {
-      const present = new Set(stack.map((engine) => engine.dimension));
-      RANDOM_POOL.forEach((dimension) => {
-        if (present.has(dimension) || lockedDimensions.includes(dimension)) return;
-        const pick = choose(getRealityEnginesByDimension(dimension));
-        if (pick) stack.push(pick);
-      });
-    }
-
-    onChange(stack.map((engine) => engine.id));
+  const randomizeReality = () => {
+    onChange(buildSmartRealitySet({
+      currentIds: selectedIds,
+      lockedDimensions,
+      chaos: chaosLevel,
+      dimensions: DIMENSIONS,
+      seed: randomSeed('full', selectedIds, chaosLevel),
+      preferenceWeights,
+    }));
   };
 
-  const randomizeReality = () => intelligentRandomize(true);
-  const surpriseMe = () => intelligentRandomize(false);
+  const surpriseMe = () => {
+    const unlockedCount = DIMENSIONS.filter((dimension) => !lockedDimensions.includes(dimension)).length;
+    const baseCount = chaosLevel === 1 ? 3 : chaosLevel === 2 ? 4 : chaosLevel === 3 ? 5 : 6;
+    const wobble = Math.floor(Math.random() * 3);
+    const count = Math.min(unlockedCount, baseCount + wobble);
+    onChange(buildSmartRealitySet({
+      currentIds: selectedIds,
+      lockedDimensions,
+      chaos: chaosLevel,
+      dimensions: DIMENSIONS,
+      count,
+      seed: randomSeed('surprise', selectedIds, chaosLevel),
+      preferenceWeights,
+    }));
+  };
 
   const clearUnlocked = () => {
     onChange(selectedIds.filter((id) => lockedDimensions.includes(getRealityEngine(id)?.dimension as RealityDimension)));
@@ -151,7 +170,7 @@ export function RealityEnginePanel({ selectedIds, onChange }: RealityEnginePanel
               </span>
             </div>
             <p className="mt-1 text-[11px] md:text-xs font-mono text-[#7d8ba1]">
-              WHERE the song thinks it is, WHO is speaking, WHAT is happening, and WHAT STATE reality is in.
+              Smart combiner: preserve jurisdictions, measure chemistry, and choose collisions on purpose instead of making adjective soup.
             </p>
           </div>
 
@@ -168,29 +187,71 @@ export function RealityEnginePanel({ selectedIds, onChange }: RealityEnginePanel
           </div>
         </div>
 
-        <div className="mt-4 rounded-xl border border-[#2b3447] bg-[#080b11] p-3">
-          <div className="flex flex-col lg:flex-row lg:items-center gap-3">
-            <div className="flex items-center gap-2 min-w-fit">
-              <Sparkles className="w-3.5 h-3.5 text-[#ffe600]" />
-              <span className="text-[10px] font-mono font-black text-white tracking-wider">COLLISION INTELLIGENCE</span>
+        <div className="mt-4 rounded-xl border border-[#263044] bg-[#080b11] p-3 md:p-4">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+            <div className="min-w-0">
+              <div className="text-[9px] font-mono font-bold tracking-[0.18em] text-[#657188]">TEMPORARY CONSCIOUSNESS</div>
+              <div className="mt-1 text-xs md:text-sm text-white leading-relaxed">{chemistry.narrator}</div>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 flex-1">
-              {REALITY_CHAOS_PRESETS.map((preset) => (
+            <div className="flex-none text-left lg:text-right">
+              <div className="font-mono text-[10px] tracking-wider" style={{ color: CHAOS_COLORS[chaosLevel] }}>
+                {chemistry.label}
+              </div>
+              <div className="text-[10px] font-mono text-[#728095]">
+                affinity {chemistry.affinity} · friction {chemistry.friction} · tension {chemistry.productiveTension}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-3 grid grid-cols-4 gap-1.5">
+            {([1, 2, 3, 4] as RealityChaosLevel[]).map((level) => {
+              const active = chaosLevel === level;
+              const meta = REALITY_CHAOS_LABELS[level];
+              const color = CHAOS_COLORS[level];
+              return (
                 <button
-                  key={preset.level}
+                  key={level}
                   type="button"
-                  onClick={() => setChaosLevel(preset.level)}
-                  title={preset.subtitle}
-                  className={'rounded-md border px-2 py-1.5 text-[9px] font-mono font-bold transition-all ' + (chaosLevel === preset.level ? 'border-[#ffe600] bg-[#2a2608] text-[#fff37a]' : 'border-[#293246] bg-[#0e121a] text-[#77859a] hover:text-white')}
+                  onClick={() => onChaosChange(level)}
+                  className={'rounded-lg border px-2 py-2 text-center transition-all ' + (active ? 'bg-[#151923]' : 'bg-[#0b0e14] border-[#283143] hover:border-[#45526a]')}
+                  style={active ? { borderColor: color, boxShadow: '0 0 14px ' + color + '22' } : {}}
+                  title={meta.short}
                 >
-                  {preset.name}
+                  <div className="text-[9px] md:text-[10px] font-mono font-black" style={{ color: active ? color : '#a4afbf' }}>{meta.name}</div>
+                  <div className="hidden md:block mt-0.5 text-[8px] font-mono text-[#5f6d83]">{meta.short}</div>
                 </button>
-              ))}
+              );
+            })}
+          </div>
+
+          {selected.length >= 2 && (
+            <div className="mt-3">
+              <button
+                type="button"
+                onClick={() => setShowChemistryDetails((value) => !value)}
+                className="inline-flex items-center gap-1.5 text-[10px] font-mono text-[#8ea0b8] hover:text-white"
+              >
+                <FlaskConical className="w-3 h-3" />
+                {showChemistryDetails ? 'HIDE COLLISION MAP' : 'SHOW COLLISION MAP'}
+              </button>
+              {showChemistryDetails && (
+                <div className="mt-2 grid grid-cols-1 lg:grid-cols-2 gap-2">
+                  <div className="rounded-lg border border-[#242d3d] bg-[#0b0e14] p-2.5">
+                    <div className="text-[9px] font-mono font-bold text-[#ff9dea] mb-1">STRONGEST SEAMS</div>
+                    {chemistry.pairNotes.length ? chemistry.pairNotes.map((note) => (
+                      <div key={note} className="text-[9px] md:text-[10px] font-mono text-[#8c9aaf] leading-relaxed">• {note}</div>
+                    )) : <div className="text-[10px] font-mono text-[#66758a]">No pair data yet.</div>}
+                  </div>
+                  <div className="rounded-lg border border-[#242d3d] bg-[#0b0e14] p-2.5">
+                    <div className="text-[9px] font-mono font-bold text-[#00f0ff] mb-1">NEGOTIATION ORDERS</div>
+                    {chemistry.directives.slice(0, 4).map((directive) => (
+                      <div key={directive} className="text-[9px] md:text-[10px] font-mono text-[#8c9aaf] leading-relaxed">• {directive}</div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-          <div className="mt-2 text-[9px] font-mono text-[#69778c]">
-            Randomizers now search for combinations near this collision level instead of blindly picking cards.
-          </div>
+          )}
         </div>
 
         {selected.length > 0 ? (
@@ -224,7 +285,7 @@ export function RealityEnginePanel({ selectedIds, onChange }: RealityEnginePanel
           </div>
         ) : (
           <div className="mt-4 rounded-lg border border-dashed border-[#30394c] bg-[#090c12] px-3 py-2 text-[11px] font-mono text-[#657188]">
-            No Reality Engines selected yet. Pick individual cards below or hit SURPRISE ME and let the machine make a bad decision.
+            No Reality Engines selected. Pick cards or let the chemistry engine assemble a temporary consciousness.
           </div>
         )}
       </div>
@@ -265,7 +326,7 @@ export function RealityEnginePanel({ selectedIds, onChange }: RealityEnginePanel
           </div>
           <div className="flex gap-2">
             <button type="button" onClick={() => randomizeDimension(activeDimension)} disabled={lockedDimensions.includes(activeDimension)} className="px-2.5 py-1.5 rounded-md border border-[#334155] text-[10px] font-mono text-[#a8b3c5] hover:text-white disabled:opacity-40 inline-flex items-center gap-1">
-              <Dices className="w-3 h-3" /> RANDOM
+              <Sparkles className="w-3 h-3" /> SMART ROLL
             </button>
             <button type="button" onClick={() => toggleLock(activeDimension)} className="px-2.5 py-1.5 rounded-md border border-[#334155] text-[10px] font-mono text-[#a8b3c5] hover:text-white inline-flex items-center gap-1">
               {lockedDimensions.includes(activeDimension) ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
@@ -293,6 +354,7 @@ export function RealityEnginePanel({ selectedIds, onChange }: RealityEnginePanel
           {visibleCards.map((engine) => {
             const active = selectedByDimension.get(engine.dimension)?.id === engine.id;
             const color = engine.accentColor || DIMENSION_COLORS[engine.dimension];
+            const preference = preferenceWeights[engine.id] || 0;
             return (
               <button
                 key={engine.id}
@@ -303,7 +365,10 @@ export function RealityEnginePanel({ selectedIds, onChange }: RealityEnginePanel
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="font-mono font-black text-xs leading-tight" style={{ color: active ? color : '#e5e7eb' }}>{engine.name}</div>
-                  <span className="flex-none w-2 h-2 mt-0.5 rounded-full" style={{ backgroundColor: color, boxShadow: active ? '0 0 10px ' + color : 'none' }} />
+                  <div className="flex items-center gap-1.5">
+                    {preference > 0 && <span className="text-[8px] font-mono text-[#ffe680]" title="Star feedback has positively weighted this engine">★{Math.round(preference * 100)}</span>}
+                    <span className="flex-none w-2 h-2 rounded-full" style={{ backgroundColor: color, boxShadow: active ? '0 0 10px ' + color : 'none' }} />
+                  </div>
                 </div>
                 <div className="mt-1 text-[10px] font-mono text-[#8b98aa]">{engine.subtitle}</div>
                 <div className="mt-2 text-[11px] leading-relaxed text-[#b4bdca]">{engine.shortExplanation}</div>
@@ -322,31 +387,6 @@ export function RealityEnginePanel({ selectedIds, onChange }: RealityEnginePanel
         {visibleCards.length === 0 && (
           <div className="py-10 text-center font-mono text-xs text-[#64748b]">
             No reality card matched "{search}" in {REALITY_DIMENSION_LABELS[activeDimension]}.
-          </div>
-        )}
-
-        {selected.length >= 2 && (
-          <div className="mt-4 rounded-xl border border-[#30384a] bg-[#090c12] p-3.5">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
-                <div className="text-[9px] font-mono font-bold tracking-widest text-[#78869b]">CURRENT COLLISION</div>
-                <div className="text-xs font-mono font-black text-white">{collisionReport.label}</div>
-              </div>
-              <div className="rounded-full border border-[#3a4558] px-2.5 py-1 text-[10px] font-mono text-[#b8c3d4]">
-                friction {collisionReport.score > 0 ? '+' : ''}{collisionReport.score}
-              </div>
-            </div>
-            <p className="mt-2 text-[10px] leading-relaxed font-mono text-[#8d9aab]">{collisionReport.explanation}</p>
-            {collisionReport.strongestPairs.length > 0 && (
-              <div className="mt-2 space-y-1">
-                {collisionReport.strongestPairs.map((pair, index) => (
-                  <div key={pair.a + pair.b + index} className="text-[9px] font-mono text-[#66758a]">
-                    <span className="text-[#aab6c7]">{pair.a}</span> × <span className="text-[#aab6c7]">{pair.b}</span>
-                    {' — '}{pair.reasons[0]}
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         )}
 
