@@ -15,6 +15,8 @@ import {
   setLastStack,
   getLastRealityEngineIds,
   setLastRealityEngineIds,
+  getLastCompositionEngineIds,
+  setLastCompositionEngineIds,
   getSavedRealityChaos,
   setSavedRealityChaos,
   getSavedEnergy,
@@ -60,6 +62,7 @@ export default function App() {
   });
 
   const [realityEngineIds, setRealityEngineIds] = useState<string[]>(() => getLastRealityEngineIds());
+  const [compositionEngineIds, setCompositionEngineIds] = useState<string[]>(() => getLastCompositionEngineIds());
   const [realityChaos, setRealityChaos] = useState<RealityChaosLevel>(() => getSavedRealityChaos());
   const [savedStacks, setSavedStacks] = useState<SavedStack[]>(() => getSavedStacks());
   const [seed, setSeed] = useState<string>(() => getSavedSeed());
@@ -103,6 +106,10 @@ export default function App() {
   useEffect(() => {
     setLastRealityEngineIds(realityEngineIds);
   }, [realityEngineIds]);
+
+  useEffect(() => {
+    setLastCompositionEngineIds(compositionEngineIds);
+  }, [compositionEngineIds]);
 
   useEffect(() => {
     setSavedRealityChaos(realityChaos);
@@ -166,12 +173,13 @@ export default function App() {
   };
 
   const handleSaveStack = (name: string) => {
-    setSavedStacks(saveStackToFavorites(name, stackGuyIds, realityEngineIds, realityChaos));
+    setSavedStacks(saveStackToFavorites(name, stackGuyIds, realityEngineIds, realityChaos, compositionEngineIds));
   };
 
   const handleLoadSavedStack = (saved: SavedStack) => {
     setStackGuyIds(saved.guyIds);
     setRealityEngineIds(saved.realityEngineIds || []);
+    setCompositionEngineIds(saved.compositionEngineIds || []);
     if (saved.realityChaos) setRealityChaos(saved.realityChaos);
   };
 
@@ -186,6 +194,7 @@ export default function App() {
     const run = saveGeneratedRun({
       guyIds: [...stackGuyIds],
       realityEngineIds: [...realityEngineIds],
+      compositionEngineIds: [...compositionEngineIds],
       realityChaos,
       seed,
       energy,
@@ -224,6 +233,7 @@ export default function App() {
         body: JSON.stringify({
           guyIds: stackGuyIds,
           realityEngineIds,
+          compositionEngineIds,
           realityChaos,
           seed,
           energy,
@@ -278,6 +288,7 @@ export default function App() {
           const fallback = generateProceduralTrack({
             guyIds: stackGuyIds,
             realityEngineIds,
+            compositionEngineIds,
             realityChaos,
             seed,
             energy,
