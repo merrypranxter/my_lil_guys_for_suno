@@ -5,6 +5,10 @@ import { SOUND_SOURCE_ENGINES } from './soundSources';
 import { ADDRESSEE_ENGINES } from './voiceAddressees';
 import { ENSEMBLE_ENGINES } from './voiceEnsembles';
 import { GESTURE_ENGINES } from './voiceGestures';
+import { TRANSMISSION_ENGINES } from './signalTransmission';
+import { TRANSDUCTION_ENGINES } from './signalTransduction';
+import { RECORDING_DAMAGE_ENGINES } from './signalRecordingDamage';
+import { TECHNOLOGY_ENGINES } from './signalTechnology';
 
 /**
  * Composition Lab is separate from Reality Engine.
@@ -19,7 +23,9 @@ import { GESTURE_ENGINES } from './voiceGestures';
  * Job 10 populates SOUND PALETTE / SOURCE.
  * Job 11 populates ADDRESSEE / RELATIONSHIP, ENSEMBLE / VOICE TOPOLOGY,
  * and PHYSICAL GESTURE / BODY.
- * Remaining dimensions are populated in Jobs 12–15.
+ * Job 12 populates TRANSMISSION / MEDIA, TRANSLATION / TRANSDUCTION,
+ * RECORDING / DAMAGE, and HISTORICAL TECHNOLOGY.
+ * Remaining dimensions are populated in Jobs 13–15.
  */
 export const COMPOSITION_ENGINES: CompositionEngine[] = [
   ...LANGUAGE_PROFILE_ENGINES,
@@ -28,6 +34,10 @@ export const COMPOSITION_ENGINES: CompositionEngine[] = [
   ...ADDRESSEE_ENGINES,
   ...ENSEMBLE_ENGINES,
   ...GESTURE_ENGINES,
+  ...TRANSMISSION_ENGINES,
+  ...TRANSDUCTION_ENGINES,
+  ...RECORDING_DAMAGE_ENGINES,
+  ...TECHNOLOGY_ENGINES,
 ];
 
 export const COMPOSITION_DOMAIN_LABELS: Record<CompositionDomain, string> = {
