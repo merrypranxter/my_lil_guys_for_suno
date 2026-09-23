@@ -811,3 +811,26 @@ export function languageProfileToEngine(profile: LanguageProfile): CompositionEn
 }
 
 export const LANGUAGE_PROFILE_ENGINES: CompositionEngine[] = LANGUAGE_PROFILES.map(languageProfileToEngine);
+
+
+export function getLanguageProfile(id: string): LanguageProfile | undefined {
+  return LANGUAGE_PROFILES.find((profile) => profile.id === id);
+}
+
+export function searchLanguageProfiles(query: string): LanguageProfile[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return LANGUAGE_PROFILES;
+  return LANGUAGE_PROFILES.filter((profile) =>
+    [
+      profile.name,
+      profile.family || '',
+      profile.region || '',
+      ...profile.consonantFeatures,
+      ...profile.vowelFeatures,
+      ...profile.prosodyFeatures,
+      ...profile.rhythmNotes,
+      ...profile.distinctiveFeatures,
+      ...profile.tags,
+    ].join(' ').toLowerCase().includes(q)
+  );
+}
