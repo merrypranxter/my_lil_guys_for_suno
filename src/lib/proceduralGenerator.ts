@@ -115,6 +115,9 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
   const activeLanguage = compositionEngines.find((engine) => engine.dimension === 'language');
   const activeLanguageMode = compositionEngines.find((engine) => engine.dimension === 'languageMode');
   const activeSoundSources = compositionEngines.filter((engine) => engine.dimension === 'soundSource');
+  const activeAddressee = compositionEngines.find((engine) => engine.dimension === 'addressee');
+  const activeEnsemble = compositionEngines.find((engine) => engine.dimension === 'ensemble');
+  const activeGestures = compositionEngines.filter((engine) => engine.dimension === 'gesture');
   const chemistry = analyzeRealityChemistry(realityEngineIds);
   const chaosMeta = REALITY_CHAOS_LABELS[realityChaos];
 
@@ -142,6 +145,11 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
     ? '[SOUND PALETTE: ' + activeSoundSources.map((engine, index) => (index + 1) + '=' + engine.name).join('; ') + '. Give every source a separate job/register; preserve attack, sustain, resonance, and noise behavior; do not run every source constantly.]'
     : '[SOUND PALETTE: no extra sources selected.]';
 
+
+  const voiceTopologyClause = (activeAddressee || activeEnsemble || activeGestures.length)
+    ? '[VOICE TOPOLOGY: addressee=' + (activeAddressee?.name || 'unspecified') + '; ensemble=' + (activeEnsemble?.name || 'unspecified') + '; gestures=' + (activeGestures.length ? activeGestures.map((engine) => engine.name).join(' + ') : 'none') + '. Addressee changes disclosure; ensemble changes phrase/information distribution; gesture changes timing, breath, or movement.]'
+    : '[VOICE TOPOLOGY: no extra addressee/ensemble/gesture rules selected.]';
+
   const baseStyle =
     '[GENRE/PERFORMANCE FAMILY: ' + fingerprint.genreFamily + '] ' +
     '[TEMPO: ' + tempo + '] ' +
@@ -155,6 +163,7 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
     compositionStyleClause + ' ' +
     languageStyleClause + ' ' +
     soundPaletteClause + ' ' +
+    voiceTopologyClause + ' ' +
     '[ANCHOR / INVARIANT: a short recurring three-note or three-syllable figure returns recognizably after every mutation.] ' +
     '[OPERATOR 1: hold rhythmic identity fixed while harmony migrates.] ' +
     '[OPERATOR 2: make the vocal system behave like percussion without becoming percussion.] ' +
@@ -185,6 +194,9 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
       '[Production: ' + fingerprint.production + ']\n' +
       '[Rhythm establishes: ' + fingerprint.rhythm + ']\n' +
       '[Vocal behavior establishes: ' + fingerprint.vocal + ']\n' +
+      (activeAddressee ? '[ADDRESSEE: ' + activeAddressee.name + ' — change what the lyric assumes, explains, withholds, repeats, or asks.]\n' : '') +
+      (activeEnsemble ? '[ENSEMBLE TOPOLOGY: ' + activeEnsemble.name + ' — enforce who owns each phrase, fact, response, overlap, or interruption.]\n' : '') +
+      (activeGestures.length ? '[PHYSICAL GESTURES: ' + activeGestures.map((engine) => engine.name).join(' + ') + ' — make gesture alter timing, breath, articulation, or body-percussion rather than acting as silent stage direction.]\n' : '') +
       'Subject: ' + subject + '.\n' +
       'The first pass is deliberately legible. The listener is given a stable specimen before any mutation begins.\n' +
       primary.name + ' controls ' + primary.defaultJurisdiction + '.\n' +
@@ -216,7 +228,7 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
       '[Dense syllables compress time: kratak-tikka-brradan.]\n' +
       '[Long vowels stretch the same clock: aaaaaa—oooooo.]\n' +
       'The nonsense is not decorative. Its phonetics physically reinforce the selected rhythmic and melodic systems.\n' +
-      'If ROLE is active, diction still performs the job. If HEADSPACE is active, interruptions and salience visibly alter delivery without deleting the role.',
+      'If ROLE is active, diction still performs the job. If HEADSPACE is active, interruptions and salience visibly alter delivery without deleting the role. If ADDRESSEE is active, the lyric must visibly change what it assumes or reveals. If ENSEMBLE is active, distribute information/phrases according to its topology. If GESTURE is active, bodily movement must produce audible timing, breath, or articulation consequences.',
 
     '[FRACTURE — incompatible temporal scales coexist]\n' +
       '[Keep the main pulse recognizable.]\n' +
