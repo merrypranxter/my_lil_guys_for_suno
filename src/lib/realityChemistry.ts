@@ -346,17 +346,18 @@ export function seededRandom(seed: string): () => number {
   };
 }
 
-function scoreCandidate(candidate: RealityEngine, selected: RealityEngine[], chaos: RealityChaosLevel, randomNoise: number): number {
-  if (!selected.length) return 20 + randomNoise * 20;
+function scoreCandidate(candidate: RealityEngine, selected: RealityEngine[], chaos: RealityChaosLevel, randomNoise: number, preferenceWeight = 0): number {
+  if (!selected.length) return 20 + randomNoise * 20 + preferenceWeight * 10;
   const pairScores = selected.map((other) => analyzeRealityPair(candidate, other));
   const affinity = pairScores.reduce((sum, pair) => sum + pair.affinity, 0) / pairScores.length;
   const friction = pairScores.reduce((sum, pair) => sum + pair.friction, 0) / pairScores.length;
   const sameTagNovelty = selected.some((other) => overlapCount(tagSet(candidate), tagSet(other)) > 0) ? 0 : 8;
 
-  if (chaos === 1) return affinity * 1.4 - friction * 1.1 + randomNoise * 12;
-  if (chaos === 2) return affinity * 1.0 + friction * 0.55 + sameTagNovelty + randomNoise * 16;
-  if (chaos === 3) return affinity * 0.65 + friction * 1.15 + sameTagNovelty * 1.2 + randomNoise * 20;
-  return affinity * 0.15 + friction * 1.75 + sameTagNovelty * 1.6 + randomNoise * 28;
+  const learned = preferenceWeight * (chaos === 4 ? 3 : 9);
+  if (chaos === 1) return affinity * 1.4 - friction * 1.1 + randomNoise * 12 + learned;
+  if (chaos === 2) return affinity * 1.0 + friction * 0.55 + sameTagNovelty + randomNoise * 16 + learned;
+  if (chaos === 3) return affinity * 0.65 + friction * 1.15 + sameTagNovelty * 1.2 + randomNoise * 20 + learned * 0.7;
+  return affinity * 0.15 + friction * 1.75 + sameTagNovelty * 1.6 + randomNoise * 28 + learned;
 }
 
 export function chooseSmartRealityEngine(
@@ -364,6 +365,7 @@ export function chooseSmartRealityEngine(
   selectedIds: string[],
   chaos: RealityChaosLevel,
   rng: () => number = Math.random,
+  preferenceWeights: Record<string, number> = {},
 ): RealityEngine | undefined {
   const selected = getRealityEngines(selectedIds).filter((engine) => engine.dimension !== dimension);
   const candidates = getRealityEnginesByDimension(dimension);
@@ -372,7 +374,7 @@ export function chooseSmartRealityEngine(
   const ranked = candidates
     .map((candidate) => ({
       candidate,
-      score: scoreCandidate(candidate, selected, chaos, rng()),
+      score: scoreCandidate(candidate, selected, chaos, rng(), preferenceWeights[candidate.id] || 0),
     }))
     .sort((a, b) => b.score - a.score);
 
@@ -389,6 +391,7 @@ export function buildSmartRealitySet(params: {
   dimensions?: RealityDimension[];
   count?: number;
   seed?: string;
+  preferenceWeights?: Record<string, number>;
 }): string[] {
   const {
     currentIds = [],
@@ -397,6 +400,7 @@ export function buildSmartRealitySet(params: {
     dimensions = DIMENSION_ORDER,
     count,
     seed = String(Date.now()),
+    preferenceWeights = {},
   } = params;
 
   const rng = seededRandom(seed);
@@ -413,7 +417,7 @@ export function buildSmartRealitySet(params: {
 
   for (const dimension of DIMENSION_ORDER) {
     if (!selectedDims.has(dimension)) continue;
-    const pick = chooseSmartRealityEngine(dimension, next, chaos, rng);
+    const pick = chooseSmartRealityEngine(dimension, next, chaos, rng, preferenceWeights);
     if (pick) next.push(pick.id);
   }
 
