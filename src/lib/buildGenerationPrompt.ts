@@ -2,11 +2,13 @@ import { LITTLE_GUYS } from '../data/littleGuys';
 import { MUSICAL_VOCABULARY_PROMPT, fingerprintToLine } from '../data/musicTaxonomy';
 import { getMindMetadata } from '../data/mindMetadata';
 import { getRealityEngines, REALITY_DIMENSION_JURISDICTIONS, REALITY_DIMENSION_LABELS } from '../data/realityEngines';
-import { BoxType, LittleGuy, MusicFingerprint, RealityEngine } from '../types';
+import { BoxType, LittleGuy, MusicFingerprint, RealityChaosLevel, RealityEngine } from '../types';
+import { REALITY_CHAOS_LABELS, analyzeRealityChemistry } from './realityChemistry';
 
 export interface GenerationPromptParams {
   guyIds: string[];
   realityEngineIds?: string[];
+  realityChaos?: RealityChaosLevel;
   seed?: string;
   energy: number;
   recentFingerprints?: MusicFingerprint[];
@@ -14,7 +16,7 @@ export interface GenerationPromptParams {
 }
 
 export function buildMasterPrompt(params: GenerationPromptParams): { systemInstruction: string; userPrompt: string } {
-  const { guyIds, realityEngineIds = [], seed, energy, recentFingerprints = [], likedSignals = [] } = params;
+  const { guyIds, realityEngineIds = [], realityChaos = 2, seed, energy, recentFingerprints = [], likedSignals = [] } = params;
 
   const selectedGuys: LittleGuy[] = guyIds
     .map((id) => LITTLE_GUYS.find((g) => g.id === id))
@@ -27,6 +29,20 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
   const secondaryGuys: LittleGuy[] = guys.slice(1);
 
   const realityEngines: RealityEngine[] = getRealityEngines(realityEngineIds);
+  const realityChemistry = analyzeRealityChemistry(realityEngineIds);
+  const chaosMeta = REALITY_CHAOS_LABELS[realityChaos];
+  const realityChemistryBlock = realityEngines.length
+    ? [
+        'CHAOS TARGET: ' + chaosMeta.name + ' — ' + chaosMeta.short,
+        realityChemistry.summary,
+        'Temporary consciousness: ' + realityChemistry.narrator,
+        'Strongest seams:',
+        ...(realityChemistry.pairNotes.length ? realityChemistry.pairNotes.map((line) => '- ' + line) : ['- no cross-layer pair data']),
+        'Negotiation orders:',
+        ...realityChemistry.directives.map((line) => '- ' + line),
+      ].join('\n')
+    : 'No Reality chemistry because no Reality Engines are active.';
+
   const realityBreakdown = realityEngines.length
     ? realityEngines
         .map((engine) =>
@@ -85,7 +101,8 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
     '7. REALITY ENGINES ARE A SEPARATE LAYER FROM MINDS. Minds govern generative cognition. Reality Engines govern format, role, world, species/origin, venue, headspace, altered-state phenomenology, or tone. Never collapse these layers into one adjective cloud.\n' +
     '8. REALITY ENGINE JURISDICTIONS ARE MANDATORY. A selected engine must perform work through its own jurisdiction. FORMAT changes sequence or event mechanics; ROLE changes obligations and diction; WORLD changes normal assumptions; SPECIES changes embodiment/reference frame; VENUE changes local constraints; HEADSPACE changes attention/salience/tempo; ALTERED STATE changes identity/time/embodiment/perception/reality-testing mechanics; TONE colors delivery without replacing mechanism.\n' +
     '9. COLLISIONS MUST NEGOTIATE, NOT BLEND. When two active layers conflict, generate from the seam and preserve both constraints rather than averaging them into generic surrealism.\n' +
-    '10. OUTPUT FORMAT: valid JSON with keys style, lyrics, caption, fingerprint. fingerprint must contain genreFamily, harmony, melody, rhythm, timbre, vocal, performance, production.\n\n' +
+    '10. REALITY CHAOS IS A SEARCH TARGET, NOT A VOLUME KNOB. COHERENT favors natural affinities; ODD balances affinity and friction; FUCKED seeks productive contradiction; UNREASONABLE maximizes jurisdictional friction while every selected engine must remain legible. Never satisfy chaos by random word salad.\n' +
+    '11. OUTPUT FORMAT: valid JSON with keys style, lyrics, caption, fingerprint. fingerprint must contain genreFamily, harmony, melody, rhythm, timbre, vocal, performance, production.\n\n' +
     'TARGET CHARACTER COUNTS INCLUDING SPACES AND LINE BREAKS:\n' +
     'style: 975 to 999 characters.\n' +
     'lyrics: 4900 to 4999 characters.\n' +
@@ -94,8 +111,9 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
   const userPrompt = 'EXECUTE SUNO GENERATION REQUEST.\n\n' +
     'ACTIVE LITTLE GUY STACK:\n' + stackBreakdown + '\n\n' +
     'ACTIVE REALITY ENGINES:\n' + realityBreakdown + '\n\n' +
+    'REALITY CHEMISTRY / COLLISION MAP:\n' + realityChemistryBlock + '\n\n' +
     'REALITY ENGINE NEGOTIATION RULE:\n' +
-    'Treat each selected engine as an operational law in its own jurisdiction. Do not merely name it or decorate lyrics with its vocabulary. If the format is a game show, the lyric architecture must actually behave like one. If the headspace is overloaded, attention and thread management must actually change. If an altered-state engine is active, use its defined phenomenological mechanism rather than generic drug imagery. Preserve productive incompatibility between layers.\n\n' +
+    'Treat each selected engine as an operational law in its own jurisdiction. Do not merely name it or decorate lyrics with its vocabulary. If the format is a game show, the lyric architecture must actually behave like one. If the headspace is overloaded, attention and thread management must actually change. If an altered-state engine is active, use its defined phenomenological mechanism rather than generic drug imagery. Preserve productive incompatibility between layers. Use the collision map above to decide WHERE the song generates events: the high-friction seam should repeatedly force one jurisdiction to solve a problem created by another.\n\n' +
     'ENERGY PARAMETER:\n' + (energyLabels[energy] || energyLabels[3]) + '\n\n' +
     'OPTIONAL SEED / SUBJECT / EXPERIMENT:\n' +
     (seed && seed.trim() ? '"' + seed.trim() + '"' : 'NONE PROVIDED — derive subject organically from the primary Little Guy ontology') + '\n\n' +
