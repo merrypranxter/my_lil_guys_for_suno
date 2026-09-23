@@ -87,6 +87,21 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
       ].join('\n')
     : 'No language profile selected.';
 
+
+  const activeSoundSources = compositionEngines.filter((engine) => engine.dimension === 'soundSource');
+  const soundPaletteBlock = activeSoundSources.length
+    ? [
+        'SELECTED SOUND SOURCES: ' + activeSoundSources.map((engine) => engine.name).join(' | '),
+        'PALETTE RULES:',
+        '- Give every selected source a distinct musical job such as ANCHOR, PULSE, BASS, LEAD, TEXTURE, ORNAMENT, INTERRUPTION, or NOISE FLOOR.',
+        '- Preserve each source’s physical excitation and resonance behavior. Do not collapse culturally specific instruments into generic "world music" color.',
+        '- Do not make all selected sources play constantly. Introduce, remove, expose, and exchange them so their identities stay audible.',
+        '- Found objects, machines, animals, environments, and body sounds are legitimate musical materials; organize them rhythmically, spectrally, spatially, or causally rather than using them as novelty sound effects.',
+        '- If an unusual acoustic source is selected, describe what it actually does in the arrangement instead of merely naming it.',
+        '- Up to eight sound sources may coexist; register separation and role separation are mandatory when the palette becomes dense.',
+      ].join('\n')
+    : 'No extra Sound Palette sources selected.';
+
   const energyLabels: Record<number, string> = {
     1: 'ENERGY LEVEL 1: Latent Drift / Subsurface Mutation (controlled but still engaging; subtle tension and motion)',
     2: 'ENERGY LEVEL 2: Low Hum / Controlled Asymmetry (steady propulsion, occasional structural interruptions)',
@@ -138,7 +153,8 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
     '11. COMPOSITION LAB IS A THIRD OPERATIONAL LAYER. It is neither Mind nor Reality. It governs mouths/language, ensemble topology, signal path, sound sources, tuning, rhythmic physics, spatial organization, chronology, information access, constraints, resources, failure, authority, and props. Each active Composition engine owns only its stated jurisdiction.\n' +
     '12. COMPOSITION ENGINES MUST BE AUDIBLE OR STRUCTURALLY TESTABLE. A language engine must alter phonology/prosody; transmission must alter information flow; damage must happen in time; tuning must alter intervals; rhythm physics must alter pulse organization; constraints/resources/failure/authority must create observable consequences. Do not reduce these engines to descriptive adjectives.\n' +
     '13. LANGUAGE / ACCENT FIDELITY: describe and perform phonological mechanisms, not ethnic caricatures. English-with-L1-transfer means approximate phonological/prosodic transfer, not comic misspelling. Native-language output must not fabricate confident fluent text when uncertain. Distinctive features such as clicks or tone are ordinary linguistic structure, not novelty effects.\n' +
-    '14. OUTPUT FORMAT: valid JSON with keys style, lyrics, caption, fingerprint. fingerprint must contain genreFamily, harmony, melody, rhythm, timbre, vocal, performance, production.\n\n' +
+    '14. SOUND PALETTE FIDELITY: selected sound sources are physical/acoustic systems, not genre stickers. Preserve attack, sustain, resonance, register, noise content, articulation, and source-specific behavior. Give simultaneous sources separate musical jobs and avoid generic exoticism.\n' +
+    '15. OUTPUT FORMAT: valid JSON with keys style, lyrics, caption, fingerprint. fingerprint must contain genreFamily, harmony, melody, rhythm, timbre, vocal, performance, production.\n\n' +
     'TARGET CHARACTER COUNTS INCLUDING SPACES AND LINE BREAKS:\n' +
     'style: 975 to 999 characters.\n' +
     'lyrics: 4900 to 4999 characters.\n' +
@@ -150,6 +166,7 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
     'REALITY CHEMISTRY / COLLISION MAP:\n' + realityChemistryBlock + '\n\n' +
     'ACTIVE COMPOSITION LAB ENGINES:\n' + compositionBreakdown + '\n\n' +
     'LANGUAGE / ACCENT FIDELITY:\n' + languageFidelityBlock + '\n\n' +
+    'SOUND PALETTE / SOURCE ASSIGNMENT:\n' + soundPaletteBlock + '\n\n' +
     'COMPOSITION LAB NEGOTIATION RULE:\n' +
     'Keep Composition Lab mechanisms separate from scenario decoration. Multiple active engines may coexist in the same dimension where the registry allows it. Each one must perform measurable work through its own jurisdiction. Sound sources should receive musical jobs; signal media should alter transmission; language should alter mouth behavior; structural/control engines should create consequences that the song must respond to. Cross-domain chemistry is not yet precomputed, so preserve all mechanisms explicitly rather than averaging them.\n\n' +
     'REALITY ENGINE NEGOTIATION RULE:\n' +
