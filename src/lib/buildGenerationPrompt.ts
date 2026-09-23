@@ -89,6 +89,23 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
 
 
   const activeSoundSources = compositionEngines.filter((engine) => engine.dimension === 'soundSource');
+  const activeAddressee = compositionEngines.find((engine) => engine.dimension === 'addressee');
+  const activeEnsemble = compositionEngines.find((engine) => engine.dimension === 'ensemble');
+  const activeGestures = compositionEngines.filter((engine) => engine.dimension === 'gesture');
+  const voiceTopologyBlock = (activeAddressee || activeEnsemble || activeGestures.length)
+    ? [
+        'ADDRESSEE: ' + (activeAddressee ? activeAddressee.name : 'UNSPECIFIED'),
+        'ENSEMBLE TOPOLOGY: ' + (activeEnsemble ? activeEnsemble.name : 'UNSPECIFIED'),
+        'PHYSICAL GESTURES: ' + (activeGestures.length ? activeGestures.map((engine) => engine.name).join(' | ') : 'NONE'),
+        'VOICE-LAB RULES:',
+        '- ADDRESSEE changes what is assumed, explained, hidden, requested, repeated, translated, or strategically withheld. It is not merely a pronoun swap.',
+        '- ENSEMBLE changes who is allowed to know, sing, answer, interrupt, overlap, remember, or carry a phrase. Voice count must have structural consequences.',
+        '- GESTURE changes timing, breath, articulation, body-percussion, movement, handoff, or physical resource limits. It must be physically plausible and musically audible.',
+        '- Keep body gestures distinct from Sound Source timbres: Sound Source defines the sonic material; Gesture defines how bodies behave over time and how motion controls form.',
+        '- If multiple gesture engines are active, make them negotiate through different limbs, time scales, or functions rather than stacking impossible choreography.',
+      ].join('\n')
+    : 'No Addressee, Ensemble, or Gesture engine selected.';
+
   const soundPaletteBlock = activeSoundSources.length
     ? [
         'SELECTED SOUND SOURCES: ' + activeSoundSources.map((engine) => engine.name).join(' | '),
@@ -154,7 +171,8 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
     '12. COMPOSITION ENGINES MUST BE AUDIBLE OR STRUCTURALLY TESTABLE. A language engine must alter phonology/prosody; transmission must alter information flow; damage must happen in time; tuning must alter intervals; rhythm physics must alter pulse organization; constraints/resources/failure/authority must create observable consequences. Do not reduce these engines to descriptive adjectives.\n' +
     '13. LANGUAGE / ACCENT FIDELITY: describe and perform phonological mechanisms, not ethnic caricatures. English-with-L1-transfer means approximate phonological/prosodic transfer, not comic misspelling. Native-language output must not fabricate confident fluent text when uncertain. Distinctive features such as clicks or tone are ordinary linguistic structure, not novelty effects.\n' +
     '14. SOUND PALETTE FIDELITY: selected sound sources are physical/acoustic systems, not genre stickers. Preserve attack, sustain, resonance, register, noise content, articulation, and source-specific behavior. Give simultaneous sources separate musical jobs and avoid generic exoticism.\n' +
-    '15. OUTPUT FORMAT: valid JSON with keys style, lyrics, caption, fingerprint. fingerprint must contain genreFamily, harmony, melody, rhythm, timbre, vocal, performance, production.\n\n' +
+    '15. VOICE TOPOLOGY IS CAUSAL. ADDRESSEE changes disclosure and explanation; ENSEMBLE changes information distribution, turn-taking, overlap, and authority; GESTURE changes breath, timing, articulation, movement, and body-percussion. Do not reduce these choices to cast labels or stage directions.\n' +
+    '16. OUTPUT FORMAT: valid JSON with keys style, lyrics, caption, fingerprint. fingerprint must contain genreFamily, harmony, melody, rhythm, timbre, vocal, performance, production.\n\n' +
     'TARGET CHARACTER COUNTS INCLUDING SPACES AND LINE BREAKS:\n' +
     'style: 975 to 999 characters.\n' +
     'lyrics: 4900 to 4999 characters.\n' +
@@ -167,8 +185,9 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
     'ACTIVE COMPOSITION LAB ENGINES:\n' + compositionBreakdown + '\n\n' +
     'LANGUAGE / ACCENT FIDELITY:\n' + languageFidelityBlock + '\n\n' +
     'SOUND PALETTE / SOURCE ASSIGNMENT:\n' + soundPaletteBlock + '\n\n' +
+    'VOICE TOPOLOGY / ADDRESSEE / BODY:\n' + voiceTopologyBlock + '\n\n' +
     'COMPOSITION LAB NEGOTIATION RULE:\n' +
-    'Keep Composition Lab mechanisms separate from scenario decoration. Multiple active engines may coexist in the same dimension where the registry allows it. Each one must perform measurable work through its own jurisdiction. Sound sources should receive musical jobs; signal media should alter transmission; language should alter mouth behavior; structural/control engines should create consequences that the song must respond to. Cross-domain chemistry is not yet precomputed, so preserve all mechanisms explicitly rather than averaging them.\n\n' +
+    'Keep Composition Lab mechanisms separate from scenario decoration. Multiple active engines may coexist in the same dimension where the registry allows it. Each one must perform measurable work through its own jurisdiction. Sound sources should receive musical jobs; signal media should alter transmission; language should alter mouth behavior; addressee must alter disclosure/assumption; ensemble topology must alter phrase and information distribution; gestures must alter timing/breath/motion; structural/control engines should create consequences that the song must respond to. Cross-domain chemistry is not yet precomputed, so preserve all mechanisms explicitly rather than averaging them.\n\n' +
     'REALITY ENGINE NEGOTIATION RULE:\n' +
     'Treat each selected engine as an operational law in its own jurisdiction. Do not merely name it or decorate lyrics with its vocabulary. If the format is a game show, the lyric architecture must actually behave like one. If the headspace is overloaded, attention and thread management must actually change. If an altered-state engine is active, use its defined phenomenological mechanism rather than generic drug imagery. Preserve productive incompatibility between layers. Use the collision map above to decide WHERE the song generates events: the high-friction seam should repeatedly force one jurisdiction to solve a problem created by another.\n\n' +
     'ENERGY PARAMETER:\n' + (energyLabels[energy] || energyLabels[3]) + '\n\n' +
