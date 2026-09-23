@@ -4,6 +4,7 @@ import { fingerprintToLine } from '../data/musicTaxonomy';
 const STORAGE_KEYS = {
   SAVED_STACKS: 'lgm_saved_stacks_v1',
   LAST_STACK: 'lgm_last_stack_v1',
+  LAST_REALITY_ENGINES: 'lgm_last_reality_engines_v1',
   ENERGY: 'lgm_energy_v1',
   LAST_SEED: 'lgm_last_seed_v1',
   RUN_ARCHIVE: 'lgm_run_archive_v1',
@@ -15,20 +16,27 @@ export function getSavedStacks(): SavedStack[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.SAVED_STACKS);
     if (!raw) return [];
-    return JSON.parse(raw);
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((stack: any) => ({
+      ...stack,
+      guyIds: Array.isArray(stack?.guyIds) ? stack.guyIds : [],
+      realityEngineIds: Array.isArray(stack?.realityEngineIds) ? stack.realityEngineIds : [],
+    }));
   } catch (e) {
     console.error('Failed to load saved stacks from localStorage', e);
     return [];
   }
 }
 
-export function saveStackToFavorites(name: string, guyIds: string[]): SavedStack[] {
+export function saveStackToFavorites(name: string, guyIds: string[], realityEngineIds: string[] = []): SavedStack[] {
   try {
     const current = getSavedStacks();
     const newStack: SavedStack = {
       id: 'stack_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
       name: name.trim() || 'Stack of ' + guyIds.length + ' Guys',
       guyIds,
+      realityEngineIds,
       createdAt: Date.now(),
     };
     const updated = [newStack, ...current];
@@ -65,6 +73,25 @@ export function getLastStack(): string[] | null {
 export function setLastStack(guyIds: string[]): void {
   try {
     localStorage.setItem(STORAGE_KEYS.LAST_STACK, JSON.stringify(guyIds));
+  } catch {
+    // ignore
+  }
+}
+
+export function getLastRealityEngineIds(): string[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.LAST_REALITY_ENGINES);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((id) => typeof id === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+export function setLastRealityEngineIds(ids: string[]): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.LAST_REALITY_ENGINES, JSON.stringify(ids));
   } catch {
     // ignore
   }
@@ -110,7 +137,12 @@ export function getRunArchive(): ArchivedRun[] {
     const raw = localStorage.getItem(STORAGE_KEYS.RUN_ARCHIVE);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.map((run: any) => ({
+      ...run,
+      guyIds: Array.isArray(run?.guyIds) ? run.guyIds : [],
+      realityEngineIds: Array.isArray(run?.realityEngineIds) ? run.realityEngineIds : [],
+    }));
   } catch (e) {
     console.error('Failed to load run archive', e);
     return [];
@@ -173,7 +205,8 @@ export function getLikedPreferenceSignals(limit = 10): string[] {
     .map((run) => {
       const fingerprint = run.fingerprint ? fingerprintToLine(run.fingerprint) : 'fingerprint unavailable';
       const note = run.feedback.trim() ? ' User specifically liked: ' + run.feedback.trim() : '';
-      const context = 'stack=' + run.guyIds.join(' > ') + ' | seed=' + (run.seed || '(none)') + ' | ';
+      const reality = run.realityEngineIds.length ? run.realityEngineIds.join(' > ') : '(none)';
+      const context = 'stack=' + run.guyIds.join(' > ') + ' | reality=' + reality + ' | seed=' + (run.seed || '(none)') + ' | ';
       return 'POSITIVE EXAMPLE — ' + context + fingerprint + '.' + note;
     });
 }
@@ -213,6 +246,7 @@ export function runToMarkdown(run: ArchivedRun): string {
     '**Run ID:** ' + run.id,
     '**Created:** ' + date,
     '**Stack:** ' + run.guyIds.join(' → '),
+    '**Reality engines:** ' + (run.realityEngineIds.length ? run.realityEngineIds.join(' → ') : '(none)'),
     '**Seed:** ' + (run.seed || '(none)'),
     '**Energy:** ' + run.energy,
     '**Model:** ' + run.model,
