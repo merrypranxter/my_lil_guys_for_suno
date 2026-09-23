@@ -166,12 +166,13 @@ export default function App() {
   };
 
   const handleSaveStack = (name: string) => {
-    setSavedStacks(saveStackToFavorites(name, stackGuyIds, realityEngineIds));
+    setSavedStacks(saveStackToFavorites(name, stackGuyIds, realityEngineIds, realityChaos));
   };
 
   const handleLoadSavedStack = (saved: SavedStack) => {
     setStackGuyIds(saved.guyIds);
     setRealityEngineIds(saved.realityEngineIds || []);
+    if (saved.realityChaos) setRealityChaos(saved.realityChaos);
   };
 
   const handleDeleteSavedStack = (id: string) => {
