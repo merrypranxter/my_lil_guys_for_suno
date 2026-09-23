@@ -4,7 +4,7 @@ import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI, Type } from '@google/genai';
 import { buildMasterPrompt, buildRepairPrompt } from './src/lib/buildGenerationPrompt';
 import { generateProceduralTrack } from './src/lib/proceduralGenerator';
-import { MusicFingerprint } from './src/types';
+import { MusicFingerprint, RealityChaosLevel } from './src/types';
 
 const app = express();
 const PORT = 3000;
@@ -96,6 +96,11 @@ function sanitizeIdList(value: any, limit = 24): string[] {
   ).slice(0, limit);
 }
 
+function sanitizeRealityChaos(value: any): RealityChaosLevel {
+  const n = Number(value);
+  return n === 1 || n === 2 || n === 3 || n === 4 ? (n as RealityChaosLevel) : 2;
+}
+
 async function generateWithResilience(
   contents: string,
   config: any,
@@ -148,6 +153,7 @@ app.get('/api/info', (_req, res) => {
 app.post('/api/generate', async (req, res) => {
   const guyIds = Array.isArray(req.body?.guyIds) ? req.body.guyIds : [];
   const realityEngineIds = sanitizeIdList(req.body?.realityEngineIds);
+  const realityChaos = sanitizeRealityChaos(req.body?.realityChaos);
   const seed = typeof req.body?.seed === 'string' ? req.body.seed : '';
   const energy = typeof req.body?.energy === 'number' ? req.body.energy : 4;
   const recentFingerprints = sanitizeFingerprints(req.body?.recentFingerprints);
@@ -157,6 +163,7 @@ app.post('/api/generate', async (req, res) => {
     const { systemInstruction, userPrompt } = buildMasterPrompt({
       guyIds,
       realityEngineIds,
+      realityChaos,
       seed,
       energy,
       recentFingerprints,
@@ -244,6 +251,8 @@ app.post('/api/generate', async (req, res) => {
     try {
       const fallback = generateProceduralTrack({
         guyIds,
+        realityEngineIds,
+        realityChaos,
         seed,
         energy,
         recentFingerprints,
