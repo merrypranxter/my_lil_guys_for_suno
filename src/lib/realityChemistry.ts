@@ -127,8 +127,12 @@ function orderedPairKey(a: string, b: string): string {
   return a < b ? a + '|' + b : b + '|' + a;
 }
 
-function dimensionPairKey(a: RealityDimension, b: RealityDimension): string {
-  return a < b ? a + '|' + b : b + '|' + a;
+function hasDimensionPair(set: Set<string>, a: RealityDimension, b: RealityDimension): boolean {
+  return set.has(a + '|' + b) || set.has(b + '|' + a);
+}
+
+function pairWeight(table: Record<string, number>, a: string, b: string): number {
+  return table[a + '|' + b] || table[b + '|' + a] || table[orderedPairKey(a, b)] || 0;
 }
 
 function tagSet(engine: RealityEngine): Set<string> {
@@ -157,8 +161,6 @@ export function analyzeRealityPair(a: RealityEngine, b: RealityEngine): RealityC
   const aTags = tagSet(a);
   const bTags = tagSet(b);
   const shared = overlapCount(aTags, bTags);
-  const dimKey = dimensionPairKey(a.dimension, b.dimension);
-  const idKey = orderedPairKey(a.id, b.id);
   const frictionTags = hasCrossTagFriction(aTags, bTags);
 
   let affinity = Math.min(28, shared * 6);
@@ -166,17 +168,17 @@ export function analyzeRealityPair(a: RealityEngine, b: RealityEngine): RealityC
   const reasons: string[] = [];
 
   if (shared > 0) reasons.push(shared + ' shared tag' + (shared === 1 ? '' : 's'));
-  if (NATURAL_DIMENSION_PAIRS.has(dimKey)) {
+  if (hasDimensionPair(NATURAL_DIMENSION_PAIRS, a.dimension, b.dimension)) {
     affinity += 7;
     reasons.push('complementary jurisdictions');
   }
-  if (FRICTION_DIMENSION_PAIRS.has(dimKey)) {
+  if (hasDimensionPair(FRICTION_DIMENSION_PAIRS, a.dimension, b.dimension)) {
     friction += 7;
     reasons.push('jurisdictional collision');
   }
 
-  const strongAffinity = STRONG_AFFINITY_PAIRS[idKey] || 0;
-  const strongFriction = STRONG_FRICTION_PAIRS[idKey] || 0;
+  const strongAffinity = pairWeight(STRONG_AFFINITY_PAIRS, a.id, b.id);
+  const strongFriction = pairWeight(STRONG_FRICTION_PAIRS, a.id, b.id);
   if (strongAffinity) {
     affinity += strongAffinity;
     reasons.push('curated affinity');
