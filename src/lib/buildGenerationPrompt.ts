@@ -119,6 +119,27 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
       ].join('\n')
     : 'No extra Sound Palette sources selected.';
 
+
+  const activeTransmission = compositionEngines.find((engine) => engine.dimension === 'transmission');
+  const activeTransductions = compositionEngines.filter((engine) => engine.dimension === 'transduction');
+  const activeRecordingDamage = compositionEngines.filter((engine) => engine.dimension === 'recordingDamage');
+  const activeTechnology = compositionEngines.find((engine) => engine.dimension === 'technology');
+  const signalLabBlock = (activeTransmission || activeTransductions.length || activeRecordingDamage.length || activeTechnology)
+    ? [
+        'TRANSMISSION / MEDIA: ' + (activeTransmission ? activeTransmission.name : 'NONE'),
+        'TRANSDUCTION RULES: ' + (activeTransductions.length ? activeTransductions.map((engine) => engine.name).join(' | ') : 'NONE'),
+        'RECORDING DAMAGE: ' + (activeRecordingDamage.length ? activeRecordingDamage.map((engine) => engine.name).join(' | ') : 'NONE'),
+        'TECHNOLOGY: ' + (activeTechnology ? activeTechnology.name : 'NONE'),
+        'SIGNAL-LAB RULES:',
+        '- TRANSMISSION changes who can hear what, when, at what bandwidth, with what latency, and whether reply is possible. Medium is information architecture, not a filter preset.',
+        '- TRANSDUCTION must use a stable mapping from source variable to musical variable. The mapping should be inferable from repeated examples.',
+        '- RECORDING DAMAGE must happen as timed failure with a cause, threshold, location, or propagation rule. Do not smear generic lo-fi over the whole song unless the selected damage specifically requires it.',
+        '- TECHNOLOGY defines available operations and limitations. Do not give an acoustic-horn session invisible modern editing, or a modern DAW fake historical scarcity unless another selected constraint creates it.',
+        '- When transmission and damage coexist, distinguish channel failure from recording-medium failure.',
+        '- When two transduction rules are active, assign them different source/target parameters so one does not erase the other.',
+      ].join('\n')
+    : 'No Signal Lab engine selected.';
+
   const energyLabels: Record<number, string> = {
     1: 'ENERGY LEVEL 1: Latent Drift / Subsurface Mutation (controlled but still engaging; subtle tension and motion)',
     2: 'ENERGY LEVEL 2: Low Hum / Controlled Asymmetry (steady propulsion, occasional structural interruptions)',
@@ -172,7 +193,8 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
     '13. LANGUAGE / ACCENT FIDELITY: describe and perform phonological mechanisms, not ethnic caricatures. English-with-L1-transfer means approximate phonological/prosodic transfer, not comic misspelling. Native-language output must not fabricate confident fluent text when uncertain. Distinctive features such as clicks or tone are ordinary linguistic structure, not novelty effects.\n' +
     '14. SOUND PALETTE FIDELITY: selected sound sources are physical/acoustic systems, not genre stickers. Preserve attack, sustain, resonance, register, noise content, articulation, and source-specific behavior. Give simultaneous sources separate musical jobs and avoid generic exoticism.\n' +
     '15. VOICE TOPOLOGY IS CAUSAL. ADDRESSEE changes disclosure and explanation; ENSEMBLE changes information distribution, turn-taking, overlap, and authority; GESTURE changes breath, timing, articulation, movement, and body-percussion. Do not reduce these choices to cast labels or stage directions.\n' +
-    '16. OUTPUT FORMAT: valid JSON with keys style, lyrics, caption, fingerprint. fingerprint must contain genreFamily, harmony, melody, rhythm, timbre, vocal, performance, production.\n\n' +
+    '16. SIGNAL LAB IS INFORMATION PHYSICS. TRANSMISSION controls delivery topology; TRANSDUCTION converts one variable into another through a stable mapping; RECORDING DAMAGE creates timed failure; TECHNOLOGY defines what operations exist and what they cost. Do not collapse all four into generic retro/noisy production.\n' +
+    '17. OUTPUT FORMAT: valid JSON with keys style, lyrics, caption, fingerprint. fingerprint must contain genreFamily, harmony, melody, rhythm, timbre, vocal, performance, production.\n\n' +
     'TARGET CHARACTER COUNTS INCLUDING SPACES AND LINE BREAKS:\n' +
     'style: 975 to 999 characters.\n' +
     'lyrics: 4900 to 4999 characters.\n' +
@@ -186,8 +208,9 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
     'LANGUAGE / ACCENT FIDELITY:\n' + languageFidelityBlock + '\n\n' +
     'SOUND PALETTE / SOURCE ASSIGNMENT:\n' + soundPaletteBlock + '\n\n' +
     'VOICE TOPOLOGY / ADDRESSEE / BODY:\n' + voiceTopologyBlock + '\n\n' +
+    'SIGNAL LAB / INFORMATION PHYSICS:\n' + signalLabBlock + '\n\n' +
     'COMPOSITION LAB NEGOTIATION RULE:\n' +
-    'Keep Composition Lab mechanisms separate from scenario decoration. Multiple active engines may coexist in the same dimension where the registry allows it. Each one must perform measurable work through its own jurisdiction. Sound sources should receive musical jobs; signal media should alter transmission; language should alter mouth behavior; addressee must alter disclosure/assumption; ensemble topology must alter phrase and information distribution; gestures must alter timing/breath/motion; structural/control engines should create consequences that the song must respond to. Cross-domain chemistry is not yet precomputed, so preserve all mechanisms explicitly rather than averaging them.\n\n' +
+    'Keep Composition Lab mechanisms separate from scenario decoration. Multiple active engines may coexist in the same dimension where the registry allows it. Each one must perform measurable work through its own jurisdiction. Sound sources should receive musical jobs; transmission must change information delivery; transduction must apply stable mappings; recording damage must occur as timed failure; technology must constrain the available workflow; language should alter mouth behavior; addressee must alter disclosure/assumption; ensemble topology must alter phrase and information distribution; gestures must alter timing/breath/motion; structural/control engines should create consequences that the song must respond to. Cross-domain chemistry is not yet precomputed, so preserve all mechanisms explicitly rather than averaging them.\n\n' +
     'REALITY ENGINE NEGOTIATION RULE:\n' +
     'Treat each selected engine as an operational law in its own jurisdiction. Do not merely name it or decorate lyrics with its vocabulary. If the format is a game show, the lyric architecture must actually behave like one. If the headspace is overloaded, attention and thread management must actually change. If an altered-state engine is active, use its defined phenomenological mechanism rather than generic drug imagery. Preserve productive incompatibility between layers. Use the collision map above to decide WHERE the song generates events: the high-friction seam should repeatedly force one jurisdiction to solve a problem created by another.\n\n' +
     'ENERGY PARAMETER:\n' + (energyLabels[energy] || energyLabels[3]) + '\n\n' +
