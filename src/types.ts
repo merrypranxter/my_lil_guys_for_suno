@@ -56,6 +56,8 @@ export interface RealityEngine {
   sourceNotes?: string[];
 }
 
+export type RealityChaosLevel = 1 | 2 | 3 | 4;
+
 export type BoxType = 'style' | 'lyrics' | 'caption';
 
 export interface MusicFingerprint {
@@ -72,6 +74,7 @@ export interface MusicFingerprint {
 export interface GenerationRequest {
   guyIds: string[];
   realityEngineIds?: string[];
+  realityChaos?: RealityChaosLevel;
   seed?: string;
   energy: number;
   recentFingerprints?: MusicFingerprint[];
@@ -98,6 +101,7 @@ export interface RepairRequest {
   seed?: string;
   guyIds: string[];
   realityEngineIds?: string[];
+  realityChaos?: RealityChaosLevel;
 }
 
 export interface SavedStack {
@@ -105,6 +109,7 @@ export interface SavedStack {
   name: string;
   guyIds: string[];
   realityEngineIds: string[];
+  realityChaos?: RealityChaosLevel;
   createdAt: number;
 }
 
@@ -113,6 +118,7 @@ export interface ArchivedRun {
   createdAt: number;
   guyIds: string[];
   realityEngineIds: string[];
+  realityChaos?: RealityChaosLevel;
   seed: string;
   energy: number;
   model: string;
