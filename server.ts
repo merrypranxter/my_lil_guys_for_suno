@@ -5,6 +5,7 @@ import { GoogleGenAI, Type } from '@google/genai';
 import { buildMasterPrompt, buildRepairPrompt } from './src/lib/buildGenerationPrompt';
 import { generateProceduralTrack } from './src/lib/proceduralGenerator';
 import { MusicFingerprint, RealityChaosLevel } from './src/types';
+import { normalizeCompositionEngineIds } from './src/data/compositionEngines';
 
 const app = express();
 const PORT = 3000;
@@ -153,7 +154,7 @@ app.get('/api/info', (_req, res) => {
 app.post('/api/generate', async (req, res) => {
   const guyIds = Array.isArray(req.body?.guyIds) ? req.body.guyIds : [];
   const realityEngineIds = sanitizeIdList(req.body?.realityEngineIds);
-  const compositionEngineIds = sanitizeIdList(req.body?.compositionEngineIds, 64);
+  const compositionEngineIds = normalizeCompositionEngineIds(sanitizeIdList(req.body?.compositionEngineIds, 64));
   const realityChaos = sanitizeRealityChaos(req.body?.realityChaos);
   const seed = typeof req.body?.seed === 'string' ? req.body.seed : '';
   const energy = typeof req.body?.energy === 'number' ? req.body.energy : 4;
