@@ -1,12 +1,14 @@
 import { LITTLE_GUYS } from '../data/littleGuys';
 import { chooseDiverseFingerprint } from '../data/musicTaxonomy';
 import { getRealityEngines, REALITY_DIMENSION_JURISDICTIONS, REALITY_DIMENSION_LABELS } from '../data/realityEngines';
-import { BoxType, LittleGuy, MusicFingerprint, RealityChaosLevel, RealityEngine } from '../types';
+import { COMPOSITION_DIMENSION_JURISDICTIONS, COMPOSITION_DIMENSION_LABELS, getCompositionEngines } from '../data/compositionEngines';
+import { BoxType, CompositionEngine, LittleGuy, MusicFingerprint, RealityChaosLevel, RealityEngine } from '../types';
 import { REALITY_CHAOS_LABELS, analyzeRealityChemistry } from './realityChemistry';
 
 export interface ProceduralTrackParams {
   guyIds: string[];
   realityEngineIds?: string[];
+  compositionEngineIds?: string[];
   realityChaos?: RealityChaosLevel;
   seed?: string;
   energy: number;
@@ -76,10 +78,21 @@ function realityLawLines(engines: RealityEngine[]): string {
   ).join('\n');
 }
 
+
+function compositionLawLines(engines: CompositionEngine[]): string {
+  if (!engines.length) return '[COMPOSITION LAB: no engines selected.]';
+  return engines.map((engine) =>
+    '[' + COMPOSITION_DIMENSION_LABELS[engine.dimension] + ' — ' + engine.name + ']\n' +
+    engine.shortExplanation + '\n' +
+    '[COMPOSITION JURISDICTION: ' + COMPOSITION_DIMENSION_JURISDICTIONS[engine.dimension] + ']'
+  ).join('\n');
+}
+
 export function generateProceduralTrack(params: ProceduralTrackParams): ProceduralTrackResult {
   const {
     guyIds,
     realityEngineIds = [],
+    compositionEngineIds = [],
     realityChaos = 2,
     seed = '',
     energy = 3,
@@ -98,6 +111,7 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
   const tempo = tempoForEnergy(energy, fingerprint.rhythm);
 
   const realityEngines = getRealityEngines(realityEngineIds);
+  const compositionEngines = getCompositionEngines(compositionEngineIds);
   const chemistry = analyzeRealityChemistry(realityEngineIds);
   const chaosMeta = REALITY_CHAOS_LABELS[realityChaos];
 
@@ -110,6 +124,11 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
       realityEngines.map((engine) => REALITY_DIMENSION_LABELS[engine.dimension] + '=' + engine.name).join('; ') + '.]'
     : '[REALITY MACHINE: no external reality layers selected.]';
 
+
+  const compositionStyleClause = compositionEngines.length
+    ? '[COMPOSITION LAB: ' + compositionEngines.map((engine) => COMPOSITION_DIMENSION_LABELS[engine.dimension] + '=' + engine.name).join('; ') + '. Each mechanism must remain independently audible or structurally testable.]'
+    : '[COMPOSITION LAB: no extra composition engines selected.]';
+
   const baseStyle =
     '[GENRE/PERFORMANCE FAMILY: ' + fingerprint.genreFamily + '] ' +
     '[TEMPO: ' + tempo + '] ' +
@@ -120,6 +139,7 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
     '[VOCAL SYSTEM: ' + fingerprint.vocal + '.] ' +
     '[PERFORMANCE ATTITUDE: ' + fingerprint.performance + '.] ' +
     realityStyleClause + ' ' +
+    compositionStyleClause + ' ' +
     '[ANCHOR / INVARIANT: a short recurring three-note or three-syllable figure returns recognizably after every mutation.] ' +
     '[OPERATOR 1: hold rhythmic identity fixed while harmony migrates.] ' +
     '[OPERATOR 2: make the vocal system behave like percussion without becoming percussion.] ' +
@@ -136,6 +156,7 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
     : '[No secondary mutator; the primary rule recursively pressures itself.]';
 
   const realityLines = realityLawLines(realityEngines);
+  const compositionLines = compositionLawLines(compositionEngines);
   const chemistryLines = realityEngines.length
     ? '[REALITY CHEMISTRY: ' + chemistry.summary + ']\n' +
       '[TEMPORARY CONSCIOUSNESS: ' + chemistry.narrator + ']\n' +
@@ -153,6 +174,7 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
       primary.name + ' controls ' + primary.defaultJurisdiction + '.\n' +
       'Nothing else is permitted to steal that jurisdiction.\n' +
       realityLines + '\n' +
+      compositionLines + '\n' +
       '[Anchor appears: three compact notes or syllables, clean and memorable.]\n' +
       'Record the anchor exactly. It will return after the system damages everything around it.',
 
@@ -162,7 +184,8 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
       '[Rhythm remains governed by: ' + fingerprint.rhythm + ']\n' +
       chemistryLines + '\n' +
       'The song does not blend these instructions into one vague style. Each rule keeps its own job.\n' +
-      'The highest-friction seam creates the next problem. One Reality layer must respond using only the procedures of its own jurisdiction.\n' +
+      'The highest-friction Reality seam creates the next problem. One Reality layer must respond using only the procedures of its own jurisdiction.\n' +
+      'Any active Composition Lab engine must produce a concrete audible or structural consequence rather than merely being named.\n' +
       secondaryLines + '\n' +
       '[Anchor returns unchanged for one bar.]\n' +
       'That unchanged return makes the surrounding deformation measurable.',
@@ -224,6 +247,7 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
       'Rhythmic jurisdiction: ' + fingerprint.rhythm + '.\n' +
       'Vocal jurisdiction: ' + fingerprint.vocal + '.\n' +
       'Reality chemistry: ' + chemistry.label + '.\n' +
+      'Composition Lab engines: ' + (compositionEngines.length ? compositionEngines.map((engine) => engine.name).join(', ') : 'none') + '.\n' +
       '[One last compact anchor. End immediately after recognition.]'
   ];
 
@@ -239,11 +263,14 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
   const realityCaption = realityEngines.length
     ? ' The Reality stack is ' + chemistry.label.toLowerCase() + ': ' + chemistry.narrator
     : '';
+  const compositionCaption = compositionEngines.length
+    ? ' Composition Lab adds ' + compositionEngines.map((engine) => engine.name).join(', ') + ' as operational constraints.'
+    : '';
 
   const baseCaption =
     'This run treats ' + primary.name + ' as a musical law' + mutationPhrase + '. ' +
     'Its sound world uses ' + fingerprint.genreFamily + ', with ' + fingerprint.rhythm + ' controlling pulse and ' +
-    fingerprint.vocal + ' controlling the mouth as an instrument.' + realityCaption + ' ' +
+    fingerprint.vocal + ' controlling the mouth as an instrument.' + realityCaption + compositionCaption + ' ' +
     'The anchor survives each fracture and returns carrying one useful scar.';
 
   const captionPad = ' The final form preserves negotiated mutation instead of resetting.';
