@@ -122,6 +122,10 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
   const activeTransductions = compositionEngines.filter((engine) => engine.dimension === 'transduction');
   const activeRecordingDamage = compositionEngines.filter((engine) => engine.dimension === 'recordingDamage');
   const activeTechnology = compositionEngines.find((engine) => engine.dimension === 'technology');
+  const activeTuning = compositionEngines.find((engine) => engine.dimension === 'tuning');
+  const activeRhythmPhysics = compositionEngines.filter((engine) => engine.dimension === 'rhythmPhysics');
+  const activeSpatialAudio = compositionEngines.find((engine) => engine.dimension === 'spatialAudio');
+  const activeRoleExchange = compositionEngines.filter((engine) => engine.dimension === 'roleExchange');
   const chemistry = analyzeRealityChemistry(realityEngineIds);
   const chaosMeta = REALITY_CHAOS_LABELS[realityChaos];
 
@@ -159,6 +163,11 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
     ? '[SIGNAL LAB: transmission=' + (activeTransmission?.name || 'none') + '; transduction=' + (activeTransductions.length ? activeTransductions.map((engine) => engine.name).join(' + ') : 'none') + '; damage=' + (activeRecordingDamage.length ? activeRecordingDamage.map((engine) => engine.name).join(' + ') : 'none') + '; technology=' + (activeTechnology?.name || 'none') + '. Transmission changes delivery; transduction uses stable mappings; damage occurs as timed failure; technology limits available operations.]'
     : '[SIGNAL LAB: no extra signal rules selected.]';
 
+
+  const musicalPhysicsClause = (activeTuning || activeRhythmPhysics.length || activeSpatialAudio || activeRoleExchange.length)
+    ? '[MUSICAL PHYSICS: tuning=' + (activeTuning?.name || 'default') + '; rhythm=' + (activeRhythmPhysics.length ? activeRhythmPhysics.map((engine) => engine.name).join(' + ') : 'none') + '; spatial=' + (activeSpatialAudio?.name || 'none') + '; roleExchange=' + (activeRoleExchange.length ? activeRoleExchange.map((engine) => engine.name).join(' + ') : 'none') + '. Tuning changes interval geometry; rhythm changes time organization; space changes placement/motion; role exchange transfers jobs.]'
+    : '[MUSICAL PHYSICS: no extra coordinate-system rules selected.]';
+
   const baseStyle =
     '[GENRE/PERFORMANCE FAMILY: ' + fingerprint.genreFamily + '] ' +
     '[TEMPO: ' + tempo + '] ' +
@@ -174,6 +183,7 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
     soundPaletteClause + ' ' +
     voiceTopologyClause + ' ' +
     signalLabClause + ' ' +
+    musicalPhysicsClause + ' ' +
     '[ANCHOR / INVARIANT: a short recurring three-note or three-syllable figure returns recognizably after every mutation.] ' +
     '[OPERATOR 1: hold rhythmic identity fixed while harmony migrates.] ' +
     '[OPERATOR 2: make the vocal system behave like percussion without becoming percussion.] ' +
@@ -211,6 +221,10 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
       (activeTransductions.length ? '[TRANSDUCTION: ' + activeTransductions.map((engine) => engine.name).join(' + ') + ' — preserve stable source→target mappings.]\n' : '') +
       (activeRecordingDamage.length ? '[RECORDING DAMAGE: ' + activeRecordingDamage.map((engine) => engine.name).join(' + ') + ' — schedule real failure events with causes or thresholds.]\n' : '') +
       (activeTechnology ? '[TECHNOLOGY: ' + activeTechnology.name + ' — do not use operations outside the selected workflow unless another engine explicitly enables them.]\n' : '') +
+      (activeTuning ? '[TUNING: ' + activeTuning.name + ' — make interval relationships obey this pitch world instead of defaulting silently to 12-TET.]\n' : '') +
+      (activeRhythmPhysics.length ? '[RHYTHMIC PHYSICS: ' + activeRhythmPhysics.map((engine) => engine.name).join(' + ') + ' — keep every selected clock/cycle/process audible and separately traceable.]\n' : '') +
+      (activeSpatialAudio ? '[SPATIAL AUDIO: ' + activeSpatialAudio.name + ' — placement and movement must change arrangement behavior, not just stereo width.]\n' : '') +
+      (activeRoleExchange.length ? '[ROLE EXCHANGE: ' + activeRoleExchange.map((engine) => engine.name).join(' + ') + ' — explicitly transfer the named musical jobs while preserving recognizable source identity.]\n' : '') +
       'Subject: ' + subject + '.\n' +
       'The first pass is deliberately legible. The listener is given a stable specimen before any mutation begins.\n' +
       primary.name + ' controls ' + primary.defaultJurisdiction + '.\n' +
@@ -230,6 +244,10 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
       (activeTransductions.length ? 'Every transduction rule repeats its mapping consistently enough to be inferred.\n' : '') +
       (activeRecordingDamage.length ? 'Recording damage happens at specific moments and changes what survives the medium.\n' : '') +
       (activeTechnology ? 'The selected technology constrains editing, track count, bandwidth, storage, or live workflow where applicable.\n' : '') +
+      (activeTuning ? 'Pitch behavior is generated inside the selected tuning coordinate system.\n' : '') +
+      (activeRhythmPhysics.length ? 'Rhythmic processes operate as real clocks, cycles, phase relations, or density laws rather than descriptive oddness.\n' : '') +
+      (activeSpatialAudio ? 'Spatial placement changes source relationships and handoffs.\n' : '') +
+      (activeRoleExchange.length ? 'Musical role transfers happen at explicit moments and leave the original identity traceable.\n' : '') +
       'The highest-friction Reality seam creates the next problem. One Reality layer must respond using only the procedures of its own jurisdiction.\n' +
       'Any active Composition Lab engine must produce a concrete audible or structural consequence rather than merely being named.\n' +
       secondaryLines + '\n' +
