@@ -12,6 +12,8 @@ import { OutputBox } from './components/OutputBox';
 import {
   getLastStack,
   setLastStack,
+  getLastRealityEngineIds,
+  setLastRealityEngineIds,
   getSavedEnergy,
   setSavedEnergy,
   getSavedSeed,
@@ -53,6 +55,7 @@ export default function App() {
     return ['taxonomy-goblin', 'recall-mold', 'cosmic-clerk'];
   });
 
+  const [realityEngineIds, setRealityEngineIds] = useState<string[]>(() => getLastRealityEngineIds());
   const [savedStacks, setSavedStacks] = useState<SavedStack[]>(() => getSavedStacks());
   const [seed, setSeed] = useState<string>(() => getSavedSeed());
   const [energy, setEnergy] = useState<number>(() => getSavedEnergy());
@@ -91,6 +94,10 @@ export default function App() {
   useEffect(() => {
     setLastStack(stackGuyIds);
   }, [stackGuyIds]);
+
+  useEffect(() => {
+    setLastRealityEngineIds(realityEngineIds);
+  }, [realityEngineIds]);
 
   const handleSeedChange = (newSeed: string) => {
     setSeed(newSeed);
@@ -150,11 +157,12 @@ export default function App() {
   };
 
   const handleSaveStack = (name: string) => {
-    setSavedStacks(saveStackToFavorites(name, stackGuyIds));
+    setSavedStacks(saveStackToFavorites(name, stackGuyIds, realityEngineIds));
   };
 
   const handleLoadSavedStack = (saved: SavedStack) => {
     setStackGuyIds(saved.guyIds);
+    setRealityEngineIds(saved.realityEngineIds || []);
   };
 
   const handleDeleteSavedStack = (id: string) => {
@@ -167,6 +175,7 @@ export default function App() {
     const caption = data.caption || '';
     const run = saveGeneratedRun({
       guyIds: [...stackGuyIds],
+      realityEngineIds: [...realityEngineIds],
       seed,
       energy,
       model: effectiveModel,
@@ -203,6 +212,7 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           guyIds: stackGuyIds,
+          realityEngineIds,
           seed,
           energy,
           recentFingerprints,
