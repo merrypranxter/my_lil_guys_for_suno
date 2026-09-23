@@ -117,6 +117,36 @@ export interface LanguageProfile {
   sourceNotes?: string[];
 }
 
+
+export type SoundSourceCategory =
+  | 'conventional'
+  | 'regionalTraditional'
+  | 'historical'
+  | 'experimental'
+  | 'electronic'
+  | 'machine'
+  | 'domesticObject'
+  | 'industrial'
+  | 'body'
+  | 'animal'
+  | 'environment'
+  | 'communications'
+  | 'synthesis'
+  | 'resonance';
+
+export interface SoundSourceProfile {
+  id: string;
+  name: string;
+  category: SoundSourceCategory;
+  origin?: string;
+  excitation: string;
+  resonance: string;
+  behavior: string;
+  suggestedRoles: string[];
+  tags: string[];
+  sourceNotes?: string[];
+}
+
 export type RealityChaosLevel = 1 | 2 | 3 | 4;
 
 export type BoxType = 'style' | 'lyrics' | 'caption';
