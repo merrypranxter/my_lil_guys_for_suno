@@ -162,6 +162,25 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
       ].join('\n')
     : 'No Musical Physics engine selected.';
 
+
+  const activeTemporal = compositionEngines.find((engine) => engine.dimension === 'temporal');
+  const activeScale = compositionEngines.find((engine) => engine.dimension === 'scale');
+  const activeEpistemology = compositionEngines.find((engine) => engine.dimension === 'epistemology');
+  const timeScaleKnowledgeBlock = (activeTemporal || activeScale || activeEpistemology)
+    ? [
+        'TEMPORAL ENGINE: ' + (activeTemporal ? activeTemporal.name : 'NONE'),
+        'SCALE ENGINE: ' + (activeScale ? activeScale.name : 'NONE'),
+        'EPISTEMOLOGY / KNOWLEDGE: ' + (activeEpistemology ? activeEpistemology.name : 'NONE'),
+        'TIME / SCALE / KNOWLEDGE RULES:',
+        '- TEMPORAL ENGINE changes objective narrative/compositional chronology: ordering, recurrence, branching, windows, causality, or section age. It is not subjective time distortion.',
+        '- SCALE ENGINE changes which objects, causes, measurements, and operations are available. Do not merely replace nouns with bigger or smaller nouns.',
+        '- EPISTEMOLOGY changes who has access to which facts, how evidence enters the system, what may be inferred, and what can be disclosed. It is not a personality trait or attention state.',
+        '- Keep TEMPORAL distinct from ALTERED STATE: altered-state cards may change subjective time experience; Temporal Engine changes the composition’s actual chronology.',
+        '- Keep EPISTEMOLOGY distinct from HEADSPACE: headspace changes salience/attention/memory pressure; epistemology changes information access and evidence structure.',
+        '- If SCALE changes during the piece, translate causal vocabulary at every scale transition and preserve one traceable relation across the shift.',
+      ].join('\n')
+    : 'No Time / Scale / Knowledge engine selected.';
+
   const energyLabels: Record<number, string> = {
     1: 'ENERGY LEVEL 1: Latent Drift / Subsurface Mutation (controlled but still engaging; subtle tension and motion)',
     2: 'ENERGY LEVEL 2: Low Hum / Controlled Asymmetry (steady propulsion, occasional structural interruptions)',
@@ -217,7 +236,8 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
     '15. VOICE TOPOLOGY IS CAUSAL. ADDRESSEE changes disclosure and explanation; ENSEMBLE changes information distribution, turn-taking, overlap, and authority; GESTURE changes breath, timing, articulation, movement, and body-percussion. Do not reduce these choices to cast labels or stage directions.\n' +
     '16. SIGNAL LAB IS INFORMATION PHYSICS. TRANSMISSION controls delivery topology; TRANSDUCTION converts one variable into another through a stable mapping; RECORDING DAMAGE creates timed failure; TECHNOLOGY defines what operations exist and what they cost. Do not collapse all four into generic retro/noisy production.\n' +
     '17. MUSICAL PHYSICS CHANGES THE COORDINATE SYSTEM. TUNING changes interval geometry; RHYTHM PHYSICS changes time organization; SPATIAL AUDIO changes physical placement and motion; ROLE EXCHANGE changes which musical system performs which job. These are causal laws, not vibe adjectives.\n' +
-    '18. OUTPUT FORMAT: valid JSON with keys style, lyrics, caption, fingerprint. fingerprint must contain genreFamily, harmony, melody, rhythm, timbre, vocal, performance, production.\n\n' +
+    '18. TIME / SCALE / KNOWLEDGE ARE SEPARATE JURISDICTIONS. TEMPORAL changes objective chronology; SCALE changes the level of causality and available operations; EPISTEMOLOGY changes information access/evidence. Do not confuse chronology with subjective altered-state time or knowledge access with attention/headspace.\n' +
+    '19. OUTPUT FORMAT: valid JSON with keys style, lyrics, caption, fingerprint. fingerprint must contain genreFamily, harmony, melody, rhythm, timbre, vocal, performance, production.\n\n' +
     'TARGET CHARACTER COUNTS INCLUDING SPACES AND LINE BREAKS:\n' +
     'style: 975 to 999 characters.\n' +
     'lyrics: 4900 to 4999 characters.\n' +
@@ -233,8 +253,9 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
     'VOICE TOPOLOGY / ADDRESSEE / BODY:\n' + voiceTopologyBlock + '\n\n' +
     'SIGNAL LAB / INFORMATION PHYSICS:\n' + signalLabBlock + '\n\n' +
     'MUSICAL PHYSICS / COORDINATE SYSTEM:\n' + musicalPhysicsBlock + '\n\n' +
+    'TIME / SCALE / KNOWLEDGE:\n' + timeScaleKnowledgeBlock + '\n\n' +
     'COMPOSITION LAB NEGOTIATION RULE:\n' +
-    'Keep Composition Lab mechanisms separate from scenario decoration. Multiple active engines may coexist in the same dimension where the registry allows it. Each one must perform measurable work through its own jurisdiction. Sound sources should receive musical jobs; transmission must change information delivery; transduction must apply stable mappings; recording damage must occur as timed failure; technology must constrain the available workflow; tuning must change actual pitch relationships; rhythm physics must change time organization; spatial audio must change placement/motion; role exchange must transfer a real musical job; language should alter mouth behavior; addressee must alter disclosure/assumption; ensemble topology must alter phrase and information distribution; gestures must alter timing/breath/motion; structural/control engines should create consequences that the song must respond to. Cross-domain chemistry is not yet precomputed, so preserve all mechanisms explicitly rather than averaging them.\n\n' +
+    'Keep Composition Lab mechanisms separate from scenario decoration. Multiple active engines may coexist in the same dimension where the registry allows it. Each one must perform measurable work through its own jurisdiction. Sound sources should receive musical jobs; transmission must change information delivery; transduction must apply stable mappings; recording damage must occur as timed failure; technology must constrain the available workflow; tuning must change actual pitch relationships; rhythm physics must change time organization; spatial audio must change placement/motion; role exchange must transfer a real musical job; temporal engines must change objective chronology; scale engines must change causal vocabulary and available operations; epistemology must change information access/evidence; language should alter mouth behavior; addressee must alter disclosure/assumption; ensemble topology must alter phrase and information distribution; gestures must alter timing/breath/motion; structural/control engines should create consequences that the song must respond to. Cross-domain chemistry is not yet precomputed, so preserve all mechanisms explicitly rather than averaging them.\n\n' +
     'REALITY ENGINE NEGOTIATION RULE:\n' +
     'Treat each selected engine as an operational law in its own jurisdiction. Do not merely name it or decorate lyrics with its vocabulary. If the format is a game show, the lyric architecture must actually behave like one. If the headspace is overloaded, attention and thread management must actually change. If an altered-state engine is active, use its defined phenomenological mechanism rather than generic drug imagery. Preserve productive incompatibility between layers. Use the collision map above to decide WHERE the song generates events: the high-friction seam should repeatedly force one jurisdiction to solve a problem created by another.\n\n' +
     'ENERGY PARAMETER:\n' + (energyLabels[energy] || energyLabels[3]) + '\n\n' +
