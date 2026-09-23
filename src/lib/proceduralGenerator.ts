@@ -126,6 +126,9 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
   const activeRhythmPhysics = compositionEngines.filter((engine) => engine.dimension === 'rhythmPhysics');
   const activeSpatialAudio = compositionEngines.find((engine) => engine.dimension === 'spatialAudio');
   const activeRoleExchange = compositionEngines.filter((engine) => engine.dimension === 'roleExchange');
+  const activeTemporal = compositionEngines.find((engine) => engine.dimension === 'temporal');
+  const activeScale = compositionEngines.find((engine) => engine.dimension === 'scale');
+  const activeEpistemology = compositionEngines.find((engine) => engine.dimension === 'epistemology');
   const chemistry = analyzeRealityChemistry(realityEngineIds);
   const chaosMeta = REALITY_CHAOS_LABELS[realityChaos];
 
@@ -168,6 +171,11 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
     ? '[MUSICAL PHYSICS: tuning=' + (activeTuning?.name || 'default') + '; rhythm=' + (activeRhythmPhysics.length ? activeRhythmPhysics.map((engine) => engine.name).join(' + ') : 'none') + '; spatial=' + (activeSpatialAudio?.name || 'none') + '; roleExchange=' + (activeRoleExchange.length ? activeRoleExchange.map((engine) => engine.name).join(' + ') : 'none') + '. Tuning changes interval geometry; rhythm changes time organization; space changes placement/motion; role exchange transfers jobs.]'
     : '[MUSICAL PHYSICS: no extra coordinate-system rules selected.]';
 
+
+  const timeScaleKnowledgeClause = (activeTemporal || activeScale || activeEpistemology)
+    ? '[TIME / SCALE / KNOWLEDGE: temporal=' + (activeTemporal?.name || 'none') + '; scale=' + (activeScale?.name || 'none') + '; epistemology=' + (activeEpistemology?.name || 'none') + '. Temporal changes objective chronology; scale changes causal vocabulary and available operations; epistemology changes information access/evidence. Keep subjective altered-state time and headspace separate.]'
+    : '[TIME / SCALE / KNOWLEDGE: no extra structural rules selected.]';
+
   const baseStyle =
     '[GENRE/PERFORMANCE FAMILY: ' + fingerprint.genreFamily + '] ' +
     '[TEMPO: ' + tempo + '] ' +
@@ -184,6 +192,7 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
     voiceTopologyClause + ' ' +
     signalLabClause + ' ' +
     musicalPhysicsClause + ' ' +
+    timeScaleKnowledgeClause + ' ' +
     '[ANCHOR / INVARIANT: a short recurring three-note or three-syllable figure returns recognizably after every mutation.] ' +
     '[OPERATOR 1: hold rhythmic identity fixed while harmony migrates.] ' +
     '[OPERATOR 2: make the vocal system behave like percussion without becoming percussion.] ' +
@@ -225,6 +234,9 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
       (activeRhythmPhysics.length ? '[RHYTHMIC PHYSICS: ' + activeRhythmPhysics.map((engine) => engine.name).join(' + ') + ' — keep every selected clock/cycle/process audible and separately traceable.]\n' : '') +
       (activeSpatialAudio ? '[SPATIAL AUDIO: ' + activeSpatialAudio.name + ' — placement and movement must change arrangement behavior, not just stereo width.]\n' : '') +
       (activeRoleExchange.length ? '[ROLE EXCHANGE: ' + activeRoleExchange.map((engine) => engine.name).join(' + ') + ' — explicitly transfer the named musical jobs while preserving recognizable source identity.]\n' : '') +
+      (activeTemporal ? '[TEMPORAL ENGINE: ' + activeTemporal.name + ' — change objective chronology, recurrence, branching, causal order, or time-window structure. Do not confuse this with subjective altered-state time.]\n' : '') +
+      (activeScale ? '[SCALE ENGINE: ' + activeScale.name + ' — change which objects, causes, measurements, and operations are available at this scale.]\n' : '') +
+      (activeEpistemology ? '[EPISTEMOLOGY: ' + activeEpistemology.name + ' — enforce who knows what, what counts as evidence, and how information may be acquired or disclosed.]\n' : '') +
       'Subject: ' + subject + '.\n' +
       'The first pass is deliberately legible. The listener is given a stable specimen before any mutation begins.\n' +
       primary.name + ' controls ' + primary.defaultJurisdiction + '.\n' +
@@ -248,6 +260,9 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
       (activeRhythmPhysics.length ? 'Rhythmic processes operate as real clocks, cycles, phase relations, or density laws rather than descriptive oddness.\n' : '') +
       (activeSpatialAudio ? 'Spatial placement changes source relationships and handoffs.\n' : '') +
       (activeRoleExchange.length ? 'Musical role transfers happen at explicit moments and leave the original identity traceable.\n' : '') +
+      (activeTemporal ? 'Chronology follows the selected Temporal Engine as an objective structural law.\n' : '') +
+      (activeScale ? 'Descriptions and causal operations remain native to the selected Scale Engine rather than merely changing noun size.\n' : '') +
+      (activeEpistemology ? 'Claims, uncertainty, evidence, and disclosure obey the selected Epistemology Engine rather than generic confusion.\n' : '') +
       'The highest-friction Reality seam creates the next problem. One Reality layer must respond using only the procedures of its own jurisdiction.\n' +
       'Any active Composition Lab engine must produce a concrete audible or structural consequence rather than merely being named.\n' +
       secondaryLines + '\n' +
@@ -264,7 +279,7 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
       '[Dense syllables compress time: kratak-tikka-brradan.]\n' +
       '[Long vowels stretch the same clock: aaaaaa—oooooo.]\n' +
       'The nonsense is not decorative. Its phonetics physically reinforce the selected rhythmic and melodic systems.\n' +
-      'If ROLE is active, diction still performs the job. If HEADSPACE is active, interruptions and salience visibly alter delivery without deleting the role. If ADDRESSEE is active, the lyric must visibly change what it assumes or reveals. If ENSEMBLE is active, distribute information/phrases according to its topology. If GESTURE is active, bodily movement must produce audible timing, breath, or articulation consequences.',
+      'If ROLE is active, diction still performs the job. If HEADSPACE is active, interruptions and salience visibly alter delivery without deleting the role. If ADDRESSEE is active, the lyric must visibly change what it assumes or reveals. If ENSEMBLE is active, distribute information/phrases according to its topology. If GESTURE is active, bodily movement must produce audible timing, breath, or articulation consequences. If TEMPORAL is active, objective section order follows its chronology rule. If SCALE is active, the lyric changes causal vocabulary to match the selected level. If EPISTEMOLOGY is active, every factual claim must respect the speaker’s actual information access.',
 
     '[FRACTURE — incompatible temporal scales coexist]\n' +
       '[Keep the main pulse recognizable.]\n' +
