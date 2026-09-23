@@ -13,6 +13,9 @@ import { TUNING_ENGINES } from './sonicTuning';
 import { RHYTHM_PHYSICS_ENGINES } from './sonicRhythmPhysics';
 import { SPATIAL_AUDIO_ENGINES } from './sonicSpatialAudio';
 import { ROLE_EXCHANGE_ENGINES } from './sonicRoleExchange';
+import { TEMPORAL_ENGINES } from './structureTemporal';
+import { SCALE_ENGINES } from './structureScale';
+import { EPISTEMOLOGY_ENGINES } from './structureEpistemology';
 
 /**
  * Composition Lab is separate from Reality Engine.
@@ -31,7 +34,8 @@ import { ROLE_EXCHANGE_ENGINES } from './sonicRoleExchange';
  * RECORDING / DAMAGE, and HISTORICAL TECHNOLOGY.
  * Job 13 populates TUNING / PITCH WORLD, RHYTHMIC PHYSICS,
  * STAGE GEOMETRY / SPATIAL AUDIO, and MUSICAL ROLE EXCHANGE.
- * Remaining dimensions are populated in Jobs 14–15.
+ * Job 14 populates TEMPORAL ENGINE, SCALE ENGINE, and EPISTEMOLOGY / KNOWLEDGE.
+ * Remaining Structure / Control dimensions are populated in Job 15.
  */
 export const COMPOSITION_ENGINES: CompositionEngine[] = [
   ...LANGUAGE_PROFILE_ENGINES,
@@ -48,6 +52,9 @@ export const COMPOSITION_ENGINES: CompositionEngine[] = [
   ...RHYTHM_PHYSICS_ENGINES,
   ...SPATIAL_AUDIO_ENGINES,
   ...ROLE_EXCHANGE_ENGINES,
+  ...TEMPORAL_ENGINES,
+  ...SCALE_ENGINES,
+  ...EPISTEMOLOGY_ENGINES,
 ];
 
 export const COMPOSITION_DOMAIN_LABELS: Record<CompositionDomain, string> = {
