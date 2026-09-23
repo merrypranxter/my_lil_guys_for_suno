@@ -30,7 +30,7 @@ export function getSavedStacks(): SavedStack[] {
   }
 }
 
-export function saveStackToFavorites(name: string, guyIds: string[], realityEngineIds: string[] = []): SavedStack[] {
+export function saveStackToFavorites(name: string, guyIds: string[], realityEngineIds: string[] = [], realityChaos: RealityChaosLevel = 2): SavedStack[] {
   try {
     const current = getSavedStacks();
     const newStack: SavedStack = {
@@ -38,6 +38,7 @@ export function saveStackToFavorites(name: string, guyIds: string[], realityEngi
       name: name.trim() || 'Stack of ' + guyIds.length + ' Guys',
       guyIds,
       realityEngineIds,
+      realityChaos,
       createdAt: Date.now(),
     };
     const updated = [newStack, ...current];
@@ -225,7 +226,7 @@ export function getLikedPreferenceSignals(limit = 10): string[] {
       const fingerprint = run.fingerprint ? fingerprintToLine(run.fingerprint) : 'fingerprint unavailable';
       const note = run.feedback.trim() ? ' User specifically liked: ' + run.feedback.trim() : '';
       const reality = run.realityEngineIds.length ? run.realityEngineIds.join(' > ') : '(none)';
-      const context = 'stack=' + run.guyIds.join(' > ') + ' | reality=' + reality + ' | seed=' + (run.seed || '(none)') + ' | ';
+      const context = 'stack=' + run.guyIds.join(' > ') + ' | reality=' + reality + ' | realityChaos=' + (run.realityChaos || 2) + ' | seed=' + (run.seed || '(none)') + ' | ';
       return 'POSITIVE EXAMPLE — ' + context + fingerprint + '.' + note;
     });
 }
@@ -288,6 +289,7 @@ export function runToMarkdown(run: ArchivedRun): string {
     '**Created:** ' + date,
     '**Stack:** ' + run.guyIds.join(' → '),
     '**Reality engines:** ' + (run.realityEngineIds.length ? run.realityEngineIds.join(' → ') : '(none)'),
+    '**Reality chaos:** ' + (run.realityChaos || 2),
     '**Seed:** ' + (run.seed || '(none)'),
     '**Energy:** ' + run.energy,
     '**Model:** ' + run.model,
