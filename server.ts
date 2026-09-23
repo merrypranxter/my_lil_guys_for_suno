@@ -153,6 +153,7 @@ app.get('/api/info', (_req, res) => {
 app.post('/api/generate', async (req, res) => {
   const guyIds = Array.isArray(req.body?.guyIds) ? req.body.guyIds : [];
   const realityEngineIds = sanitizeIdList(req.body?.realityEngineIds);
+  const compositionEngineIds = sanitizeIdList(req.body?.compositionEngineIds, 64);
   const realityChaos = sanitizeRealityChaos(req.body?.realityChaos);
   const seed = typeof req.body?.seed === 'string' ? req.body.seed : '';
   const energy = typeof req.body?.energy === 'number' ? req.body.energy : 4;
@@ -163,6 +164,7 @@ app.post('/api/generate', async (req, res) => {
     const { systemInstruction, userPrompt } = buildMasterPrompt({
       guyIds,
       realityEngineIds,
+      compositionEngineIds,
       realityChaos,
       seed,
       energy,
@@ -252,6 +254,7 @@ app.post('/api/generate', async (req, res) => {
       const fallback = generateProceduralTrack({
         guyIds,
         realityEngineIds,
+        compositionEngineIds,
         realityChaos,
         seed,
         energy,
