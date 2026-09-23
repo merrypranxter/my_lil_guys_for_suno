@@ -118,6 +118,10 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
   const activeAddressee = compositionEngines.find((engine) => engine.dimension === 'addressee');
   const activeEnsemble = compositionEngines.find((engine) => engine.dimension === 'ensemble');
   const activeGestures = compositionEngines.filter((engine) => engine.dimension === 'gesture');
+  const activeTransmission = compositionEngines.find((engine) => engine.dimension === 'transmission');
+  const activeTransductions = compositionEngines.filter((engine) => engine.dimension === 'transduction');
+  const activeRecordingDamage = compositionEngines.filter((engine) => engine.dimension === 'recordingDamage');
+  const activeTechnology = compositionEngines.find((engine) => engine.dimension === 'technology');
   const chemistry = analyzeRealityChemistry(realityEngineIds);
   const chaosMeta = REALITY_CHAOS_LABELS[realityChaos];
 
@@ -150,6 +154,11 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
     ? '[VOICE TOPOLOGY: addressee=' + (activeAddressee?.name || 'unspecified') + '; ensemble=' + (activeEnsemble?.name || 'unspecified') + '; gestures=' + (activeGestures.length ? activeGestures.map((engine) => engine.name).join(' + ') : 'none') + '. Addressee changes disclosure; ensemble changes phrase/information distribution; gesture changes timing, breath, or movement.]'
     : '[VOICE TOPOLOGY: no extra addressee/ensemble/gesture rules selected.]';
 
+
+  const signalLabClause = (activeTransmission || activeTransductions.length || activeRecordingDamage.length || activeTechnology)
+    ? '[SIGNAL LAB: transmission=' + (activeTransmission?.name || 'none') + '; transduction=' + (activeTransductions.length ? activeTransductions.map((engine) => engine.name).join(' + ') : 'none') + '; damage=' + (activeRecordingDamage.length ? activeRecordingDamage.map((engine) => engine.name).join(' + ') : 'none') + '; technology=' + (activeTechnology?.name || 'none') + '. Transmission changes delivery; transduction uses stable mappings; damage occurs as timed failure; technology limits available operations.]'
+    : '[SIGNAL LAB: no extra signal rules selected.]';
+
   const baseStyle =
     '[GENRE/PERFORMANCE FAMILY: ' + fingerprint.genreFamily + '] ' +
     '[TEMPO: ' + tempo + '] ' +
@@ -164,6 +173,7 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
     languageStyleClause + ' ' +
     soundPaletteClause + ' ' +
     voiceTopologyClause + ' ' +
+    signalLabClause + ' ' +
     '[ANCHOR / INVARIANT: a short recurring three-note or three-syllable figure returns recognizably after every mutation.] ' +
     '[OPERATOR 1: hold rhythmic identity fixed while harmony migrates.] ' +
     '[OPERATOR 2: make the vocal system behave like percussion without becoming percussion.] ' +
@@ -197,6 +207,10 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
       (activeAddressee ? '[ADDRESSEE: ' + activeAddressee.name + ' — change what the lyric assumes, explains, withholds, repeats, or asks.]\n' : '') +
       (activeEnsemble ? '[ENSEMBLE TOPOLOGY: ' + activeEnsemble.name + ' — enforce who owns each phrase, fact, response, overlap, or interruption.]\n' : '') +
       (activeGestures.length ? '[PHYSICAL GESTURES: ' + activeGestures.map((engine) => engine.name).join(' + ') + ' — make gesture alter timing, breath, articulation, or body-percussion rather than acting as silent stage direction.]\n' : '') +
+      (activeTransmission ? '[TRANSMISSION: ' + activeTransmission.name + ' — enforce who can hear what, when, and with what channel limits.]\n' : '') +
+      (activeTransductions.length ? '[TRANSDUCTION: ' + activeTransductions.map((engine) => engine.name).join(' + ') + ' — preserve stable source→target mappings.]\n' : '') +
+      (activeRecordingDamage.length ? '[RECORDING DAMAGE: ' + activeRecordingDamage.map((engine) => engine.name).join(' + ') + ' — schedule real failure events with causes or thresholds.]\n' : '') +
+      (activeTechnology ? '[TECHNOLOGY: ' + activeTechnology.name + ' — do not use operations outside the selected workflow unless another engine explicitly enables them.]\n' : '') +
       'Subject: ' + subject + '.\n' +
       'The first pass is deliberately legible. The listener is given a stable specimen before any mutation begins.\n' +
       primary.name + ' controls ' + primary.defaultJurisdiction + '.\n' +
@@ -212,6 +226,10 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
       '[Rhythm remains governed by: ' + fingerprint.rhythm + ']\n' +
       chemistryLines + '\n' +
       'The song does not blend these instructions into one vague style. Each rule keeps its own job.\n' +
+      (activeTransmission ? 'The transmission medium changes information flow rather than merely EQ.\n' : '') +
+      (activeTransductions.length ? 'Every transduction rule repeats its mapping consistently enough to be inferred.\n' : '') +
+      (activeRecordingDamage.length ? 'Recording damage happens at specific moments and changes what survives the medium.\n' : '') +
+      (activeTechnology ? 'The selected technology constrains editing, track count, bandwidth, storage, or live workflow where applicable.\n' : '') +
       'The highest-friction Reality seam creates the next problem. One Reality layer must respond using only the procedures of its own jurisdiction.\n' +
       'Any active Composition Lab engine must produce a concrete audible or structural consequence rather than merely being named.\n' +
       secondaryLines + '\n' +
