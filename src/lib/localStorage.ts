@@ -5,6 +5,7 @@ const STORAGE_KEYS = {
   SAVED_STACKS: 'lgm_saved_stacks_v1',
   LAST_STACK: 'lgm_last_stack_v1',
   LAST_REALITY_ENGINES: 'lgm_last_reality_engines_v1',
+  LAST_COMPOSITION_ENGINES: 'lgm_last_composition_engines_v1',
   REALITY_CHAOS: 'lgm_reality_chaos_v1',
   ENERGY: 'lgm_energy_v1',
   LAST_SEED: 'lgm_last_seed_v1',
@@ -23,6 +24,7 @@ export function getSavedStacks(): SavedStack[] {
       ...stack,
       guyIds: Array.isArray(stack?.guyIds) ? stack.guyIds : [],
       realityEngineIds: Array.isArray(stack?.realityEngineIds) ? stack.realityEngineIds : [],
+      compositionEngineIds: Array.isArray(stack?.compositionEngineIds) ? stack.compositionEngineIds : [],
     }));
   } catch (e) {
     console.error('Failed to load saved stacks from localStorage', e);
@@ -30,7 +32,7 @@ export function getSavedStacks(): SavedStack[] {
   }
 }
 
-export function saveStackToFavorites(name: string, guyIds: string[], realityEngineIds: string[] = [], realityChaos: RealityChaosLevel = 2): SavedStack[] {
+export function saveStackToFavorites(name: string, guyIds: string[], realityEngineIds: string[] = [], realityChaos: RealityChaosLevel = 2, compositionEngineIds: string[] = []): SavedStack[] {
   try {
     const current = getSavedStacks();
     const newStack: SavedStack = {
@@ -38,6 +40,7 @@ export function saveStackToFavorites(name: string, guyIds: string[], realityEngi
       name: name.trim() || 'Stack of ' + guyIds.length + ' Guys',
       guyIds,
       realityEngineIds,
+      compositionEngineIds,
       realityChaos,
       createdAt: Date.now(),
     };
@@ -94,6 +97,25 @@ export function getLastRealityEngineIds(): string[] {
 export function setLastRealityEngineIds(ids: string[]): void {
   try {
     localStorage.setItem(STORAGE_KEYS.LAST_REALITY_ENGINES, JSON.stringify(ids));
+  } catch {
+    // ignore
+  }
+}
+
+export function getLastCompositionEngineIds(): string[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.LAST_COMPOSITION_ENGINES);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((id) => typeof id === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+export function setLastCompositionEngineIds(ids: string[]): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.LAST_COMPOSITION_ENGINES, JSON.stringify(ids));
   } catch {
     // ignore
   }
@@ -162,6 +184,7 @@ export function getRunArchive(): ArchivedRun[] {
       ...run,
       guyIds: Array.isArray(run?.guyIds) ? run.guyIds : [],
       realityEngineIds: Array.isArray(run?.realityEngineIds) ? run.realityEngineIds : [],
+      compositionEngineIds: Array.isArray(run?.compositionEngineIds) ? run.compositionEngineIds : [],
     }));
   } catch (e) {
     console.error('Failed to load run archive', e);
@@ -226,7 +249,8 @@ export function getLikedPreferenceSignals(limit = 10): string[] {
       const fingerprint = run.fingerprint ? fingerprintToLine(run.fingerprint) : 'fingerprint unavailable';
       const note = run.feedback.trim() ? ' User specifically liked: ' + run.feedback.trim() : '';
       const reality = run.realityEngineIds.length ? run.realityEngineIds.join(' > ') : '(none)';
-      const context = 'stack=' + run.guyIds.join(' > ') + ' | reality=' + reality + ' | realityChaos=' + (run.realityChaos || 2) + ' | seed=' + (run.seed || '(none)') + ' | ';
+      const composition = run.compositionEngineIds.length ? run.compositionEngineIds.join(' > ') : '(none)';
+      const context = 'stack=' + run.guyIds.join(' > ') + ' | reality=' + reality + ' | composition=' + composition + ' | realityChaos=' + (run.realityChaos || 2) + ' | seed=' + (run.seed || '(none)') + ' | ';
       return 'POSITIVE EXAMPLE — ' + context + fingerprint + '.' + note;
     });
 }
@@ -290,6 +314,7 @@ export function runToMarkdown(run: ArchivedRun): string {
     '**Stack:** ' + run.guyIds.join(' → '),
     '**Reality engines:** ' + (run.realityEngineIds.length ? run.realityEngineIds.join(' → ') : '(none)'),
     '**Reality chaos:** ' + (run.realityChaos || 2),
+    '**Composition engines:** ' + (run.compositionEngineIds.length ? run.compositionEngineIds.join(' → ') : '(none)'),
     '**Seed:** ' + (run.seed || '(none)'),
     '**Energy:** ' + run.energy,
     '**Model:** ' + run.model,
