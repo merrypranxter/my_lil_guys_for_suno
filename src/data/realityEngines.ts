@@ -1,4 +1,6 @@
 import { RealityDimension, RealityEngine } from '../types';
+import { FORMAT_ENGINES } from './realityFormats';
+import { ROLE_ENGINES } from './realityRoles';
 
 /**
  * Reality Engines are intentionally separate from Little Guys.
@@ -8,10 +10,13 @@ import { RealityDimension, RealityEngine } from '../types';
  * WHAT kind of event/media format is happening, and WHAT state the performer
  * is operating under.
  *
- * Job 1 establishes the registry and jurisdiction contract only. Later jobs
- * populate the dimension libraries.
+ * FORMAT and ROLE are populated in Job 2. Later jobs add WORLD, SPECIES,
+ * VENUE, HEADSPACE, ALTERED STATE, and TONE.
  */
-export const REALITY_ENGINES: RealityEngine[] = [];
+export const REALITY_ENGINES: RealityEngine[] = [
+  ...FORMAT_ENGINES,
+  ...ROLE_ENGINES,
+];
 
 export const REALITY_DIMENSION_LABELS: Record<RealityDimension, string> = {
   format: 'FORMAT',
@@ -43,4 +48,8 @@ export function getRealityEngines(ids: string[]): RealityEngine[] {
   return ids
     .map((id) => getRealityEngine(id))
     .filter((engine): engine is RealityEngine => Boolean(engine));
+}
+
+export function getRealityEnginesByDimension(dimension: RealityDimension): RealityEngine[] {
+  return REALITY_ENGINES.filter((engine) => engine.dimension === dimension);
 }
