@@ -2,12 +2,14 @@ import { LITTLE_GUYS } from '../data/littleGuys';
 import { MUSICAL_VOCABULARY_PROMPT, fingerprintToLine } from '../data/musicTaxonomy';
 import { getMindMetadata } from '../data/mindMetadata';
 import { getRealityEngines, REALITY_DIMENSION_JURISDICTIONS, REALITY_DIMENSION_LABELS } from '../data/realityEngines';
-import { BoxType, LittleGuy, MusicFingerprint, RealityChaosLevel, RealityEngine } from '../types';
+import { COMPOSITION_DIMENSION_JURISDICTIONS, COMPOSITION_DIMENSION_LABELS, getCompositionEngines } from '../data/compositionEngines';
+import { BoxType, CompositionEngine, LittleGuy, MusicFingerprint, RealityChaosLevel, RealityEngine } from '../types';
 import { REALITY_CHAOS_LABELS, analyzeRealityChemistry } from './realityChemistry';
 
 export interface GenerationPromptParams {
   guyIds: string[];
   realityEngineIds?: string[];
+  compositionEngineIds?: string[];
   realityChaos?: RealityChaosLevel;
   seed?: string;
   energy: number;
@@ -16,7 +18,7 @@ export interface GenerationPromptParams {
 }
 
 export function buildMasterPrompt(params: GenerationPromptParams): { systemInstruction: string; userPrompt: string } {
-  const { guyIds, realityEngineIds = [], realityChaos = 2, seed, energy, recentFingerprints = [], likedSignals = [] } = params;
+  const { guyIds, realityEngineIds = [], compositionEngineIds = [], realityChaos = 2, seed, energy, recentFingerprints = [], likedSignals = [] } = params;
 
   const selectedGuys: LittleGuy[] = guyIds
     .map((id) => LITTLE_GUYS.find((g) => g.id === id))
@@ -53,6 +55,19 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
         )
         .join('\n\n')
     : 'NONE SELECTED — do not invent a Reality Engine unless the user seed explicitly supplies one.';
+
+
+  const compositionEngines: CompositionEngine[] = getCompositionEngines(compositionEngineIds);
+  const compositionBreakdown = compositionEngines.length
+    ? compositionEngines
+        .map((engine) =>
+          '[' + COMPOSITION_DIMENSION_LABELS[engine.dimension] + ']: ' + engine.name + ' (' + engine.subtitle + ')\n' +
+          'Jurisdiction contract: ' + COMPOSITION_DIMENSION_JURISDICTIONS[engine.dimension] + '\n' +
+          'Operational Rule: ' + engine.rule + '\n' +
+          'Anti-decoration test: this engine must create an audible, structural, informational, physical, or procedural consequence; naming the source or concept alone does not count.'
+        )
+        .join('\n\n')
+    : 'NONE SELECTED — do not invent Composition Lab engines unless the user seed explicitly asks for a mechanism.';
 
   const energyLabels: Record<number, string> = {
     1: 'ENERGY LEVEL 1: Latent Drift / Subsurface Mutation (controlled but still engaging; subtle tension and motion)',
@@ -102,7 +117,9 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
     '8. REALITY ENGINE JURISDICTIONS ARE MANDATORY. A selected engine must perform work through its own jurisdiction. FORMAT changes sequence or event mechanics; ROLE changes obligations and diction; WORLD changes normal assumptions; SPECIES changes embodiment/reference frame; VENUE changes local constraints; HEADSPACE changes attention/salience/tempo; ALTERED STATE changes identity/time/embodiment/perception/reality-testing mechanics; TONE colors delivery without replacing mechanism.\n' +
     '9. COLLISIONS MUST NEGOTIATE, NOT BLEND. When two active layers conflict, generate from the seam and preserve both constraints rather than averaging them into generic surrealism.\n' +
     '10. REALITY CHAOS IS A SEARCH TARGET, NOT A VOLUME KNOB. COHERENT favors natural affinities; ODD balances affinity and friction; FUCKED seeks productive contradiction; UNREASONABLE maximizes jurisdictional friction while every selected engine must remain legible. Never satisfy chaos by random word salad.\n' +
-    '11. OUTPUT FORMAT: valid JSON with keys style, lyrics, caption, fingerprint. fingerprint must contain genreFamily, harmony, melody, rhythm, timbre, vocal, performance, production.\n\n' +
+    '11. COMPOSITION LAB IS A THIRD OPERATIONAL LAYER. It is neither Mind nor Reality. It governs mouths/language, ensemble topology, signal path, sound sources, tuning, rhythmic physics, spatial organization, chronology, information access, constraints, resources, failure, authority, and props. Each active Composition engine owns only its stated jurisdiction.\n' +
+    '12. COMPOSITION ENGINES MUST BE AUDIBLE OR STRUCTURALLY TESTABLE. A language engine must alter phonology/prosody; transmission must alter information flow; damage must happen in time; tuning must alter intervals; rhythm physics must alter pulse organization; constraints/resources/failure/authority must create observable consequences. Do not reduce these engines to descriptive adjectives.\n' +
+    '13. OUTPUT FORMAT: valid JSON with keys style, lyrics, caption, fingerprint. fingerprint must contain genreFamily, harmony, melody, rhythm, timbre, vocal, performance, production.\n\n' +
     'TARGET CHARACTER COUNTS INCLUDING SPACES AND LINE BREAKS:\n' +
     'style: 975 to 999 characters.\n' +
     'lyrics: 4900 to 4999 characters.\n' +
@@ -112,6 +129,9 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
     'ACTIVE LITTLE GUY STACK:\n' + stackBreakdown + '\n\n' +
     'ACTIVE REALITY ENGINES:\n' + realityBreakdown + '\n\n' +
     'REALITY CHEMISTRY / COLLISION MAP:\n' + realityChemistryBlock + '\n\n' +
+    'ACTIVE COMPOSITION LAB ENGINES:\n' + compositionBreakdown + '\n\n' +
+    'COMPOSITION LAB NEGOTIATION RULE:\n' +
+    'Keep Composition Lab mechanisms separate from scenario decoration. Multiple active engines may coexist in the same dimension where the registry allows it. Each one must perform measurable work through its own jurisdiction. Sound sources should receive musical jobs; signal media should alter transmission; language should alter mouth behavior; structural/control engines should create consequences that the song must respond to. Cross-domain chemistry is not yet precomputed, so preserve all mechanisms explicitly rather than averaging them.\n\n' +
     'REALITY ENGINE NEGOTIATION RULE:\n' +
     'Treat each selected engine as an operational law in its own jurisdiction. Do not merely name it or decorate lyrics with its vocabulary. If the format is a game show, the lyric architecture must actually behave like one. If the headspace is overloaded, attention and thread management must actually change. If an altered-state engine is active, use its defined phenomenological mechanism rather than generic drug imagery. Preserve productive incompatibility between layers. Use the collision map above to decide WHERE the song generates events: the high-friction seam should repeatedly force one jurisdiction to solve a problem created by another.\n\n' +
     'ENERGY PARAMETER:\n' + (energyLabels[energy] || energyLabels[3]) + '\n\n' +
@@ -133,7 +153,7 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
     'BOX 2 — LYRICS / CONTROL\n' +
     'TARGET: 4900–4999 characters. Every non-sung cue, instrumental instruction, section name, sound effect, and tempo change goes in [SQUARE BRACKETS]. Lyrics may be dry explanation, procedural narration, factual description of what the song is doing, absurdly serious administrative language, phonetic nonsense, or combinations. Avoid neat default pop rhyme. Follow FORM → DESTABILIZE → FRACTURE → COLLAPSE → ANCHOR RETURNS → REFORM STRANGER.\n' +
     'VOCALS ARE A MUSICAL SYSTEM. Choose among many possibilities: scat, nonsense vocables, yodeling, melisma, hocketing, call-and-response, polyphony, dry speech-song, patter, recitative, falsetto flips, whistle register, nasal drones, overtone-rich sustain, ululation, choral writing, rhythmic consonants. If phonetic nonsense is used, hard consonants act as percussion, nasals as resonance, open vowels as sustained melody, rolled consonants as acceleration, dense syllables as compression, long vowels as stretched time, heavy syllables as bass weight.\n' +
-    'The Little Guy stack must control lyric logic rather than merely being named. Reality Engines, when active, must visibly control scenario mechanics, speaker behavior, temporal/sensory logic, or delivery according to their jurisdictions.\n\n' +
+    'The Little Guy stack must control lyric logic rather than merely being named. Reality Engines, when active, must visibly control scenario mechanics, speaker behavior, temporal/sensory logic, or delivery according to their jurisdictions. Composition Lab engines, when active, must visibly control vocal mechanics, signal behavior, sonic materials, musical physics, chronology, information, constraints, resources, failure, authority, or other assigned jurisdictions.\n\n' +
     'BOX 3 — CAPTION\n' +
     'TARGET: 490–499 characters. Compact publishable explanation of what the song does, which mechanisms govern it, and why the structure is strange. Take the mechanism seriously. Do not mention prompts or system instructions.\n\n' +
     'FINGERPRINT METADATA\n' +
