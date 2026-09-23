@@ -69,6 +69,24 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
         .join('\n\n')
     : 'NONE SELECTED — do not invent Composition Lab engines unless the user seed explicitly asks for a mechanism.';
 
+
+  const activeLanguage = compositionEngines.find((engine) => engine.dimension === 'language');
+  const activeLanguageMode = compositionEngines.find((engine) => engine.dimension === 'languageMode');
+  const languageFidelityBlock = activeLanguage
+    ? [
+        'SELECTED LANGUAGE PROFILE: ' + activeLanguage.name,
+        'SELECTED PERFORMANCE MODE: ' + (activeLanguageMode ? activeLanguageMode.name : 'NONE — treat the language profile as mouth/prosody guidance only; do not force non-English lyrics'),
+        'FIDELITY RULES:',
+        '- Phonology first, stereotype never.',
+        '- Never infer personality, intelligence, ethnicity, social class, morality, or comic character from a language/accent.',
+        '- Do not use eye-dialect misspelling as the main way to represent an accent.',
+        '- If English-with-L1-transfer is active, keep the lyric text semantically English and express transfer through plausible segment, syllable, timing, and prosodic behavior.',
+        '- If native-language singing is active and linguistic confidence is low, prefer short reliable phrases or explicitly non-lexical vocables rather than fabricated fluent-looking sentences.',
+        '- Clicks, ejectives, pharyngeals, tone, pitch accent, vowel harmony, length, and other distinctive features are normal phonological mechanisms, not novelty sound effects.',
+        '- Dialect-sensitive profile notes are tendencies, not universal claims about every speaker.',
+      ].join('\n')
+    : 'No language profile selected.';
+
   const energyLabels: Record<number, string> = {
     1: 'ENERGY LEVEL 1: Latent Drift / Subsurface Mutation (controlled but still engaging; subtle tension and motion)',
     2: 'ENERGY LEVEL 2: Low Hum / Controlled Asymmetry (steady propulsion, occasional structural interruptions)',
@@ -119,7 +137,8 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
     '10. REALITY CHAOS IS A SEARCH TARGET, NOT A VOLUME KNOB. COHERENT favors natural affinities; ODD balances affinity and friction; FUCKED seeks productive contradiction; UNREASONABLE maximizes jurisdictional friction while every selected engine must remain legible. Never satisfy chaos by random word salad.\n' +
     '11. COMPOSITION LAB IS A THIRD OPERATIONAL LAYER. It is neither Mind nor Reality. It governs mouths/language, ensemble topology, signal path, sound sources, tuning, rhythmic physics, spatial organization, chronology, information access, constraints, resources, failure, authority, and props. Each active Composition engine owns only its stated jurisdiction.\n' +
     '12. COMPOSITION ENGINES MUST BE AUDIBLE OR STRUCTURALLY TESTABLE. A language engine must alter phonology/prosody; transmission must alter information flow; damage must happen in time; tuning must alter intervals; rhythm physics must alter pulse organization; constraints/resources/failure/authority must create observable consequences. Do not reduce these engines to descriptive adjectives.\n' +
-    '13. OUTPUT FORMAT: valid JSON with keys style, lyrics, caption, fingerprint. fingerprint must contain genreFamily, harmony, melody, rhythm, timbre, vocal, performance, production.\n\n' +
+    '13. LANGUAGE / ACCENT FIDELITY: describe and perform phonological mechanisms, not ethnic caricatures. English-with-L1-transfer means approximate phonological/prosodic transfer, not comic misspelling. Native-language output must not fabricate confident fluent text when uncertain. Distinctive features such as clicks or tone are ordinary linguistic structure, not novelty effects.\n' +
+    '14. OUTPUT FORMAT: valid JSON with keys style, lyrics, caption, fingerprint. fingerprint must contain genreFamily, harmony, melody, rhythm, timbre, vocal, performance, production.\n\n' +
     'TARGET CHARACTER COUNTS INCLUDING SPACES AND LINE BREAKS:\n' +
     'style: 975 to 999 characters.\n' +
     'lyrics: 4900 to 4999 characters.\n' +
@@ -130,6 +149,7 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
     'ACTIVE REALITY ENGINES:\n' + realityBreakdown + '\n\n' +
     'REALITY CHEMISTRY / COLLISION MAP:\n' + realityChemistryBlock + '\n\n' +
     'ACTIVE COMPOSITION LAB ENGINES:\n' + compositionBreakdown + '\n\n' +
+    'LANGUAGE / ACCENT FIDELITY:\n' + languageFidelityBlock + '\n\n' +
     'COMPOSITION LAB NEGOTIATION RULE:\n' +
     'Keep Composition Lab mechanisms separate from scenario decoration. Multiple active engines may coexist in the same dimension where the registry allows it. Each one must perform measurable work through its own jurisdiction. Sound sources should receive musical jobs; signal media should alter transmission; language should alter mouth behavior; structural/control engines should create consequences that the song must respond to. Cross-domain chemistry is not yet precomputed, so preserve all mechanisms explicitly rather than averaging them.\n\n' +
     'REALITY ENGINE NEGOTIATION RULE:\n' +
