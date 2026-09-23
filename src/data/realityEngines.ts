@@ -1,6 +1,10 @@
 import { RealityDimension, RealityEngine } from '../types';
 import { FORMAT_ENGINES } from './realityFormats';
 import { ROLE_ENGINES } from './realityRoles';
+import { WORLD_ENGINES } from './realityWorlds';
+import { SPECIES_ENGINES } from './realitySpecies';
+import { VENUE_ENGINES } from './realityVenues';
+import { TONE_ENGINES } from './realityTones';
 
 /**
  * Reality Engines are intentionally separate from Little Guys.
@@ -10,12 +14,17 @@ import { ROLE_ENGINES } from './realityRoles';
  * WHAT kind of event/media format is happening, and WHAT state the performer
  * is operating under.
  *
- * FORMAT and ROLE are populated in Job 2. Later jobs add WORLD, SPECIES,
- * VENUE, HEADSPACE, ALTERED STATE, and TONE.
+ * FORMAT and ROLE were populated in Job 2.
+ * WORLD, SPECIES / ORIGIN, VENUE, and TONE are populated in Job 3.
+ * Later jobs add HEADSPACE and ALTERED STATE.
  */
 export const REALITY_ENGINES: RealityEngine[] = [
   ...FORMAT_ENGINES,
   ...ROLE_ENGINES,
+  ...WORLD_ENGINES,
+  ...SPECIES_ENGINES,
+  ...VENUE_ENGINES,
+  ...TONE_ENGINES,
 ];
 
 export const REALITY_DIMENSION_LABELS: Record<RealityDimension, string> = {
