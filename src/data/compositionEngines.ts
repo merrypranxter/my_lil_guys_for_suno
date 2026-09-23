@@ -1,6 +1,7 @@
 import { CompositionDimension, CompositionDomain, CompositionEngine } from '../types';
 import { LANGUAGE_PROFILE_ENGINES } from './languageProfiles';
 import { LANGUAGE_MODE_ENGINES } from './languageModes';
+import { SOUND_SOURCE_ENGINES } from './soundSources';
 
 /**
  * Composition Lab is separate from Reality Engine.
@@ -12,11 +13,13 @@ import { LANGUAGE_MODE_ENGINES } from './languageModes';
  *
  * Job 8 established the registry and jurisdiction contracts.
  * Job 9 populates LANGUAGE / PHONOLOGY and LANGUAGE PERFORMANCE MODE.
- * Remaining dimensions are populated in Jobs 10–15.
+ * Job 10 populates SOUND PALETTE / SOURCE.
+ * Remaining dimensions are populated in Jobs 11–15.
  */
 export const COMPOSITION_ENGINES: CompositionEngine[] = [
   ...LANGUAGE_PROFILE_ENGINES,
   ...LANGUAGE_MODE_ENGINES,
+  ...SOUND_SOURCE_ENGINES,
 ];
 
 export const COMPOSITION_DOMAIN_LABELS: Record<CompositionDomain, string> = {
