@@ -1,10 +1,12 @@
 import { LITTLE_GUYS } from '../data/littleGuys';
 import { MUSICAL_VOCABULARY_PROMPT, fingerprintToLine } from '../data/musicTaxonomy';
 import { getMindMetadata } from '../data/mindMetadata';
-import { BoxType, LittleGuy, MusicFingerprint } from '../types';
+import { getRealityEngines, REALITY_DIMENSION_JURISDICTIONS, REALITY_DIMENSION_LABELS } from '../data/realityEngines';
+import { BoxType, LittleGuy, MusicFingerprint, RealityEngine } from '../types';
 
 export interface GenerationPromptParams {
   guyIds: string[];
+  realityEngineIds?: string[];
   seed?: string;
   energy: number;
   recentFingerprints?: MusicFingerprint[];
@@ -12,7 +14,7 @@ export interface GenerationPromptParams {
 }
 
 export function buildMasterPrompt(params: GenerationPromptParams): { systemInstruction: string; userPrompt: string } {
-  const { guyIds, seed, energy, recentFingerprints = [], likedSignals = [] } = params;
+  const { guyIds, realityEngineIds = [], seed, energy, recentFingerprints = [], likedSignals = [] } = params;
 
   const selectedGuys: LittleGuy[] = guyIds
     .map((id) => LITTLE_GUYS.find((g) => g.id === id))
@@ -23,6 +25,18 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
 
   const primaryGuy: LittleGuy = guys[0] || fallbackGuy;
   const secondaryGuys: LittleGuy[] = guys.slice(1);
+
+  const realityEngines: RealityEngine[] = getRealityEngines(realityEngineIds);
+  const realityBreakdown = realityEngines.length
+    ? realityEngines
+        .map((engine) =>
+          '[' + REALITY_DIMENSION_LABELS[engine.dimension] + ']: ' + engine.name + ' (' + engine.subtitle + ')\n' +
+          'Jurisdiction contract: ' + REALITY_DIMENSION_JURISDICTIONS[engine.dimension] + '\n' +
+          'Operational Rule: ' + engine.rule + '\n' +
+          'Anti-decoration test: this engine must change structure, selection, behavior, assumptions, or procedure; themed vocabulary alone does not count.'
+        )
+        .join('\n\n')
+    : 'NONE SELECTED — do not invent a Reality Engine unless the user seed explicitly supplies one.';
 
   const energyLabels: Record<number, string> = {
     1: 'ENERGY LEVEL 1: Latent Drift / Subsurface Mutation (controlled but still engaging; subtle tension and motion)',
@@ -68,7 +82,10 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
     '4. MUSICAL TRADITIONS ARE RULE SYSTEMS, NOT LABELS. Harmony, melody, rhythm, timbre, vocal behavior, performance attitude, and production must receive separate jurisdiction. Do not simply write genre A + genre B + genre C.\n' +
     '5. ANTI-MONOCULTURE: recent musical fingerprints are evidence of territory already explored. Unless the user seed explicitly asks for repetition, move to genuinely different musical ancestry rather than swapping synonyms. If the last several runs were electronic, industrial, synth-heavy, glitchy, or mechanically clinical, preferentially move toward acoustic, vocal, ensemble, folk, dance-band, rock, theatrical, orchestral, communal, or other contrasting systems. Industrial/electronic is one option among many, never the default.\n' +
     '6. POSITIVE FEEDBACK IS A SOFT PREFERENCE SIGNAL. Starred runs and user notes indicate mechanisms worth revisiting, but do not clone a past song. Infer what property was liked, then express that property through new material.\n' +
-    '7. OUTPUT FORMAT: valid JSON with keys style, lyrics, caption, fingerprint. fingerprint must contain genreFamily, harmony, melody, rhythm, timbre, vocal, performance, production.\n\n' +
+    '7. REALITY ENGINES ARE A SEPARATE LAYER FROM MINDS. Minds govern generative cognition. Reality Engines govern format, role, world, species/origin, venue, headspace, altered-state phenomenology, or tone. Never collapse these layers into one adjective cloud.\n' +
+    '8. REALITY ENGINE JURISDICTIONS ARE MANDATORY. A selected engine must perform work through its own jurisdiction. FORMAT changes sequence or event mechanics; ROLE changes obligations and diction; WORLD changes normal assumptions; SPECIES changes embodiment/reference frame; VENUE changes local constraints; HEADSPACE changes attention/salience/tempo; ALTERED STATE changes identity/time/embodiment/perception/reality-testing mechanics; TONE colors delivery without replacing mechanism.\n' +
+    '9. COLLISIONS MUST NEGOTIATE, NOT BLEND. When two active layers conflict, generate from the seam and preserve both constraints rather than averaging them into generic surrealism.\n' +
+    '10. OUTPUT FORMAT: valid JSON with keys style, lyrics, caption, fingerprint. fingerprint must contain genreFamily, harmony, melody, rhythm, timbre, vocal, performance, production.\n\n' +
     'TARGET CHARACTER COUNTS INCLUDING SPACES AND LINE BREAKS:\n' +
     'style: 975 to 999 characters.\n' +
     'lyrics: 4900 to 4999 characters.\n' +
@@ -76,6 +93,9 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
 
   const userPrompt = 'EXECUTE SUNO GENERATION REQUEST.\n\n' +
     'ACTIVE LITTLE GUY STACK:\n' + stackBreakdown + '\n\n' +
+    'ACTIVE REALITY ENGINES:\n' + realityBreakdown + '\n\n' +
+    'REALITY ENGINE NEGOTIATION RULE:\n' +
+    'Treat each selected engine as an operational law in its own jurisdiction. Do not merely name it or decorate lyrics with its vocabulary. If the format is a game show, the lyric architecture must actually behave like one. If the headspace is overloaded, attention and thread management must actually change. If an altered-state engine is active, use its defined phenomenological mechanism rather than generic drug imagery. Preserve productive incompatibility between layers.\n\n' +
     'ENERGY PARAMETER:\n' + (energyLabels[energy] || energyLabels[3]) + '\n\n' +
     'OPTIONAL SEED / SUBJECT / EXPERIMENT:\n' +
     (seed && seed.trim() ? '"' + seed.trim() + '"' : 'NONE PROVIDED — derive subject organically from the primary Little Guy ontology') + '\n\n' +
@@ -95,7 +115,7 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
     'BOX 2 — LYRICS / CONTROL\n' +
     'TARGET: 4900–4999 characters. Every non-sung cue, instrumental instruction, section name, sound effect, and tempo change goes in [SQUARE BRACKETS]. Lyrics may be dry explanation, procedural narration, factual description of what the song is doing, absurdly serious administrative language, phonetic nonsense, or combinations. Avoid neat default pop rhyme. Follow FORM → DESTABILIZE → FRACTURE → COLLAPSE → ANCHOR RETURNS → REFORM STRANGER.\n' +
     'VOCALS ARE A MUSICAL SYSTEM. Choose among many possibilities: scat, nonsense vocables, yodeling, melisma, hocketing, call-and-response, polyphony, dry speech-song, patter, recitative, falsetto flips, whistle register, nasal drones, overtone-rich sustain, ululation, choral writing, rhythmic consonants. If phonetic nonsense is used, hard consonants act as percussion, nasals as resonance, open vowels as sustained melody, rolled consonants as acceleration, dense syllables as compression, long vowels as stretched time, heavy syllables as bass weight.\n' +
-    'The Little Guy stack must control lyric logic rather than merely being named.\n\n' +
+    'The Little Guy stack must control lyric logic rather than merely being named. Reality Engines, when active, must visibly control scenario mechanics, speaker behavior, temporal/sensory logic, or delivery according to their jurisdictions.\n\n' +
     'BOX 3 — CAPTION\n' +
     'TARGET: 490–499 characters. Compact publishable explanation of what the song does, which mechanisms govern it, and why the structure is strange. Take the mechanism seriously. Do not mention prompts or system instructions.\n\n' +
     'FINGERPRINT METADATA\n' +
