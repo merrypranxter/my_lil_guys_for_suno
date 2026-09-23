@@ -34,6 +34,28 @@ export interface MindMetadata {
   roleHint: string;
 }
 
+export type RealityDimension =
+  | 'format'
+  | 'role'
+  | 'world'
+  | 'species'
+  | 'venue'
+  | 'headspace'
+  | 'alteredState'
+  | 'tone';
+
+export interface RealityEngine {
+  id: string;
+  dimension: RealityDimension;
+  name: string;
+  subtitle: string;
+  rule: string;
+  shortExplanation: string;
+  tags: string[];
+  accentColor?: string;
+  sourceNotes?: string[];
+}
+
 export type BoxType = 'style' | 'lyrics' | 'caption';
 
 export interface MusicFingerprint {
@@ -49,6 +71,7 @@ export interface MusicFingerprint {
 
 export interface GenerationRequest {
   guyIds: string[];
+  realityEngineIds?: string[];
   seed?: string;
   energy: number;
   recentFingerprints?: MusicFingerprint[];
@@ -74,12 +97,14 @@ export interface RepairRequest {
   currentText: string;
   seed?: string;
   guyIds: string[];
+  realityEngineIds?: string[];
 }
 
 export interface SavedStack {
   id: string;
   name: string;
   guyIds: string[];
+  realityEngineIds: string[];
   createdAt: number;
 }
 
@@ -87,6 +112,7 @@ export interface ArchivedRun {
   id: string;
   createdAt: number;
   guyIds: string[];
+  realityEngineIds: string[];
   seed: string;
   energy: number;
   model: string;
