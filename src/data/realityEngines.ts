@@ -6,6 +6,7 @@ import { SPECIES_ENGINES } from './realitySpecies';
 import { VENUE_ENGINES } from './realityVenues';
 import { TONE_ENGINES } from './realityTones';
 import { HEADSPACE_ENGINES } from './realityHeadspaces';
+import { ALTERED_STATE_ENGINES } from './realityAlteredStates';
 
 /**
  * Reality Engines are intentionally separate from Little Guys.
@@ -18,7 +19,7 @@ import { HEADSPACE_ENGINES } from './realityHeadspaces';
  * FORMAT and ROLE were populated in Job 2.
  * WORLD, SPECIES / ORIGIN, VENUE, and TONE are populated in Job 3.
  * HEADSPACE is populated in Job 4.
- * ALTERED STATE is added in Job 5.
+ * ALTERED STATE is populated in Job 5.
  */
 export const REALITY_ENGINES: RealityEngine[] = [
   ...FORMAT_ENGINES,
@@ -28,6 +29,7 @@ export const REALITY_ENGINES: RealityEngine[] = [
   ...VENUE_ENGINES,
   ...TONE_ENGINES,
   ...HEADSPACE_ENGINES,
+  ...ALTERED_STATE_ENGINES,
 ];
 
 export const REALITY_DIMENSION_LABELS: Record<RealityDimension, string> = {
