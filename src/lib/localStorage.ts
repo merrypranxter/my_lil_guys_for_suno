@@ -1,10 +1,11 @@
-import { ArchivedRun, MusicFingerprint, SavedStack } from '../types';
+import { ArchivedRun, MusicFingerprint, RealityChaosLevel, SavedStack } from '../types';
 import { fingerprintToLine } from '../data/musicTaxonomy';
 
 const STORAGE_KEYS = {
   SAVED_STACKS: 'lgm_saved_stacks_v1',
   LAST_STACK: 'lgm_last_stack_v1',
   LAST_REALITY_ENGINES: 'lgm_last_reality_engines_v1',
+  REALITY_CHAOS: 'lgm_reality_chaos_v1',
   ENERGY: 'lgm_energy_v1',
   LAST_SEED: 'lgm_last_seed_v1',
   RUN_ARCHIVE: 'lgm_run_archive_v1',
@@ -92,6 +93,24 @@ export function getLastRealityEngineIds(): string[] {
 export function setLastRealityEngineIds(ids: string[]): void {
   try {
     localStorage.setItem(STORAGE_KEYS.LAST_REALITY_ENGINES, JSON.stringify(ids));
+  } catch {
+    // ignore
+  }
+}
+
+export function getSavedRealityChaos(): RealityChaosLevel {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.REALITY_CHAOS);
+    const parsed = raw ? parseInt(raw, 10) : 2;
+    return parsed >= 1 && parsed <= 4 ? (parsed as RealityChaosLevel) : 2;
+  } catch {
+    return 2;
+  }
+}
+
+export function setSavedRealityChaos(level: RealityChaosLevel): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.REALITY_CHAOS, String(level));
   } catch {
     // ignore
   }
@@ -220,6 +239,28 @@ export function getLikedMindWeights(limit = 30): Record<string, number> {
     run.guyIds.forEach((id, index) => {
       const positionBoost = index === 0 ? 1.15 : 1;
       weights[id] = (weights[id] || 0) + feedbackBoost * positionBoost;
+    });
+  }
+
+  const max = Math.max(0, ...Object.values(weights));
+  if (max <= 0) return weights;
+
+  for (const id of Object.keys(weights)) {
+    weights[id] = Math.round((weights[id] / max) * 100) / 100;
+  }
+  return weights;
+}
+
+export function getLikedRealityWeights(limit = 40): Record<string, number> {
+  const weights: Record<string, number> = {};
+  const starred = getRunArchive().filter((run) => run.starred).slice(0, limit);
+
+  for (const run of starred) {
+    const feedbackBoost = run.feedback.trim() ? 1.4 : 1;
+    const engineCount = Math.max(1, run.realityEngineIds.length);
+    run.realityEngineIds.forEach((id) => {
+      const specificityBoost = engineCount <= 4 ? 1.1 : 1;
+      weights[id] = (weights[id] || 0) + feedbackBoost * specificityBoost;
     });
   }
 
