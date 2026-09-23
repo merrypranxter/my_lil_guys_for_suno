@@ -83,6 +83,19 @@ function sanitizeLikedSignals(value: any): string[] {
     .slice(0, 10);
 }
 
+function sanitizeIdList(value: any, limit = 24): string[] {
+  if (!Array.isArray(value)) return [];
+  return Array.from(
+    new Set(
+      value
+        .filter((item) => typeof item === 'string')
+        .map((item) => item.trim())
+        .filter(Boolean)
+        .map((item) => item.slice(0, 120))
+    )
+  ).slice(0, limit);
+}
+
 async function generateWithResilience(
   contents: string,
   config: any,
@@ -134,6 +147,7 @@ app.get('/api/info', (_req, res) => {
 
 app.post('/api/generate', async (req, res) => {
   const guyIds = Array.isArray(req.body?.guyIds) ? req.body.guyIds : [];
+  const realityEngineIds = sanitizeIdList(req.body?.realityEngineIds);
   const seed = typeof req.body?.seed === 'string' ? req.body.seed : '';
   const energy = typeof req.body?.energy === 'number' ? req.body.energy : 4;
   const recentFingerprints = sanitizeFingerprints(req.body?.recentFingerprints);
@@ -142,6 +156,7 @@ app.post('/api/generate', async (req, res) => {
   try {
     const { systemInstruction, userPrompt } = buildMasterPrompt({
       guyIds,
+      realityEngineIds,
       seed,
       energy,
       recentFingerprints,
