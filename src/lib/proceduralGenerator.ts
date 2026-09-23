@@ -1,9 +1,13 @@
 import { LITTLE_GUYS } from '../data/littleGuys';
 import { chooseDiverseFingerprint } from '../data/musicTaxonomy';
-import { BoxType, LittleGuy, MusicFingerprint } from '../types';
+import { getRealityEngines, REALITY_DIMENSION_JURISDICTIONS, REALITY_DIMENSION_LABELS } from '../data/realityEngines';
+import { BoxType, LittleGuy, MusicFingerprint, RealityChaosLevel, RealityEngine } from '../types';
+import { REALITY_CHAOS_LABELS, analyzeRealityChemistry } from './realityChemistry';
 
 export interface ProceduralTrackParams {
   guyIds: string[];
+  realityEngineIds?: string[];
+  realityChaos?: RealityChaosLevel;
   seed?: string;
   energy: number;
   recentFingerprints?: MusicFingerprint[];
@@ -63,8 +67,24 @@ function tempoForEnergy(energy: number, rhythm: string): string {
   return base;
 }
 
+function realityLawLines(engines: RealityEngine[]): string {
+  if (!engines.length) return '[REALITY ENGINE: none selected; do not invent one.]';
+  return engines.map((engine) =>
+    '[' + REALITY_DIMENSION_LABELS[engine.dimension] + ' — ' + engine.name + ']\n' +
+    engine.shortExplanation + '\n' +
+    '[JURISDICTION: ' + REALITY_DIMENSION_JURISDICTIONS[engine.dimension] + ']'
+  ).join('\n');
+}
+
 export function generateProceduralTrack(params: ProceduralTrackParams): ProceduralTrackResult {
-  const { guyIds, seed = '', energy = 3, recentFingerprints = [] } = params;
+  const {
+    guyIds,
+    realityEngineIds = [],
+    realityChaos = 2,
+    seed = '',
+    energy = 3,
+    recentFingerprints = [],
+  } = params;
 
   const selectedGuys = guyIds
     .map((id) => LITTLE_GUYS.find((g) => g.id === id))
@@ -77,9 +97,18 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
   const fingerprint = chooseDiverseFingerprint(recentFingerprints);
   const tempo = tempoForEnergy(energy, fingerprint.rhythm);
 
+  const realityEngines = getRealityEngines(realityEngineIds);
+  const chemistry = analyzeRealityChemistry(realityEngineIds);
+  const chaosMeta = REALITY_CHAOS_LABELS[realityChaos];
+
   const secondaryStyleClauses = secondaries.length > 0
     ? secondaries.map((s) => '[MUTATOR ' + s.name + ': ' + s.defaultJurisdiction + ' forces ' + s.shortExplanation + ']').join(' ')
     : '[MUTATOR: single-rule pressure remains active throughout]';
+
+  const realityStyleClause = realityEngines.length
+    ? '[REALITY MACHINE: ' + chemistry.label + '; chaos=' + chaosMeta.name + '; affinity=' + chemistry.affinity + '; friction=' + chemistry.friction + '. ' +
+      realityEngines.map((engine) => REALITY_DIMENSION_LABELS[engine.dimension] + '=' + engine.name).join('; ') + '.]'
+    : '[REALITY MACHINE: no external reality layers selected.]';
 
   const baseStyle =
     '[GENRE/PERFORMANCE FAMILY: ' + fingerprint.genreFamily + '] ' +
@@ -90,20 +119,28 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
     '[TIMBRE / ATMOSPHERE: ' + fingerprint.timbre + '; produced as ' + fingerprint.production + '.] ' +
     '[VOCAL SYSTEM: ' + fingerprint.vocal + '.] ' +
     '[PERFORMANCE ATTITUDE: ' + fingerprint.performance + '.] ' +
+    realityStyleClause + ' ' +
     '[ANCHOR / INVARIANT: a short recurring three-note or three-syllable figure returns recognizably after every mutation.] ' +
     '[OPERATOR 1: hold rhythmic identity fixed while harmony migrates.] ' +
     '[OPERATOR 2: make the vocal system behave like percussion without becoming percussion.] ' +
     '[OPERATOR 3: compress one section while stretching the next.] ' +
-    '[OPERATOR 4: return the anchor with one structural scar added.] ' +
+    '[OPERATOR 4: force the highest-friction Reality seam to create an event while both jurisdictions remain legible.] ' +
     '[PRIMARY ' + primary.name + ': ' + primary.shortExplanation + '] ' +
     secondaryStyleClauses;
 
-  const stylePad = '[OPERATOR: preserve the anchor while one different jurisdiction mutates at each return, preventing genre salad and preserving causal contrast.]';
+  const stylePad = '[OPERATOR: preserve the anchor while one different jurisdiction mutates at each return; collisions must negotiate instead of blending into generic weirdness.]';
   const style = clampAndPad(baseStyle, TARGETS.style.min, TARGETS.style.max, stylePad);
 
   const secondaryLines = secondaries.length
     ? secondaries.map((s) => '[' + s.name + ' enters through ' + s.defaultJurisdiction + ']\n' + s.shortExplanation).join('\n')
     : '[No secondary mutator; the primary rule recursively pressures itself.]';
+
+  const realityLines = realityLawLines(realityEngines);
+  const chemistryLines = realityEngines.length
+    ? '[REALITY CHEMISTRY: ' + chemistry.summary + ']\n' +
+      '[TEMPORARY CONSCIOUSNESS: ' + chemistry.narrator + ']\n' +
+      chemistry.directives.slice(0, 4).map((directive) => '[NEGOTIATION ORDER: ' + directive + ']').join('\n')
+    : '[REALITY CHEMISTRY: no active Reality Engines.]';
 
   const sections = [
     '[FORM — establish the musical world]\n' +
@@ -115,6 +152,7 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
       'The first pass is deliberately legible. The listener is given a stable specimen before any mutation begins.\n' +
       primary.name + ' controls ' + primary.defaultJurisdiction + '.\n' +
       'Nothing else is permitted to steal that jurisdiction.\n' +
+      realityLines + '\n' +
       '[Anchor appears: three compact notes or syllables, clean and memorable.]\n' +
       'Record the anchor exactly. It will return after the system damages everything around it.',
 
@@ -122,8 +160,9 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
       '[Harmony changes according to: ' + fingerprint.harmony + ']\n' +
       '[Melody refuses to imitate harmony and follows: ' + fingerprint.melody + ']\n' +
       '[Rhythm remains governed by: ' + fingerprint.rhythm + ']\n' +
+      chemistryLines + '\n' +
       'The song does not blend these instructions into one vague style. Each rule keeps its own job.\n' +
-      'When harmony leans toward release, melody may refuse it. When rhythm accelerates internally, the vocal line may stretch a vowel across the pressure.\n' +
+      'The highest-friction seam creates the next problem. One Reality layer must respond using only the procedures of its own jurisdiction.\n' +
       secondaryLines + '\n' +
       '[Anchor returns unchanged for one bar.]\n' +
       'That unchanged return makes the surrounding deformation measurable.',
@@ -137,7 +176,7 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
       '[Dense syllables compress time: kratak-tikka-brradan.]\n' +
       '[Long vowels stretch the same clock: aaaaaa—oooooo.]\n' +
       'The nonsense is not decorative. Its phonetics physically reinforce the selected rhythmic and melodic systems.\n' +
-      'The singer explains the change while also enacting it: consonants shorten, vowels lengthen, and the line becomes its own instrumentation.',
+      'If ROLE is active, diction still performs the job. If HEADSPACE is active, interruptions and salience visibly alter delivery without deleting the role.',
 
     '[FRACTURE — incompatible temporal scales coexist]\n' +
       '[Keep the main pulse recognizable.]\n' +
@@ -145,19 +184,18 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
       '[Stretch one vocal phrase across several bars.]\n' +
       '[Move harmonic tension slowly while melodic ornament moves quickly.]\n' +
       'The subject remains ' + subject + ', but the method of describing it becomes unstable.\n' +
-      'A statement begins as dry explanation and ends as phonetic mechanics.\n' +
-      'A repeated phrase loses one ordinary word and gains one operational sound.\n' +
+      'FORMAT must remain structurally legible while any altered-state law damages time, identity, embodiment, source attribution, or reality testing from inside the format.\n' +
       '[Anchor attempts to return, but one interval or syllable has been altered.]\n' +
       'The system recognizes the anchor anyway. That recognition is now doing structural work.',
 
     '[COLLAPSE — remove support instead of merely getting louder]\n' +
-      '[Drop one entire jurisdiction for a short interval: harmony vanishes while rhythm and voice continue.]\n' +
+      '[Drop one entire musical jurisdiction for a short interval: harmony vanishes while rhythm and voice continue.]\n' +
       '[Then reverse it: rhythm thins to silence while harmony and sustained voice remain.]\n' +
       'The composition discovers which relationships were load-bearing.\n' +
       primary.name + ' remains active even when instrumentation changes.\n' +
       'The Little Guy rule is therefore heard as a causal law, not a costume.\n' +
+      '[Reality collision remains active: no layer is allowed to evaporate merely because another became extreme.]\n' +
       '[Performance attitude intensifies: ' + fingerprint.performance + ']\n' +
-      'The musicians commit harder to the contradiction instead of smoothing it out.\n' +
       '[Brief silence.]\n' +
       'The silence is counted as an event, not an absence.',
 
@@ -166,10 +204,9 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
       '[Preserve its contour.]\n' +
       '[Change exactly one property inherited from the fracture.]\n' +
       'The anchor now proves that identity can survive mutation without staying pristine.\n' +
-      'The singer names what changed in plain language.\n' +
-      'Then the ensemble demonstrates it again without explanation.\n' +
-      '[Call and response between explanation and enactment.]\n' +
-      'One voice states the rule. Another voice performs the consequence. The instruments answer with the same relationship in their own jurisdiction.',
+      'One voice states what changed. Another voice performs the consequence.\n' +
+      'The Reality Engine with the strongest friction is now forced to cooperate with the layer it resisted most.\n' +
+      '[Call and response between explanation and enactment.]',
 
     '[REFORM STRANGER — rebuild from the scar rather than resetting]\n' +
       '[Full arrangement returns using ' + fingerprint.timbre + ']\n' +
@@ -178,7 +215,7 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
       'Harmony keeps one displaced tension. Melody keeps one mutated ornament. Rhythm keeps one interruption. Voice keeps one transformed phonetic habit.\n' +
       secondaryLines + '\n' +
       '[Final anchor return: instantly recognizable, structurally altered, fully integrated.]\n' +
-      'The song ends because the system has reached a new coherent rule set, not because a conventional chorus count has been satisfied.',
+      'The song ends because Minds, music systems, and Reality jurisdictions have negotiated a new coherent law set—not because contradiction disappeared.',
 
     '[OUTRO — document the experiment without draining its energy]\n' +
       'Genre family used: ' + fingerprint.genreFamily + '.\n' +
@@ -186,12 +223,12 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
       'Melodic jurisdiction: ' + fingerprint.melody + '.\n' +
       'Rhythmic jurisdiction: ' + fingerprint.rhythm + '.\n' +
       'Vocal jurisdiction: ' + fingerprint.vocal + '.\n' +
-      'Performance behavior: ' + fingerprint.performance + '.\n' +
+      'Reality chemistry: ' + chemistry.label + '.\n' +
       '[One last compact anchor. End immediately after recognition.]'
   ];
 
   const lyricsPad =
-    '[EXTENSION OPERATOR: repeat the current rule through a different jurisdiction only; preserve the anchor, avoid adding a new genre label, and make every extra measure demonstrate a causal transformation rather than decorative complexity.]';
+    '[EXTENSION OPERATOR: repeat the current rule through a different jurisdiction only; preserve the anchor and the active Reality collision; every extra measure must demonstrate causal transformation rather than decorative complexity.]';
   const lyrics = clampAndPad(sections.join('\n\n'), TARGETS.lyrics.min, TARGETS.lyrics.max, lyricsPad);
 
   const secNames = secondaries.map((s) => s.name).join(' and ');
@@ -199,12 +236,17 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
     ? ' while ' + secNames + ' apply separate jurisdictional pressure'
     : ' while the same rule recursively pressures its own consequences';
 
+  const realityCaption = realityEngines.length
+    ? ' The Reality stack is ' + chemistry.label.toLowerCase() + ': ' + chemistry.narrator
+    : '';
+
   const baseCaption =
     'This run treats ' + primary.name + ' as a musical law' + mutationPhrase + '. ' +
     'Its sound world uses ' + fingerprint.genreFamily + ', with ' + fingerprint.rhythm + ' controlling pulse and ' +
-    fingerprint.vocal + ' controlling the mouth as an instrument. Harmony, melody, rhythm, timbre, and performance never collapse into genre salad; the anchor survives each fracture and returns carrying one useful scar.';
+    fingerprint.vocal + ' controlling the mouth as an instrument.' + realityCaption + ' ' +
+    'The anchor survives each fracture and returns carrying one useful scar.';
 
-  const captionPad = ' The final form preserves the mutation instead of resetting.';
+  const captionPad = ' The final form preserves negotiated mutation instead of resetting.';
   const caption = clampAndPad(baseCaption, TARGETS.caption.min, TARGETS.caption.max, captionPad);
 
   return { style, lyrics, caption, fingerprint };
