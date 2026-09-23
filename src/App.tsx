@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { LITTLE_GUYS } from './data/littleGuys';
-import { ArchivedRun, LittleGuy, BoxType, SavedStack, GenerationResponse } from './types';
+import { ArchivedRun, LittleGuy, BoxType, SavedStack, GenerationResponse, RealityChaosLevel } from './types';
 import { generateProceduralTrack, clampAndPad, TARGETS } from './lib/proceduralGenerator';
 import { buildSmartStack, resolveRecipe } from './lib/mindStacking';
 import { getMindMetadata } from './data/mindMetadata';
@@ -15,6 +15,8 @@ import {
   setLastStack,
   getLastRealityEngineIds,
   setLastRealityEngineIds,
+  getSavedRealityChaos,
+  setSavedRealityChaos,
   getSavedEnergy,
   setSavedEnergy,
   getSavedSeed,
@@ -28,6 +30,7 @@ import {
   getRecentFingerprints,
   getLikedPreferenceSignals,
   getLikedMindWeights,
+  getLikedRealityWeights,
   runToMarkdown,
   archiveToMarkdown,
 } from './lib/localStorage';
@@ -57,6 +60,7 @@ export default function App() {
   });
 
   const [realityEngineIds, setRealityEngineIds] = useState<string[]>(() => getLastRealityEngineIds());
+  const [realityChaos, setRealityChaos] = useState<RealityChaosLevel>(() => getSavedRealityChaos());
   const [savedStacks, setSavedStacks] = useState<SavedStack[]>(() => getSavedStacks());
   const [seed, setSeed] = useState<string>(() => getSavedSeed());
   const [energy, setEnergy] = useState<number>(() => getSavedEnergy());
@@ -99,6 +103,10 @@ export default function App() {
   useEffect(() => {
     setLastRealityEngineIds(realityEngineIds);
   }, [realityEngineIds]);
+
+  useEffect(() => {
+    setSavedRealityChaos(realityChaos);
+  }, [realityChaos]);
 
   const handleSeedChange = (newSeed: string) => {
     setSeed(newSeed);
@@ -177,6 +185,7 @@ export default function App() {
     const run = saveGeneratedRun({
       guyIds: [...stackGuyIds],
       realityEngineIds: [...realityEngineIds],
+      realityChaos,
       seed,
       energy,
       model: effectiveModel,
@@ -214,6 +223,7 @@ export default function App() {
         body: JSON.stringify({
           guyIds: stackGuyIds,
           realityEngineIds,
+          realityChaos,
           seed,
           energy,
           recentFingerprints,
@@ -266,6 +276,8 @@ export default function App() {
         try {
           const fallback = generateProceduralTrack({
             guyIds: stackGuyIds,
+            realityEngineIds,
+            realityChaos,
             seed,
             energy,
             recentFingerprints,
@@ -510,6 +522,9 @@ export default function App() {
         <RealityEnginePanel
           selectedIds={realityEngineIds}
           onChange={setRealityEngineIds}
+          chaosLevel={realityChaos}
+          onChaosChange={setRealityChaos}
+          preferenceWeights={getLikedRealityWeights()}
         />
 
         <div id="output-section" className="space-y-4 pt-4 border-t border-[#1a202c]">
