@@ -8,6 +8,7 @@ import { Header } from './components/Header';
 import { GuyCard } from './components/GuyCard';
 import { StackPanel } from './components/StackPanel';
 import { ControlsPanel } from './components/ControlsPanel';
+import { RealityEnginePanel } from './components/RealityEnginePanel';
 import { OutputBox } from './components/OutputBox';
 import {
   getLastStack,
@@ -505,6 +506,11 @@ export default function App() {
             />
           </div>
         </div>
+
+        <RealityEnginePanel
+          selectedIds={realityEngineIds}
+          onChange={setRealityEngineIds}
+        />
 
         <div id="output-section" className="space-y-4 pt-4 border-t border-[#1a202c]">
           <div className="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-3">
