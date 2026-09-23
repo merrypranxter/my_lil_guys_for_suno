@@ -101,6 +101,22 @@ export interface CompositionEngine {
   sourceNotes?: string[];
 }
 
+
+export interface LanguageProfile {
+  id: string;
+  name: string;
+  family?: string;
+  region?: string;
+  consonantFeatures: string[];
+  vowelFeatures: string[];
+  prosodyFeatures: string[];
+  rhythmNotes: string[];
+  phonologyNotes: string[];
+  distinctiveFeatures: string[];
+  tags: string[];
+  sourceNotes?: string[];
+}
+
 export type RealityChaosLevel = 1 | 2 | 3 | 4;
 
 export type BoxType = 'style' | 'lyrics' | 'caption';
