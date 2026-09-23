@@ -1,7 +1,5 @@
-import { RealityDimension, RealityEngine } from '../types';
+import { RealityChaosLevel, RealityDimension, RealityEngine } from '../types';
 import { REALITY_ENGINES, getRealityEngine, getRealityEngines, getRealityEnginesByDimension } from '../data/realityEngines';
-
-export type RealityChaosLevel = 1 | 2 | 3 | 4;
 
 export interface RealityChemistryPair {
   aId: string;
