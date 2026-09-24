@@ -487,6 +487,102 @@ export function CompositionLabPanel({ selectedIds, onChange }: CompositionLabPan
             </p>
           </div>
 
+          <div className="rounded-xl border border-[#342f47] bg-[#0b0c13] p-3 space-y-3">
+            <div className="flex flex-col lg:flex-row lg:items-end gap-2">
+              <label className="flex-1">
+                <span className="block mb-1 text-[9px] font-mono font-black tracking-widest text-[#b5a8d4]">
+                  SAVE COMPOSITION-ONLY PRESET
+                </span>
+                <input
+                  type="text"
+                  value={presetName}
+                  onChange={(event) => setPresetName(event.target.value)}
+                  placeholder="name this little monster..."
+                  className="w-full rounded-lg border border-[#2c3140] bg-[#080a0f] px-3 py-2.5 text-xs font-mono text-white placeholder-[#566173] focus:outline-none focus:border-[#a879ff]"
+                />
+              </label>
+              <button
+                type="button"
+                onClick={saveCurrentPreset}
+                disabled={selectedIds.length === 0}
+                className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-[#a879ff]/50 bg-[#1c122b] px-3 py-2.5 text-[10px] font-mono font-black text-[#d1b6ff] hover:border-[#a879ff] disabled:opacity-40"
+              >
+                <Save className="w-3.5 h-3.5" />
+                SAVE BUILD
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+              <div className="rounded-lg border border-[#252d3b] bg-[#090c12] p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="text-[10px] font-mono font-black text-[#ffe680]">
+                    SAVED BUILDS ({presets.length})
+                  </div>
+                  <div className="text-[9px] font-mono text-[#66758b]">
+                    {favorites.length} favorite engine{favorites.length === 1 ? '' : 's'}
+                  </div>
+                </div>
+                <div className="mt-2 space-y-1.5 max-h-40 overflow-y-auto">
+                  {presets.length > 0 ? presets.map((preset) => (
+                    <div key={preset.id} className="flex items-center justify-between gap-2 rounded-md border border-[#273047] bg-[#101520] px-2.5 py-2">
+                      <button
+                        type="button"
+                        onClick={() => loadPreset(preset)}
+                        className="min-w-0 flex-1 text-left"
+                      >
+                        <div className="truncate text-[10px] font-mono font-bold text-[#d8e1ef]">{preset.name}</div>
+                        <div className="mt-0.5 text-[9px] font-mono text-[#6f7d92]">
+                          {preset.compositionEngineIds.length} engines • {preset.lockedEngineIds.length} locked
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => removePreset(preset.id)}
+                        className="p-1.5 text-[#7d8ba1] hover:text-[#ff8fab]"
+                        aria-label={'Delete preset ' + preset.name}
+                        title="Delete preset"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )) : (
+                    <div className="py-4 text-center text-[10px] font-mono text-[#5e6a7e]">
+                      No Composition-only presets yet.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-[#252d3b] bg-[#090c12] p-3">
+                <div className="flex items-center gap-1.5 text-[10px] font-mono font-black text-[#74f7ff]">
+                  <History className="w-3.5 h-3.5" />
+                  RECENT GENERATED BUILDS
+                </div>
+                <div className="mt-2 space-y-1.5 max-h-40 overflow-y-auto">
+                  {recentBuilds.length > 0 ? recentBuilds.map((build) => (
+                    <button
+                      key={build.runId}
+                      type="button"
+                      onClick={() => loadRecentBuild(build.compositionEngineIds)}
+                      className="block w-full rounded-md border border-[#273047] bg-[#101520] px-2.5 py-2 text-left hover:border-[#00f0ff]/60"
+                    >
+                      <div className="text-[10px] font-mono font-bold text-[#d8e1ef]">
+                        {build.compositionEngineIds.length} engines
+                      </div>
+                      <div className="mt-0.5 truncate text-[9px] font-mono text-[#6f7d92]">
+                        {new Date(build.createdAt).toLocaleString()} {build.seed ? '• ' + build.seed : ''}
+                      </div>
+                    </button>
+                  )) : (
+                    <div className="py-4 text-center text-[10px] font-mono text-[#5e6a7e]">
+                      Generate something with Composition Lab to create recent-build shortcuts.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div className="flex flex-col sm:flex-row gap-2">
             <label className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#64748b]" />
