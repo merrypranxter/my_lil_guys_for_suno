@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { ChevronDown, ChevronUp, FlaskConical, Info, Lock, Shuffle, Search, Trash2, Unlock, X } from 'lucide-react';
-import { CompositionDimension, CompositionDomain, CompositionEngine } from '../types';
+import { ChevronDown, ChevronUp, FlaskConical, History, Info, Lock, Save, Shuffle, Search, Star, Trash2, Unlock, X } from 'lucide-react';
+import { CompositionDimension, CompositionDomain, CompositionEngine, CompositionFavorite, CompositionPreset } from '../types';
 import {
   COMPOSITION_DIMENSION_DOMAINS,
   COMPOSITION_DIMENSION_JURISDICTIONS,
@@ -19,8 +19,15 @@ import {
   sanitizeCompositionLocks,
 } from '../lib/compositionRandomization';
 import {
+  deleteCompositionPreset,
+  getCompositionFavorites,
+  getCompositionPresets,
   getLockedCompositionEngineIds,
+  getRecentCompositionBuilds,
+  removeCompositionFavorite,
+  saveCompositionPreset,
   setLockedCompositionEngineIds,
+  upsertCompositionFavorite,
 } from '../lib/localStorage';
 
 interface CompositionLabPanelProps {
