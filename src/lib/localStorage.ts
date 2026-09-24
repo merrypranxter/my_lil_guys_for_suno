@@ -1,5 +1,6 @@
-import { ArchivedRun, MusicFingerprint, RealityChaosLevel, SavedStack } from '../types';
+import { ArchivedRun, CompositionFavorite, CompositionPreset, MusicFingerprint, RealityChaosLevel, RecentCompositionBuild, SavedStack } from '../types';
 import { fingerprintToLine } from '../data/musicTaxonomy';
+import { getCompositionEngine, normalizeCompositionEngineIds } from '../data/compositionEngines';
 
 const STORAGE_KEYS = {
   SAVED_STACKS: 'lgm_saved_stacks_v1',
@@ -7,6 +8,8 @@ const STORAGE_KEYS = {
   LAST_REALITY_ENGINES: 'lgm_last_reality_engines_v1',
   LAST_COMPOSITION_ENGINES: 'lgm_last_composition_engines_v1',
   LOCKED_COMPOSITION_ENGINES: 'lgm_locked_composition_engines_v1',
+  COMPOSITION_FAVORITES: 'lgm_composition_favorites_v1',
+  COMPOSITION_PRESETS: 'lgm_composition_presets_v1',
   REALITY_CHAOS: 'lgm_reality_chaos_v1',
   ENERGY: 'lgm_energy_v1',
   LAST_SEED: 'lgm_last_seed_v1',
@@ -140,6 +143,157 @@ export function setLockedCompositionEngineIds(ids: string[]): void {
   } catch {
     // ignore
   }
+}
+
+
+export function getCompositionFavorites(): CompositionFavorite[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.COMPOSITION_FAVORITES);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .filter((item: any) => typeof item?.engineId === 'string' && Boolean(getCompositionEngine(item.engineId)))
+      .map((item: any) => ({
+        engineId: item.engineId,
+        note: typeof item.note === 'string' ? item.note : '',
+        createdAt: typeof item.createdAt === 'number' ? item.createdAt : Date.now(),
+        updatedAt: typeof item.updatedAt === 'number' ? item.updatedAt : Date.now(),
+      }));
+  } catch {
+    return [];
+  }
+}
+
+function writeCompositionFavorites(items: CompositionFavorite[]): CompositionFavorite[] {
+  const deduped = items.filter((item, index, all) =>
+    all.findIndex((candidate) => candidate.engineId === item.engineId) === index
+  ).slice(0, 300);
+  try {
+    localStorage.setItem(STORAGE_KEYS.COMPOSITION_FAVORITES, JSON.stringify(deduped));
+  } catch {
+    // ignore
+  }
+  return deduped;
+}
+
+export function upsertCompositionFavorite(engineId: string, note = ''): CompositionFavorite[] {
+  const engine = getCompositionEngine(engineId);
+  if (!engine) return getCompositionFavorites();
+
+  const current = getCompositionFavorites();
+  const existing = current.find((item) => item.engineId === engineId);
+  const now = Date.now();
+  const next: CompositionFavorite = existing
+    ? { ...existing, note, updatedAt: now }
+    : { engineId, note, createdAt: now, updatedAt: now };
+
+  return writeCompositionFavorites([
+    next,
+    ...current.filter((item) => item.engineId !== engineId),
+  ]);
+}
+
+export function removeCompositionFavorite(engineId: string): CompositionFavorite[] {
+  return writeCompositionFavorites(
+    getCompositionFavorites().filter((item) => item.engineId !== engineId)
+  );
+}
+
+export function getCompositionFavoriteSignals(limit = 8): string[] {
+  return getCompositionFavorites()
+    .slice(0, limit)
+    .map((favorite) => {
+      const engine = getCompositionEngine(favorite.engineId);
+      const label = engine ? engine.name + ' [' + engine.dimension + ']' : favorite.engineId;
+      const note = favorite.note.trim() ? ' User note: ' + favorite.note.trim() : '';
+      return 'COMPOSITION FAVORITE — ' + label + '.' + note;
+    });
+}
+
+export function getCompositionPresets(): CompositionPreset[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.COMPOSITION_PRESETS);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((preset: any) => {
+        const compositionEngineIds = normalizeCompositionEngineIds(
+          Array.isArray(preset?.compositionEngineIds) ? preset.compositionEngineIds : []
+        );
+        const valid = new Set(compositionEngineIds);
+        const lockedEngineIds = (Array.isArray(preset?.lockedEngineIds) ? preset.lockedEngineIds : [])
+          .filter((id: unknown): id is string => typeof id === 'string' && valid.has(id));
+        return {
+          id: typeof preset?.id === 'string' ? preset.id : 'comp_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+          name: typeof preset?.name === 'string' && preset.name.trim() ? preset.name.trim() : 'Untitled Composition Build',
+          compositionEngineIds,
+          lockedEngineIds,
+          createdAt: typeof preset?.createdAt === 'number' ? preset.createdAt : Date.now(),
+          updatedAt: typeof preset?.updatedAt === 'number' ? preset.updatedAt : Date.now(),
+        } as CompositionPreset;
+      })
+      .filter((preset) => preset.compositionEngineIds.length > 0);
+  } catch {
+    return [];
+  }
+}
+
+function writeCompositionPresets(presets: CompositionPreset[]): CompositionPreset[] {
+  const clipped = presets.slice(0, 80);
+  try {
+    localStorage.setItem(STORAGE_KEYS.COMPOSITION_PRESETS, JSON.stringify(clipped));
+  } catch {
+    // ignore
+  }
+  return clipped;
+}
+
+export function saveCompositionPreset(name: string, compositionEngineIds: string[], lockedEngineIds: string[]): CompositionPreset[] {
+  const ids = normalizeCompositionEngineIds(compositionEngineIds);
+  if (ids.length === 0) return getCompositionPresets();
+
+  const selected = new Set(ids);
+  const locks = lockedEngineIds.filter((id) => selected.has(id));
+  const now = Date.now();
+  const preset: CompositionPreset = {
+    id: 'comp_' + now + '_' + Math.random().toString(36).slice(2, 7),
+    name: name.trim() || 'Composition Build ' + new Date(now).toLocaleString(),
+    compositionEngineIds: ids,
+    lockedEngineIds: locks,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  return writeCompositionPresets([preset, ...getCompositionPresets()]);
+}
+
+export function deleteCompositionPreset(id: string): CompositionPreset[] {
+  return writeCompositionPresets(getCompositionPresets().filter((preset) => preset.id !== id));
+}
+
+export function getRecentCompositionBuilds(limit = 8): RecentCompositionBuild[] {
+  const seen = new Set<string>();
+  const builds: RecentCompositionBuild[] = [];
+
+  for (const run of getRunArchive()) {
+    const ids = normalizeCompositionEngineIds(run.compositionEngineIds || []);
+    if (ids.length === 0) continue;
+    const signature = [...ids].sort().join('|');
+    if (seen.has(signature)) continue;
+    seen.add(signature);
+    builds.push({
+      runId: run.id,
+      createdAt: run.createdAt,
+      compositionEngineIds: ids,
+      seed: run.seed || '',
+      model: run.model || '',
+    });
+    if (builds.length >= limit) break;
+  }
+
+  return builds;
 }
 
 export function getSavedRealityChaos(): RealityChaosLevel {
