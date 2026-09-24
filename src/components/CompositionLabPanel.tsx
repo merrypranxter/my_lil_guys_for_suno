@@ -566,6 +566,31 @@ export function CompositionLabPanel({ selectedIds, onChange }: CompositionLabPan
                     </button>
 
                     <div className="flex flex-shrink-0 items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => toggleFavorite(engine)}
+                        className={
+                          'p-1.5 rounded-md border transition-colors ' +
+                          (favoriteSet.has(engine.id)
+                            ? 'border-[#ffd84d]/60 bg-[#2d2508] text-[#ffe680]'
+                            : 'border-[#273247] text-[#8290a5] hover:text-[#ffe680] hover:border-[#ffd84d]')
+                        }
+                        aria-label={(favoriteSet.has(engine.id) ? 'Unfavorite ' : 'Favorite ') + engine.name}
+                        title={favoriteSet.has(engine.id) ? 'Remove from favorites' : 'Star this engine'}
+                      >
+                        <Star className="w-3.5 h-3.5" fill={favoriteSet.has(engine.id) ? 'currentColor' : 'none'} />
+                      </button>
+                      {favoriteSet.has(engine.id) && (
+                        <button
+                          type="button"
+                          onClick={() => openFavoriteNote(engine)}
+                          className="p-1.5 rounded-md border border-[#273247] text-[#8290a5] hover:text-white hover:border-[#ff4fd8]"
+                          aria-label={'Edit favorite note for ' + engine.name}
+                          title="Why do you like this?"
+                        >
+                          <span className="text-[10px] font-mono font-black">✎</span>
+                        </button>
+                      )}
                       {selected && (
                         <button
                           type="button"
