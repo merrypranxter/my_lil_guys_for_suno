@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { ChevronDown, ChevronUp, FlaskConical, Info, Search, Trash2, X } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { ChevronDown, ChevronUp, FlaskConical, Info, Lock, Shuffle, Search, Trash2, Unlock, X } from 'lucide-react';
 import { CompositionDimension, CompositionDomain, CompositionEngine } from '../types';
 import {
   COMPOSITION_DIMENSION_DOMAINS,
@@ -11,6 +11,17 @@ import {
   getCompositionEngine,
   getCompositionEngines,
 } from '../data/compositionEngines';
+import {
+  mutateCompositionSelection,
+  randomizeAllComposition,
+  randomizeCompositionDimension,
+  randomizeCompositionDomain,
+  sanitizeCompositionLocks,
+} from '../lib/compositionRandomization';
+import {
+  getLockedCompositionEngineIds,
+  setLockedCompositionEngineIds,
+} from '../lib/localStorage';
 
 interface CompositionLabPanelProps {
   selectedIds: string[];
@@ -80,8 +91,10 @@ export function CompositionLabPanel({ selectedIds, onChange }: CompositionLabPan
   const [selectedOnly, setSelectedOnly] = useState(false);
   const [detailEngineId, setDetailEngineId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [lockedIds, setLockedIds] = useState<string[]>(() => getLockedCompositionEngineIds());
 
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+  const lockedSet = useMemo(() => new Set(lockedIds), [lockedIds]);
   const selectedEngines = useMemo(() => getCompositionEngines(selectedIds), [selectedIds]);
 
   const dimensionsForDomain = useMemo(
@@ -100,6 +113,28 @@ export function CompositionLabPanel({ selectedIds, onChange }: CompositionLabPan
 
   const detailEngine = detailEngineId ? getCompositionEngine(detailEngineId) : undefined;
 
+  useEffect(() => {
+    setLockedIds((current) => {
+      const next = sanitizeCompositionLocks(selectedIds, current);
+      if (next.length === current.length && next.every((id, index) => id === current[index])) return current;
+      return next;
+    });
+  }, [selectedIds]);
+
+  useEffect(() => {
+    setLockedCompositionEngineIds(lockedIds);
+  }, [lockedIds]);
+
+  const toggleLock = (engineId: string) => {
+    if (!selectedSet.has(engineId)) return;
+    setLockedIds((current) =>
+      current.includes(engineId)
+        ? current.filter((id) => id !== engineId)
+        : [...current, engineId]
+    );
+    setNotice(null);
+  };
+
   const changeDomain = (domain: CompositionDomain) => {
     setActiveDomain(domain);
     const firstDimension = DIMENSION_ORDER.find((dimension) => COMPOSITION_DIMENSION_DOMAINS[dimension] === domain);
@@ -114,6 +149,7 @@ export function CompositionLabPanel({ selectedIds, onChange }: CompositionLabPan
 
     if (selectedSet.has(engine.id)) {
       onChange(selectedIds.filter((id) => id !== engine.id));
+      setLockedIds((current) => current.filter((id) => id !== engine.id));
       return;
     }
 
@@ -121,14 +157,25 @@ export function CompositionLabPanel({ selectedIds, onChange }: CompositionLabPan
     const used = selectedCountForDimension(selectedIds, engine.dimension);
 
     if (used >= limit) {
-      setNotice(
-        COMPOSITION_DIMENSION_LABELS[engine.dimension] +
-          ' is full (' +
-          used +
-          '/' +
-          limit +
-          '). Remove one before adding another.'
-      );
+      const oldestUnlocked = selectedIds.find((id) => {
+        const selectedEngine = getCompositionEngine(id);
+        return selectedEngine?.dimension === engine.dimension && !lockedSet.has(id);
+      });
+
+      if (!oldestUnlocked) {
+        setNotice(
+          COMPOSITION_DIMENSION_LABELS[engine.dimension] +
+            ' is full and every active engine there is locked. Unlock one to replace it.'
+        );
+        return;
+      }
+
+      onChange([
+        ...selectedIds.filter((id) => id !== oldestUnlocked),
+        engine.id,
+      ]);
+      setLockedIds((current) => current.filter((id) => id !== oldestUnlocked));
+      setNotice('Replaced the oldest unlocked ' + COMPOSITION_DIMENSION_LABELS[engine.dimension] + ' engine.');
       return;
     }
 
@@ -136,18 +183,54 @@ export function CompositionLabPanel({ selectedIds, onChange }: CompositionLabPan
   };
 
   const clearDimension = (dimension: CompositionDimension) => {
+    const removed = new Set(
+      selectedIds.filter((id) => getCompositionEngine(id)?.dimension === dimension)
+    );
     onChange(
       selectedIds.filter((id) => {
         const engine = getCompositionEngine(id);
         return engine?.dimension !== dimension;
       })
     );
+    setLockedIds((current) => current.filter((id) => !removed.has(id)));
     setNotice(null);
   };
 
   const clearAll = () => {
     onChange([]);
+    setLockedIds([]);
     setNotice(null);
+  };
+
+  const applyRandomized = (nextIds: string[], message: string) => {
+    const normalizedLocks = sanitizeCompositionLocks(nextIds, lockedIds);
+    onChange(nextIds);
+    setLockedIds(normalizedLocks);
+    setNotice(message);
+  };
+
+  const randomizeDimension = () => {
+    const next = randomizeCompositionDimension(selectedIds, lockedIds, activeDimension);
+    applyRandomized(next, 'Randomized ' + COMPOSITION_DIMENSION_LABELS[activeDimension] + '. Locked engines stayed put.');
+  };
+
+  const randomizeCabinet = () => {
+    const next = randomizeCompositionDomain(selectedIds, lockedIds, activeDomain);
+    applyRandomized(next, 'Randomized ' + COMPOSITION_DOMAIN_LABELS[activeDomain] + '. Locked engines stayed put.');
+  };
+
+  const randomizeAll = () => {
+    const next = randomizeAllComposition(selectedIds, lockedIds);
+    applyRandomized(next, selectedIds.length
+      ? 'Randomized the active build while preserving its occupied dimensions and every lock.'
+      : 'Seeded a balanced random build across all four cabinets.');
+  };
+
+  const mutateBuild = () => {
+    const next = mutateCompositionSelection(selectedIds, lockedIds);
+    applyRandomized(next, selectedIds.length
+      ? 'Mutated a small slice of the build. Most of it stayed intact; locks were untouched.'
+      : 'No build existed, so MUTATE seeded a balanced random build.');
   };
 
   const groupedSelected = useMemo(() => {
@@ -179,6 +262,11 @@ export function CompositionLabPanel({ selectedIds, onChange }: CompositionLabPan
             {selectedIds.length > 0 && (
               <span className="rounded-full border border-[#ff4fd8]/50 bg-[#ff4fd8]/10 px-2 py-0.5 text-[10px] font-mono font-bold text-[#ff9dea]">
                 {selectedIds.length} ACTIVE
+              </span>
+            )}
+            {lockedIds.length > 0 && (
+              <span className="rounded-full border border-[#ffe680]/50 bg-[#ffe680]/10 px-2 py-0.5 text-[10px] font-mono font-bold text-[#ffe680]">
+                {lockedIds.length} LOCKED
               </span>
             )}
           </div>
@@ -278,6 +366,46 @@ export function CompositionLabPanel({ selectedIds, onChange }: CompositionLabPan
             </div>
           </div>
 
+          <div className="rounded-xl border border-[#2a3345] bg-[#090c12] p-3">
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={randomizeDimension}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-[#00f0ff]/40 bg-[#06202a] px-3 py-2 text-[10px] font-mono font-black text-[#74f7ff] hover:border-[#00f0ff]"
+              >
+                <Shuffle className="w-3.5 h-3.5" />
+                RANDOMIZE DIMENSION
+              </button>
+              <button
+                type="button"
+                onClick={randomizeCabinet}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-[#ff4fd8]/40 bg-[#251023] px-3 py-2 text-[10px] font-mono font-black text-[#ff9dea] hover:border-[#ff4fd8]"
+              >
+                <Shuffle className="w-3.5 h-3.5" />
+                RANDOMIZE CABINET
+              </button>
+              <button
+                type="button"
+                onClick={randomizeAll}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-[#ffe680]/40 bg-[#27200b] px-3 py-2 text-[10px] font-mono font-black text-[#ffe680] hover:border-[#ffe680]"
+              >
+                <Shuffle className="w-3.5 h-3.5" />
+                RANDOMIZE ALL
+              </button>
+              <button
+                type="button"
+                onClick={mutateBuild}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-[#a879ff]/50 bg-[#1b102b] px-3 py-2 text-[10px] font-mono font-black text-[#c7a8ff] hover:border-[#a879ff]"
+              >
+                <Shuffle className="w-3.5 h-3.5" />
+                MUTATE CURRENT BUILD
+              </button>
+            </div>
+            <p className="mt-2 text-[10px] font-mono text-[#657287]">
+              Lock anything you love. Randomizers never replace locked engines. MUTATE changes only a small fraction of the unlocked build.
+            </p>
+          </div>
+
           <div className="flex flex-col sm:flex-row gap-2">
             <label className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#64748b]" />
@@ -343,14 +471,32 @@ export function CompositionLabPanel({ selectedIds, onChange }: CompositionLabPan
                       </div>
                     </button>
 
-                    <button
-                      type="button"
-                      onClick={() => setDetailEngineId(engine.id)}
-                      className="flex-shrink-0 p-1.5 rounded-md border border-[#273247] text-[#8290a5] hover:text-white hover:border-[#00f0ff]"
-                      aria-label={'Show details for ' + engine.name}
-                    >
-                      <Info className="w-3.5 h-3.5" />
-                    </button>
+                    <div className="flex flex-shrink-0 items-center gap-1">
+                      {selected && (
+                        <button
+                          type="button"
+                          onClick={() => toggleLock(engine.id)}
+                          className={
+                            'p-1.5 rounded-md border transition-colors ' +
+                            (lockedSet.has(engine.id)
+                              ? 'border-[#ffe680]/60 bg-[#332b0d] text-[#ffe680]'
+                              : 'border-[#273247] text-[#8290a5] hover:text-white hover:border-[#ffe680]')
+                          }
+                          aria-label={(lockedSet.has(engine.id) ? 'Unlock ' : 'Lock ') + engine.name}
+                          title={lockedSet.has(engine.id) ? 'Unlock for randomization' : 'Protect from randomization'}
+                        >
+                          {lockedSet.has(engine.id) ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setDetailEngineId(engine.id)}
+                        className="p-1.5 rounded-md border border-[#273247] text-[#8290a5] hover:text-white hover:border-[#00f0ff]"
+                        aria-label={'Show details for ' + engine.name}
+                      >
+                        <Info className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
 
                   <button
@@ -381,7 +527,7 @@ export function CompositionLabPanel({ selectedIds, onChange }: CompositionLabPan
                           : 'bg-[#111622] text-[#8d99aa] border border-[#273247]')
                       }
                     >
-                      {selected ? 'ACTIVE — TAP TO REMOVE' : 'TAP TO ADD'}
+                      {selected ? (lockedSet.has(engine.id) ? 'ACTIVE + LOCKED — TAP TO REMOVE' : 'ACTIVE — TAP TO REMOVE') : 'TAP TO ADD'}
                     </div>
                   </button>
                 </div>
@@ -427,16 +573,33 @@ export function CompositionLabPanel({ selectedIds, onChange }: CompositionLabPan
                     </div>
                     <div className="flex flex-wrap gap-1.5">
                       {engines.map((engine) => (
-                        <button
+                        <div
                           key={engine.id}
-                          type="button"
-                          onClick={() => toggleEngine(engine)}
-                          title="Remove from active build"
-                          className="inline-flex items-center gap-1.5 rounded-full border border-[#3a465b] bg-[#121824] px-2.5 py-1.5 text-[10px] font-mono text-[#d6deea] hover:border-[#ff4fd8]"
+                          className={
+                            'inline-flex items-center rounded-full border bg-[#121824] text-[10px] font-mono text-[#d6deea] ' +
+                            (lockedSet.has(engine.id) ? 'border-[#ffe680]/60' : 'border-[#3a465b]')
+                          }
                         >
-                          <span>{engine.name}</span>
-                          <X className="w-3 h-3 text-[#7d8ba1]" />
-                        </button>
+                          <button
+                            type="button"
+                            onClick={() => toggleLock(engine.id)}
+                            className="pl-2.5 pr-1.5 py-1.5 text-[#8d99aa] hover:text-[#ffe680]"
+                            title={lockedSet.has(engine.id) ? 'Unlock for randomization' : 'Protect from randomization'}
+                            aria-label={(lockedSet.has(engine.id) ? 'Unlock ' : 'Lock ') + engine.name}
+                          >
+                            {lockedSet.has(engine.id) ? <Lock className="w-3 h-3 text-[#ffe680]" /> : <Unlock className="w-3 h-3" />}
+                          </button>
+                          <span className="py-1.5">{engine.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => toggleEngine(engine)}
+                            className="pl-1.5 pr-2.5 py-1.5 text-[#7d8ba1] hover:text-[#ff8fab]"
+                            title="Remove from active build"
+                            aria-label={'Remove ' + engine.name}
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
                       ))}
                     </div>
                   </div>
@@ -506,6 +669,21 @@ export function CompositionLabPanel({ selectedIds, onChange }: CompositionLabPan
                   </span>
                 ))}
               </div>
+
+              {selectedSet.has(detailEngine.id) && (
+                <button
+                  type="button"
+                  onClick={() => toggleLock(detailEngine.id)}
+                  className={
+                    'w-full rounded-xl border px-4 py-3 font-mono font-black text-xs transition-colors ' +
+                    (lockedSet.has(detailEngine.id)
+                      ? 'border-[#ffe680]/60 bg-[#332b0d] text-[#ffe680] hover:border-[#ffe680]'
+                      : 'border-[#3a465b] bg-[#121824] text-[#cbd5e1] hover:border-[#ffe680]')
+                  }
+                >
+                  {lockedSet.has(detailEngine.id) ? '🔒 LOCKED — TAP TO UNLOCK' : 'UNLOCKED — PROTECT FROM RANDOMIZATION'}
+                </button>
+              )}
 
               <button
                 type="button"
