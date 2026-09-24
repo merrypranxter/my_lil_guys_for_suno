@@ -102,6 +102,31 @@ export interface CompositionEngine {
 }
 
 
+export interface CompositionFavorite {
+  engineId: string;
+  note: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface CompositionPreset {
+  id: string;
+  name: string;
+  compositionEngineIds: string[];
+  lockedEngineIds: string[];
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface RecentCompositionBuild {
+  runId: string;
+  createdAt: number;
+  compositionEngineIds: string[];
+  seed: string;
+  model: string;
+}
+
+
 export interface LanguageProfile {
   id: string;
   name: string;
