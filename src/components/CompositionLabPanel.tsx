@@ -333,7 +333,7 @@ export function CompositionLabPanel({ selectedIds, onChange }: CompositionLabPan
         className="w-full px-4 md:px-5 py-4 flex items-center justify-between gap-4 text-left bg-gradient-to-r from-[#111521] via-[#11101d] to-[#10151d] hover:from-[#151a28] transition-colors"
       >
         <div className="min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <FlaskConical className="w-5 h-5 text-[#00f0ff] flex-shrink-0" />
             <h2 className="font-mono font-black tracking-[0.12em] text-sm md:text-base text-white">
               COMPOSITION LAB
@@ -792,7 +792,7 @@ export function CompositionLabPanel({ selectedIds, onChange }: CompositionLabPan
                         <div
                           key={engine.id}
                           className={
-                            'inline-flex items-center rounded-full border bg-[#121824] text-[10px] font-mono text-[#d6deea] ' +
+                            'inline-flex max-w-full items-center rounded-full border bg-[#121824] text-[10px] font-mono text-[#d6deea] ' +
                             (lockedSet.has(engine.id) ? 'border-[#ffe680]/60' : 'border-[#3a465b]')
                           }
                         >
@@ -805,7 +805,7 @@ export function CompositionLabPanel({ selectedIds, onChange }: CompositionLabPan
                           >
                             {lockedSet.has(engine.id) ? <Lock className="w-3 h-3 text-[#ffe680]" /> : <Unlock className="w-3 h-3" />}
                           </button>
-                          <span className="py-1.5">{engine.name}</span>
+                          <span className="min-w-0 max-w-[14rem] truncate py-1.5 sm:max-w-none">{engine.name}</span>
                           <button
                             type="button"
                             onClick={() => toggleEngine(engine)}
