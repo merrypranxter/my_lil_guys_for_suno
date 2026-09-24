@@ -155,6 +155,67 @@ export function CompositionLabPanel({ selectedIds, onChange }: CompositionLabPan
     setNotice(null);
   };
 
+  const toggleFavorite = (engine: CompositionEngine) => {
+    const existing = favoriteById.get(engine.id);
+    if (existing) {
+      setFavorites(removeCompositionFavorite(engine.id));
+      setNotice('Removed ' + engine.name + ' from favorites.');
+      if (favoriteNoteEngineId === engine.id) setFavoriteNoteEngineId(null);
+      return;
+    }
+
+    setFavorites(upsertCompositionFavorite(engine.id, ''));
+    setFavoriteNoteEngineId(engine.id);
+    setFavoriteNoteDraft('');
+    setNotice('Starred ' + engine.name + '. Add an optional note so the generator knows what you liked about it.');
+  };
+
+  const openFavoriteNote = (engine: CompositionEngine) => {
+    const existing = favoriteById.get(engine.id);
+    if (!existing) {
+      setFavorites(upsertCompositionFavorite(engine.id, ''));
+    }
+    setFavoriteNoteEngineId(engine.id);
+    setFavoriteNoteDraft(existing?.note || '');
+  };
+
+  const saveFavoriteNote = () => {
+    if (!favoriteNoteEngineId) return;
+    const engine = getCompositionEngine(favoriteNoteEngineId);
+    setFavorites(upsertCompositionFavorite(favoriteNoteEngineId, favoriteNoteDraft.trim()));
+    setNotice(engine ? 'Saved why you like ' + engine.name + '.' : 'Saved favorite note.');
+    setFavoriteNoteEngineId(null);
+    setFavoriteNoteDraft('');
+  };
+
+  const saveCurrentPreset = () => {
+    if (selectedIds.length === 0) {
+      setNotice('Pick at least one Composition Lab engine before saving a preset.');
+      return;
+    }
+    const next = saveCompositionPreset(presetName, selectedIds, lockedIds);
+    setPresets(next);
+    setPresetName('');
+    setNotice('Saved Composition-only preset.');
+  };
+
+  const loadPreset = (preset: CompositionPreset) => {
+    onChange(preset.compositionEngineIds);
+    setLockedIds(sanitizeCompositionLocks(preset.compositionEngineIds, preset.lockedEngineIds));
+    setNotice('Loaded preset: ' + preset.name);
+  };
+
+  const removePreset = (presetId: string) => {
+    setPresets(deleteCompositionPreset(presetId));
+    setNotice('Deleted Composition Lab preset.');
+  };
+
+  const loadRecentBuild = (engineIds: string[]) => {
+    onChange(engineIds);
+    setLockedIds([]);
+    setNotice('Loaded Composition engines from a recent generated run.');
+  };
+
   const changeDomain = (domain: CompositionDomain) => {
     setActiveDomain(domain);
     const firstDimension = DIMENSION_ORDER.find((dimension) => COMPOSITION_DIMENSION_DOMAINS[dimension] === domain);
