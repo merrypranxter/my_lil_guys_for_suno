@@ -99,10 +99,22 @@ export function CompositionLabPanel({ selectedIds, onChange }: CompositionLabPan
   const [detailEngineId, setDetailEngineId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [lockedIds, setLockedIds] = useState<string[]>(() => getLockedCompositionEngineIds());
+  const [favorites, setFavorites] = useState<CompositionFavorite[]>(() => getCompositionFavorites());
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
+  const [presets, setPresets] = useState<CompositionPreset[]>(() => getCompositionPresets());
+  const [presetName, setPresetName] = useState('');
+  const [favoriteNoteEngineId, setFavoriteNoteEngineId] = useState<string | null>(null);
+  const [favoriteNoteDraft, setFavoriteNoteDraft] = useState('');
 
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const lockedSet = useMemo(() => new Set(lockedIds), [lockedIds]);
+  const favoriteSet = useMemo(() => new Set(favorites.map((item) => item.engineId)), [favorites]);
+  const favoriteById = useMemo(
+    () => new Map(favorites.map((item) => [item.engineId, item] as const)),
+    [favorites]
+  );
   const selectedEngines = useMemo(() => getCompositionEngines(selectedIds), [selectedIds]);
+  const recentBuilds = getRecentCompositionBuilds(6);
 
   const dimensionsForDomain = useMemo(
     () => DIMENSION_ORDER.filter((dimension) => COMPOSITION_DIMENSION_DOMAINS[dimension] === activeDomain),
@@ -113,9 +125,10 @@ export function CompositionLabPanel({ selectedIds, onChange }: CompositionLabPan
     () => COMPOSITION_ENGINES.filter((engine) => {
       if (engine.dimension !== activeDimension) return false;
       if (selectedOnly && !selectedSet.has(engine.id)) return false;
+      if (favoritesOnly && !favoriteSet.has(engine.id)) return false;
       return engineMatchesSearch(engine, query);
     }),
-    [activeDimension, query, selectedOnly, selectedSet]
+    [activeDimension, query, selectedOnly, favoritesOnly, selectedSet, favoriteSet]
   );
 
   const detailEngine = detailEngineId ? getCompositionEngine(detailEngineId) : undefined;
