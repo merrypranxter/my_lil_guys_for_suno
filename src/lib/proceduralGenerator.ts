@@ -2,13 +2,16 @@ import { LITTLE_GUYS } from '../data/littleGuys';
 import { chooseDiverseFingerprint } from '../data/musicTaxonomy';
 import { getRealityEngines, REALITY_DIMENSION_JURISDICTIONS, REALITY_DIMENSION_LABELS } from '../data/realityEngines';
 import { COMPOSITION_DIMENSION_JURISDICTIONS, COMPOSITION_DIMENSION_LABELS, getCompositionEngines } from '../data/compositionEngines';
-import { BoxType, CompositionEngine, LittleGuy, MusicFingerprint, RealityChaosLevel, RealityEngine } from '../types';
+import { compileMusicStack, musicControlsToDirectives } from '../data/musicSeedSystem';
+import { BoxType, CompositionEngine, LittleGuy, MusicControls, MusicFingerprint, MusicStackItem, RealityChaosLevel, RealityEngine } from '../types';
 import { REALITY_CHAOS_LABELS, analyzeRealityChemistry } from './realityChemistry';
 
 export interface ProceduralTrackParams {
   guyIds: string[];
   realityEngineIds?: string[];
   compositionEngineIds?: string[];
+  musicStack?: MusicStackItem[];
+  musicControls?: MusicControls;
   realityChaos?: RealityChaosLevel;
   seed?: string;
   energy: number;
@@ -93,6 +96,8 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
     guyIds,
     realityEngineIds = [],
     compositionEngineIds = [],
+    musicStack = [],
+    musicControls,
     realityChaos = 2,
     seed = '',
     energy = 3,
@@ -112,6 +117,7 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
 
   const realityEngines = getRealityEngines(realityEngineIds);
   const compositionEngines = getCompositionEngines(compositionEngineIds);
+  const compiledMusic = compileMusicStack(musicStack, musicControls);
   const activeLanguage = compositionEngines.find((engine) => engine.dimension === 'language');
   const activeLanguageMode = compositionEngines.find((engine) => engine.dimension === 'languageMode');
   const activeSoundSources = compositionEngines.filter((engine) => engine.dimension === 'soundSource');
@@ -187,12 +193,37 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
     ? '[STRUCTURE / CONTROL: audience=' + (activeAudience?.name || 'none') + '; constraints=' + (activeConstraints.length ? activeConstraints.map((engine) => engine.name).join(' + ') : 'none') + '; economy=' + (activeEconomy?.name || 'none') + '; failure=' + (activeFailureMode?.name || 'none') + '; authority=' + (activeControlAuthority?.name || 'none') + '; prop=' + (activeProp?.name || 'none') + '. Audience reaction changes the piece; constraints define legality; economy tracks scarcity; failure defines breakage; authority defines valid control; prop carries state/history.]'
     : '[STRUCTURE / CONTROL: no final control rules selected.]';
 
+  const musicSeedStyleClause = compiledMusic.mechanisms.length
+    ? '[MUSIC SEED PHYSICS: ' +
+      compiledMusic.mechanisms.slice(0, 6).map((entry) => entry.mechanism.name + '@' + entry.strength).join('; ') +
+      '. Stemminess=' + compiledMusic.controls.stemminess +
+      '; kineticDensity=' + compiledMusic.controls.kineticDensity +
+      '; socialInfection=' + compiledMusic.controls.socialInfection +
+      '; coupling=' + compiledMusic.controls.coupling +
+      '; interruption=' + compiledMusic.controls.interruption +
+      '; anchor=' + compiledMusic.controls.anchorStrength +
+      '; cast=' + compiledMusic.controls.castSize +
+      '. Keep mechanisms separate and operational.]'
+    : '[MUSIC SEED PHYSICS: free-discovery mode; no recipe/mechanism stack active.]';
+
+  const musicSeedLawLines = compiledMusic.mechanisms.length
+    ? '[MUSIC SEED STACK]\n' +
+      compiledMusic.mechanisms.map((entry) =>
+        '[' + entry.mechanism.name + ' — strength ' + entry.strength + '/100]\n' + entry.mechanism.instruction
+      ).join('\n') + '\n' +
+      musicControlsToDirectives(compiledMusic.controls).map((line) => '[CONTROL: ' + line + ']').join('\n') +
+      (compiledMusic.interactions.length
+        ? '\n' + compiledMusic.interactions.map((line) => '[STACK INTERACTION: ' + line + ']').join('\n')
+        : '')
+    : '[MUSIC SEED STACK: none; discover structure freely.]';
+
   const baseStyle =
     '[GENRE/PERFORMANCE FAMILY: ' + fingerprint.genreFamily + '] ' +
     '[TEMPO: ' + tempo + '] ' +
     '[HARMONY SYSTEM: ' + fingerprint.harmony + '. Harmony owns chord motion and tension only.] ' +
     '[MELODIC SYSTEM: ' + fingerprint.melody + '. Melody owns contour and ornament only.] ' +
     '[RHYTHMIC SYSTEM: ' + fingerprint.rhythm + '. Rhythm owns pulse, subdivision, interruption, and density.] ' +
+    musicSeedStyleClause + ' ' +
     '[TIMBRE / ATMOSPHERE: ' + fingerprint.timbre + '; produced as ' + fingerprint.production + '.] ' +
     '[VOCAL SYSTEM: ' + fingerprint.vocal + '.] ' +
     '[PERFORMANCE ATTITUDE: ' + fingerprint.performance + '.] ' +
@@ -235,6 +266,7 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
       '[Production: ' + fingerprint.production + ']\n' +
       '[Rhythm establishes: ' + fingerprint.rhythm + ']\n' +
       '[Vocal behavior establishes: ' + fingerprint.vocal + ']\n' +
+      musicSeedLawLines + '\n' +
       (activeAddressee ? '[ADDRESSEE: ' + activeAddressee.name + ' — change what the lyric assumes, explains, withholds, repeats, or asks.]\n' : '') +
       (activeEnsemble ? '[ENSEMBLE TOPOLOGY: ' + activeEnsemble.name + ' — enforce who owns each phrase, fact, response, overlap, or interruption.]\n' : '') +
       (activeGestures.length ? '[PHYSICAL GESTURES: ' + activeGestures.map((engine) => engine.name).join(' + ') + ' — make gesture alter timing, breath, articulation, or body-percussion rather than acting as silent stage direction.]\n' : '') +

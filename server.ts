@@ -6,6 +6,7 @@ import { buildMasterPrompt, buildRepairPrompt } from './src/lib/buildGenerationP
 import { generateProceduralTrack } from './src/lib/proceduralGenerator';
 import { MusicFingerprint, RealityChaosLevel } from './src/types';
 import { normalizeCompositionEngineIds } from './src/data/compositionEngines';
+import { normalizeMusicControls, normalizeMusicStack } from './src/data/musicSeedSystem';
 
 const app = express();
 const PORT = 3000;
@@ -155,6 +156,8 @@ app.post('/api/generate', async (req, res) => {
   const guyIds = Array.isArray(req.body?.guyIds) ? req.body.guyIds : [];
   const realityEngineIds = sanitizeIdList(req.body?.realityEngineIds);
   const compositionEngineIds = normalizeCompositionEngineIds(sanitizeIdList(req.body?.compositionEngineIds, 64));
+  const musicStack = normalizeMusicStack(req.body?.musicStack);
+  const musicControls = normalizeMusicControls(req.body?.musicControls);
   const realityChaos = sanitizeRealityChaos(req.body?.realityChaos);
   const seed = typeof req.body?.seed === 'string' ? req.body.seed : '';
   const energy = typeof req.body?.energy === 'number' ? req.body.energy : 4;
@@ -166,6 +169,8 @@ app.post('/api/generate', async (req, res) => {
       guyIds,
       realityEngineIds,
       compositionEngineIds,
+      musicStack,
+      musicControls,
       realityChaos,
       seed,
       energy,
@@ -256,6 +261,8 @@ app.post('/api/generate', async (req, res) => {
         guyIds,
         realityEngineIds,
         compositionEngineIds,
+        musicStack,
+        musicControls,
         realityChaos,
         seed,
         energy,
