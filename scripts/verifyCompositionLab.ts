@@ -19,8 +19,10 @@ import {
   getCompositionPresets,
   getRecentCompositionBuilds,
   getRunArchive,
+  getSavedStacks,
   saveCompositionPreset,
   saveGeneratedRun,
+  saveStackToFavorites,
   upsertCompositionFavorite,
 } from '../src/lib/localStorage';
 import { buildMasterPrompt } from '../src/lib/buildGenerationPrompt';
@@ -120,6 +122,11 @@ assertCardinality(mutated);
 
 localStorage.clear();
 
+localStorage.setItem('lgm_composition_favorites_v1', JSON.stringify([
+  { engineId: 'stale-engine-that-no-longer-exists', note: 'stale', createdAt: 1, updatedAt: 1 },
+]));
+assert.equal(getCompositionFavorites().length, 0, 'Stale favorite IDs should be ignored safely');
+
 const favoriteEngine = rhythmPool[0];
 upsertCompositionFavorite(favoriteEngine.id, 'I like that the timing rule stays audible and structural.');
 const favorites = getCompositionFavorites();
@@ -133,6 +140,18 @@ const presetIds = [
   getCompositionEnginesByDimension('tuning')[0].id,
   getCompositionEnginesByDimension('prop')[0].id,
 ];
+localStorage.setItem('lgm_composition_presets_v1', JSON.stringify([
+  {
+    id: 'stale-preset',
+    name: 'STALE',
+    compositionEngineIds: ['stale-engine-that-no-longer-exists'],
+    lockedEngineIds: ['stale-engine-that-no-longer-exists'],
+    createdAt: 1,
+    updatedAt: 1,
+  },
+]));
+assert.equal(getCompositionPresets().length, 0, 'Preset with only stale engines should be ignored safely');
+
 saveCompositionPreset('QA PRESET', presetIds, [favoriteEngine.id]);
 const presets = getCompositionPresets();
 assert.equal(presets.length, 1, 'Composition preset should persist');
@@ -140,6 +159,11 @@ assert.deepEqual(presets[0].compositionEngineIds, presetIds, 'Preset should rest
 assert.deepEqual(presets[0].lockedEngineIds, [favoriteEngine.id], 'Preset should preserve valid locks');
 
 const guyId = LITTLE_GUYS[0].id;
+
+saveStackToFavorites('WHOLE STACK QA', [guyId], [], 2, presetIds);
+const wholeStacks = getSavedStacks();
+assert.equal(wholeStacks.length, 1, 'Whole-stack save should still persist after Composition Lab changes');
+assert.deepEqual(wholeStacks[0].compositionEngineIds, presetIds, 'Whole-stack save should retain Composition engines');
 saveGeneratedRun({
   guyIds: [guyId],
   realityEngineIds: [],
@@ -186,6 +210,7 @@ console.log(JSON.stringify({
   seededBuildSize: seeded.length,
   favoriteSignals: favoriteSignals.length,
   presets: presets.length,
+  wholeStacks: wholeStacks.length,
   recentBuilds: recent.length,
   fallbackLengths: {
     style: fallback.style.length,
