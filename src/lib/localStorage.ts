@@ -6,6 +6,7 @@ const STORAGE_KEYS = {
   LAST_STACK: 'lgm_last_stack_v1',
   LAST_REALITY_ENGINES: 'lgm_last_reality_engines_v1',
   LAST_COMPOSITION_ENGINES: 'lgm_last_composition_engines_v1',
+  LOCKED_COMPOSITION_ENGINES: 'lgm_locked_composition_engines_v1',
   REALITY_CHAOS: 'lgm_reality_chaos_v1',
   ENERGY: 'lgm_energy_v1',
   LAST_SEED: 'lgm_last_seed_v1',
@@ -116,6 +117,26 @@ export function getLastCompositionEngineIds(): string[] {
 export function setLastCompositionEngineIds(ids: string[]): void {
   try {
     localStorage.setItem(STORAGE_KEYS.LAST_COMPOSITION_ENGINES, JSON.stringify(ids));
+  } catch {
+    // ignore
+  }
+}
+
+
+export function getLockedCompositionEngineIds(): string[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.LOCKED_COMPOSITION_ENGINES);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((id) => typeof id === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+export function setLockedCompositionEngineIds(ids: string[]): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.LOCKED_COMPOSITION_ENGINES, JSON.stringify(ids));
   } catch {
     // ignore
   }
