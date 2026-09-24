@@ -9,6 +9,7 @@ import { GuyCard } from './components/GuyCard';
 import { StackPanel } from './components/StackPanel';
 import { ControlsPanel } from './components/ControlsPanel';
 import { RealityEnginePanel } from './components/RealityEnginePanel';
+import { CompositionLabPanel } from './components/CompositionLabPanel';
 import { OutputBox } from './components/OutputBox';
 import {
   getLastStack,
@@ -537,6 +538,11 @@ export default function App() {
           chaosLevel={realityChaos}
           onChaosChange={setRealityChaos}
           preferenceWeights={getLikedRealityWeights()}
+        />
+
+        <CompositionLabPanel
+          selectedIds={compositionEngineIds}
+          onChange={setCompositionEngineIds}
         />
 
         <div id="output-section" className="space-y-4 pt-4 border-t border-[#1a202c]">
