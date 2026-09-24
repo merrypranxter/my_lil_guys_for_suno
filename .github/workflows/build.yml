@@ -24,5 +24,8 @@ jobs:
       - name: Typecheck
         run: npm run lint
 
+      - name: Composition Lab regression smoke
+        run: npm run verify:composition
+
       - name: Build
         run: npm run build
