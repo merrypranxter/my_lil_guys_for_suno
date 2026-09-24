@@ -16,6 +16,12 @@ import { ROLE_EXCHANGE_ENGINES } from './sonicRoleExchange';
 import { TEMPORAL_ENGINES } from './structureTemporal';
 import { SCALE_ENGINES } from './structureScale';
 import { EPISTEMOLOGY_ENGINES } from './structureEpistemology';
+import { AUDIENCE_ENGINES } from './structureAudience';
+import { CONSTRAINT_ENGINES } from './structureConstraints';
+import { ECONOMY_ENGINES } from './structureEconomy';
+import { FAILURE_MODE_ENGINES } from './structureFailureModes';
+import { CONTROL_AUTHORITY_ENGINES } from './structureAuthority';
+import { PROP_ENGINES } from './structureProps';
 
 /**
  * Composition Lab is separate from Reality Engine.
@@ -35,7 +41,8 @@ import { EPISTEMOLOGY_ENGINES } from './structureEpistemology';
  * Job 13 populates TUNING / PITCH WORLD, RHYTHMIC PHYSICS,
  * STAGE GEOMETRY / SPATIAL AUDIO, and MUSICAL ROLE EXCHANGE.
  * Job 14 populates TEMPORAL ENGINE, SCALE ENGINE, and EPISTEMOLOGY / KNOWLEDGE.
- * Remaining Structure / Control dimensions are populated in Job 15.
+ * Job 15 populates AUDIENCE FEEDBACK, CONSTRAINT / GAME RULE, ECONOMY / RESOURCE,
+ * FAILURE MODE, CONTROL AUTHORITY, and OBJECT / PROP. Planned content population is complete.
  */
 export const COMPOSITION_ENGINES: CompositionEngine[] = [
   ...LANGUAGE_PROFILE_ENGINES,
@@ -55,6 +62,12 @@ export const COMPOSITION_ENGINES: CompositionEngine[] = [
   ...TEMPORAL_ENGINES,
   ...SCALE_ENGINES,
   ...EPISTEMOLOGY_ENGINES,
+  ...AUDIENCE_ENGINES,
+  ...CONSTRAINT_ENGINES,
+  ...ECONOMY_ENGINES,
+  ...FAILURE_MODE_ENGINES,
+  ...CONTROL_AUTHORITY_ENGINES,
+  ...PROP_ENGINES,
 ];
 
 export const COMPOSITION_DOMAIN_LABELS: Record<CompositionDomain, string> = {
