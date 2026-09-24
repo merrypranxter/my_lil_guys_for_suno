@@ -32,6 +32,7 @@ import {
   updateArchivedRun,
   getRecentFingerprints,
   getLikedPreferenceSignals,
+  getCompositionFavoriteSignals,
   getLikedMindWeights,
   getLikedRealityWeights,
   runToMarkdown,
@@ -223,7 +224,10 @@ export default function App() {
     setCurrentRun(null);
 
     const recentFingerprints = getRecentFingerprints(12);
-    const likedSignals = getLikedPreferenceSignals(10);
+    const likedSignals = [
+      ...getCompositionFavoriteSignals(5),
+      ...getLikedPreferenceSignals(7),
+    ].slice(0, 10);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 65000);
 
