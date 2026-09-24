@@ -187,10 +187,61 @@ export interface MusicFingerprint {
   production: string;
 }
 
+export type MusicMechanismFamily =
+  | 'rhythm'
+  | 'vocal'
+  | 'form'
+  | 'arrangement'
+  | 'texture'
+  | 'performance';
+
+export interface MusicMechanism {
+  id: string;
+  family: MusicMechanismFamily;
+  name: string;
+  shortExplanation: string;
+  instruction: string;
+  tags: string[];
+  stemValue: 1 | 2 | 3 | 4 | 5;
+  chaos: 1 | 2 | 3 | 4 | 5;
+}
+
+export interface MusicControls {
+  stemminess: number;
+  kineticDensity: number;
+  socialInfection: number;
+  coupling: number;
+  interruption: number;
+  anchorStrength: number;
+  castSize: number;
+}
+
+export interface MusicSeedRecipe {
+  id: string;
+  name: string;
+  description: string;
+  startHere: string;
+  mechanismIds: string[];
+  defaultControls?: Partial<MusicControls>;
+}
+
+export type MusicStackItemKind = 'recipe' | 'mechanism';
+
+export interface MusicStackItem {
+  instanceId: string;
+  kind: MusicStackItemKind;
+  refId: string;
+  muted: boolean;
+  locked: boolean;
+  strength: number;
+}
+
 export interface GenerationRequest {
   guyIds: string[];
   realityEngineIds?: string[];
   compositionEngineIds?: string[];
+  musicStack?: MusicStackItem[];
+  musicControls?: MusicControls;
   realityChaos?: RealityChaosLevel;
   seed?: string;
   energy: number;
@@ -219,6 +270,8 @@ export interface RepairRequest {
   guyIds: string[];
   realityEngineIds?: string[];
   compositionEngineIds?: string[];
+  musicStack?: MusicStackItem[];
+  musicControls?: MusicControls;
   realityChaos?: RealityChaosLevel;
 }
 
@@ -228,6 +281,8 @@ export interface SavedStack {
   guyIds: string[];
   realityEngineIds: string[];
   compositionEngineIds: string[];
+  musicStack?: MusicStackItem[];
+  musicControls?: MusicControls;
   realityChaos?: RealityChaosLevel;
   createdAt: number;
 }
@@ -238,6 +293,8 @@ export interface ArchivedRun {
   guyIds: string[];
   realityEngineIds: string[];
   compositionEngineIds: string[];
+  musicStack?: MusicStackItem[];
+  musicControls?: MusicControls;
   realityChaos?: RealityChaosLevel;
   seed: string;
   energy: number;
@@ -253,4 +310,5 @@ export interface ArchivedRun {
   fingerprint?: MusicFingerprint;
   starred: boolean;
   feedback: string;
+  feedbackTags?: string[];
 }
