@@ -3,13 +3,16 @@ import { MUSICAL_VOCABULARY_PROMPT, fingerprintToLine } from '../data/musicTaxon
 import { getMindMetadata } from '../data/mindMetadata';
 import { getRealityEngines, REALITY_DIMENSION_JURISDICTIONS, REALITY_DIMENSION_LABELS } from '../data/realityEngines';
 import { COMPOSITION_DIMENSION_JURISDICTIONS, COMPOSITION_DIMENSION_LABELS, getCompositionEngines } from '../data/compositionEngines';
-import { BoxType, CompositionEngine, LittleGuy, MusicFingerprint, RealityChaosLevel, RealityEngine } from '../types';
+import { compileMusicStack, musicControlsToDirectives } from '../data/musicSeedSystem';
+import { BoxType, CompositionEngine, LittleGuy, MusicControls, MusicFingerprint, MusicStackItem, RealityChaosLevel, RealityEngine } from '../types';
 import { REALITY_CHAOS_LABELS, analyzeRealityChemistry } from './realityChemistry';
 
 export interface GenerationPromptParams {
   guyIds: string[];
   realityEngineIds?: string[];
   compositionEngineIds?: string[];
+  musicStack?: MusicStackItem[];
+  musicControls?: MusicControls;
   realityChaos?: RealityChaosLevel;
   seed?: string;
   energy: number;
@@ -18,7 +21,7 @@ export interface GenerationPromptParams {
 }
 
 export function buildMasterPrompt(params: GenerationPromptParams): { systemInstruction: string; userPrompt: string } {
-  const { guyIds, realityEngineIds = [], compositionEngineIds = [], realityChaos = 2, seed, energy, recentFingerprints = [], likedSignals = [] } = params;
+  const { guyIds, realityEngineIds = [], compositionEngineIds = [], musicStack = [], musicControls, realityChaos = 2, seed, energy, recentFingerprints = [], likedSignals = [] } = params;
 
   const selectedGuys: LittleGuy[] = guyIds
     .map((id) => LITTLE_GUYS.find((g) => g.id === id))
@@ -69,6 +72,30 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
         .join('\n\n')
     : 'NONE SELECTED — do not invent Composition Lab engines unless the user seed explicitly asks for a mechanism.';
 
+
+  const compiledMusic = compileMusicStack(musicStack, musicControls);
+  const musicSeedBreakdown = compiledMusic.mechanisms.length || compiledMusic.recipes.length
+    ? [
+        'ACTIVE RECIPE MACROS: ' + (compiledMusic.recipes.length ? compiledMusic.recipes.map((recipe) => recipe.name).join(' + ') : 'NONE — mechanisms were hand-stacked'),
+        'ACTIVE MUSICAL PHYSICS:',
+        ...(compiledMusic.mechanisms.length
+          ? compiledMusic.mechanisms.map((entry) =>
+              '[' + entry.mechanism.family.toUpperCase() + ' — ' + entry.mechanism.name + ' | STRENGTH ' + entry.strength + '/100]\n' +
+              entry.mechanism.instruction + '\n' +
+              'Stem value: ' + entry.mechanism.stemValue + '/5 | Chaos: ' + entry.mechanism.chaos + '/5 | Sources: ' + entry.sources.join(', ')
+            )
+          : ['NONE']),
+        'GLOBAL MUSICAL PRESSURE:',
+        ...musicControlsToDirectives(compiledMusic.controls).map((line) => '- ' + line),
+        'STACK INTERACTIONS:',
+        ...(compiledMusic.interactions.length ? compiledMusic.interactions.map((line) => '- ' + line) : ['- No precomputed interaction; preserve every selected mechanism independently.']),
+        'COMPILER LAW: Recipes are starting physics, not genre presets. Do not paste their wording together. Expand them into mechanisms, preserve stack order and strength, and make overlapping mechanisms reinforce while incompatible mechanisms negotiate through separate jurisdictions.',
+      ].join('\n')
+    : [
+        'NO MUSIC SEED RECIPE OR MECHANISM STACK ACTIVE.',
+        'Use the global controls only as soft pressure. Discover musical structure freely through the Little Guys and Composition Lab.',
+        ...musicControlsToDirectives(compiledMusic.controls).map((line) => '- ' + line),
+      ].join('\n');
 
   const activeLanguage = compositionEngines.find((engine) => engine.dimension === 'language');
   const activeLanguageMode = compositionEngines.find((engine) => engine.dimension === 'languageMode');
@@ -265,7 +292,9 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
     '17. MUSICAL PHYSICS CHANGES THE COORDINATE SYSTEM. TUNING changes interval geometry; RHYTHM PHYSICS changes time organization; SPATIAL AUDIO changes physical placement and motion; ROLE EXCHANGE changes which musical system performs which job. These are causal laws, not vibe adjectives.\n' +
     '18. TIME / SCALE / KNOWLEDGE ARE SEPARATE JURISDICTIONS. TEMPORAL changes objective chronology; SCALE changes the level of causality and available operations; EPISTEMOLOGY changes information access/evidence. Do not confuse chronology with subjective altered-state time or knowledge access with attention/headspace.\n' +
     '19. STRUCTURE / CONTROL IS ENFORCEABLE. AUDIENCE FEEDBACK changes the piece through reaction; CONSTRAINTS define legality; ECONOMY defines scarcity and cost; FAILURE MODE defines breakage; CONTROL AUTHORITY defines who may decide; PROP carries state through a recurring physical object. These must create observable consequences.\n' +
-    '20. OUTPUT FORMAT: valid JSON with keys style, lyrics, caption, fingerprint. fingerprint must contain genreFamily, harmony, melody, rhythm, timbre, vocal, performance, production.\n\n' +
+    '20. MUSIC SEED STACK IS PRECOMPILED MUSICAL PHYSICS, NOT A PRESET. Recipe macros may stack. Mechanism chips may stack. Preserve their separate jobs and strengths. If duplicate mechanisms arise through several recipes, reinforce the underlying operation rather than repeating text. If mechanisms conflict, expose and negotiate the conflict instead of averaging them into mush.\n' +
+    '21. STEMMINESS IS AN ARRANGEMENT VARIABLE, NOT A QUALITY SCORE. High stemminess requires register/role separation, local rather than universal wash, useful exposure windows, and parts that remain interesting when isolated. High kinetic density plus high stemminess means rapid events rotate through distinct actors instead of everybody playing constantly.\n' +
+    '22. OUTPUT FORMAT: valid JSON with keys style, lyrics, caption, fingerprint. fingerprint must contain genreFamily, harmony, melody, rhythm, timbre, vocal, performance, production.\n\n' +
     'TARGET CHARACTER COUNTS INCLUDING SPACES AND LINE BREAKS:\n' +
     'style: 975 to 999 characters.\n' +
     'lyrics: 4900 to 4999 characters.\n' +
@@ -276,6 +305,7 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
     'ACTIVE REALITY ENGINES:\n' + realityBreakdown + '\n\n' +
     'REALITY CHEMISTRY / COLLISION MAP:\n' + realityChemistryBlock + '\n\n' +
     'ACTIVE COMPOSITION LAB ENGINES:\n' + compositionBreakdown + '\n\n' +
+    'MUSIC SEED STACK / STACKABLE MUSICAL PHYSICS:\n' + musicSeedBreakdown + '\n\n' +
     'LANGUAGE / ACCENT FIDELITY:\n' + languageFidelityBlock + '\n\n' +
     'SOUND PALETTE / SOURCE ASSIGNMENT:\n' + soundPaletteBlock + '\n\n' +
     'VOICE TOPOLOGY / ADDRESSEE / BODY:\n' + voiceTopologyBlock + '\n\n' +
@@ -302,11 +332,12 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
     '[PERFORMANCE ATTITUDE] emotional and theatrical behavior.\n' +
     '[ANCHOR / INVARIANT] one recognizable element preserved while the rest mutates.\n' +
     'Invent 5–10 operators that transform behavior: hold A fixed while B migrates; compress X while stretching Y; make A behave like B without becoming B; preserve X while destabilizing everything around it; force incompatible temporal scales to coexist; return to the anchor in a more mutated form.\n' +
+    'If the Music Seed Stack is active, translate its mechanisms into concrete STYLE behavior here. Coupling must specify shared pulse/grouping logic; communal infection must specify recruitment; stemminess must specify separation/exposure; event-driven form must specify causal triggers.\n' +
     'Do not begin from an industrial/electronic baseline. Choose musical ancestry deliberately and vary it from recent runs. Music should stay active and engaging unless the seed explicitly demands otherwise. No artist names.\n\n' +
     'BOX 2 — LYRICS / CONTROL\n' +
     'TARGET: 4900–4999 characters. Every non-sung cue, instrumental instruction, section name, sound effect, and tempo change goes in [SQUARE BRACKETS]. Lyrics may be dry explanation, procedural narration, factual description of what the song is doing, absurdly serious administrative language, phonetic nonsense, or combinations. Avoid neat default pop rhyme. Follow FORM → DESTABILIZE → FRACTURE → COLLAPSE → ANCHOR RETURNS → REFORM STRANGER.\n' +
     'VOCALS ARE A MUSICAL SYSTEM. Choose among many possibilities: scat, nonsense vocables, yodeling, melisma, hocketing, call-and-response, polyphony, dry speech-song, patter, recitative, falsetto flips, whistle register, nasal drones, overtone-rich sustain, ululation, choral writing, rhythmic consonants. If phonetic nonsense is used, hard consonants act as percussion, nasals as resonance, open vowels as sustained melody, rolled consonants as acceleration, dense syllables as compression, long vowels as stretched time, heavy syllables as bass weight.\n' +
-    'The Little Guy stack must control lyric logic rather than merely being named. Reality Engines, when active, must visibly control scenario mechanics, speaker behavior, temporal/sensory logic, or delivery according to their jurisdictions. Composition Lab engines, when active, must visibly control vocal mechanics, signal behavior, sonic materials, musical physics, chronology, information, constraints, resources, failure, authority, or other assigned jurisdictions.\n\n' +
+    'The Little Guy stack must control lyric logic rather than merely being named. Reality Engines, when active, must visibly control scenario mechanics, speaker behavior, temporal/sensory logic, or delivery according to their jurisdictions. Composition Lab engines, when active, must visibly control vocal mechanics, signal behavior, sonic materials, musical physics, chronology, information, constraints, resources, failure, authority, or other assigned jurisdictions. Music Seed mechanisms, when active, must create audible structure: recruited voices must enter because of triggers, coupling layers must retain distinct accent maps, dropouts must expose real parts, and high stemminess must resist wall-of-sound collapse.\n\n' +
     'BOX 3 — CAPTION\n' +
     'TARGET: 490–499 characters. Compact publishable explanation of what the song does, which mechanisms govern it, and why the structure is strange. Take the mechanism seriously. Do not mention prompts or system instructions.\n\n' +
     'FINGERPRINT METADATA\n' +
