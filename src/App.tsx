@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { LITTLE_GUYS } from './data/littleGuys';
-import { ArchivedRun, LittleGuy, BoxType, SavedStack, GenerationResponse, RealityChaosLevel } from './types';
+import { ArchivedRun, LittleGuy, BoxType, SavedStack, GenerationResponse, MusicControls, MusicStackItem, RealityChaosLevel } from './types';
 import { generateProceduralTrack, clampAndPad, TARGETS } from './lib/proceduralGenerator';
 import { buildSmartStack, resolveRecipe } from './lib/mindStacking';
 import { getMindMetadata } from './data/mindMetadata';
@@ -10,6 +10,8 @@ import { StackPanel } from './components/StackPanel';
 import { ControlsPanel } from './components/ControlsPanel';
 import { RealityEnginePanel } from './components/RealityEnginePanel';
 import { CompositionLabPanel } from './components/CompositionLabPanel';
+import { MusicSeedLabPanel } from './components/MusicSeedLabPanel';
+import { MUSIC_FEEDBACK_TAGS } from './data/musicSeedSystem';
 import { OutputBox } from './components/OutputBox';
 import {
   getLastStack,
@@ -18,6 +20,10 @@ import {
   setLastRealityEngineIds,
   getLastCompositionEngineIds,
   setLastCompositionEngineIds,
+  getLastMusicStack,
+  setLastMusicStack,
+  getSavedMusicControls,
+  setSavedMusicControls,
   getSavedRealityChaos,
   setSavedRealityChaos,
   getSavedEnergy,
@@ -33,6 +39,8 @@ import {
   getRecentFingerprints,
   getLikedPreferenceSignals,
   getCompositionFavoriteSignals,
+  getMusicPreferenceSignals,
+  getLikedMusicMechanismWeights,
   getLikedMindWeights,
   getLikedRealityWeights,
   runToMarkdown,
@@ -65,6 +73,8 @@ export default function App() {
 
   const [realityEngineIds, setRealityEngineIds] = useState<string[]>(() => getLastRealityEngineIds());
   const [compositionEngineIds, setCompositionEngineIds] = useState<string[]>(() => getLastCompositionEngineIds());
+  const [musicStack, setMusicStack] = useState<MusicStackItem[]>(() => getLastMusicStack());
+  const [musicControls, setMusicControls] = useState<MusicControls>(() => getSavedMusicControls());
   const [realityChaos, setRealityChaos] = useState<RealityChaosLevel>(() => getSavedRealityChaos());
   const [savedStacks, setSavedStacks] = useState<SavedStack[]>(() => getSavedStacks());
   const [seed, setSeed] = useState<string>(() => getSavedSeed());
@@ -80,6 +90,7 @@ export default function App() {
   const [archiveCount, setArchiveCount] = useState(() => getRunArchive().length);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedbackDraft, setFeedbackDraft] = useState('');
+  const [feedbackTagsDraft, setFeedbackTagsDraft] = useState<string[]>([]);
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [repairingBox, setRepairingBox] = useState<BoxType | null>(null);
@@ -112,6 +123,14 @@ export default function App() {
   useEffect(() => {
     setLastCompositionEngineIds(compositionEngineIds);
   }, [compositionEngineIds]);
+
+  useEffect(() => {
+    setLastMusicStack(musicStack);
+  }, [musicStack]);
+
+  useEffect(() => {
+    setSavedMusicControls(musicControls);
+  }, [musicControls]);
 
   useEffect(() => {
     setSavedRealityChaos(realityChaos);
@@ -175,13 +194,15 @@ export default function App() {
   };
 
   const handleSaveStack = (name: string) => {
-    setSavedStacks(saveStackToFavorites(name, stackGuyIds, realityEngineIds, realityChaos, compositionEngineIds));
+    setSavedStacks(saveStackToFavorites(name, stackGuyIds, realityEngineIds, realityChaos, compositionEngineIds, musicStack, musicControls));
   };
 
   const handleLoadSavedStack = (saved: SavedStack) => {
     setStackGuyIds(saved.guyIds);
     setRealityEngineIds(saved.realityEngineIds || []);
     setCompositionEngineIds(saved.compositionEngineIds || []);
+    setMusicStack(saved.musicStack || []);
+    if (saved.musicControls) setMusicControls(saved.musicControls);
     if (saved.realityChaos) setRealityChaos(saved.realityChaos);
   };
 
@@ -197,6 +218,8 @@ export default function App() {
       guyIds: [...stackGuyIds],
       realityEngineIds: [...realityEngineIds],
       compositionEngineIds: [...compositionEngineIds],
+      musicStack: [...musicStack],
+      musicControls: { ...musicControls },
       realityChaos,
       seed,
       energy,
@@ -225,8 +248,9 @@ export default function App() {
 
     const recentFingerprints = getRecentFingerprints(12);
     const likedSignals = [
-      ...getCompositionFavoriteSignals(5),
-      ...getLikedPreferenceSignals(7),
+      ...getCompositionFavoriteSignals(4),
+      ...getMusicPreferenceSignals(4),
+      ...getLikedPreferenceSignals(5),
     ].slice(0, 10);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 65000);
@@ -239,6 +263,8 @@ export default function App() {
           guyIds: stackGuyIds,
           realityEngineIds,
           compositionEngineIds,
+          musicStack,
+          musicControls,
           realityChaos,
           seed,
           energy,
@@ -294,6 +320,8 @@ export default function App() {
             guyIds: stackGuyIds,
             realityEngineIds,
             compositionEngineIds,
+            musicStack,
+            musicControls,
             realityChaos,
             seed,
             energy,
@@ -409,6 +437,7 @@ export default function App() {
   const openFeedback = () => {
     if (!currentRun) return;
     setFeedbackDraft(currentRun.feedback || '');
+    setFeedbackTagsDraft(currentRun.feedbackTags || []);
     setFeedbackOpen(true);
   };
 
@@ -417,6 +446,7 @@ export default function App() {
     const updated = updateArchivedRun(currentRun.id, {
       starred: true,
       feedback: feedbackDraft.trim(),
+      feedbackTags: feedbackTagsDraft,
     });
     if (updated) setCurrentRun(updated);
     setFeedbackOpen(false);
@@ -542,6 +572,14 @@ export default function App() {
           chaosLevel={realityChaos}
           onChaosChange={setRealityChaos}
           preferenceWeights={getLikedRealityWeights()}
+        />
+
+        <MusicSeedLabPanel
+          stack={musicStack}
+          onChange={setMusicStack}
+          controls={musicControls}
+          onControlsChange={setMusicControls}
+          preferenceWeights={getLikedMusicMechanismWeights()}
         />
 
         <CompositionLabPanel
@@ -738,6 +776,35 @@ export default function App() {
             </div>
 
             <div className="p-5 space-y-4">
+              <div>
+                <div className="text-xs font-mono text-[#ffe680] mb-2">QUICK TAGS — WHAT WORKED?</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {MUSIC_FEEDBACK_TAGS.map((tag) => {
+                    const active = feedbackTagsDraft.includes(tag);
+                    return (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => setFeedbackTagsDraft((current) =>
+                          current.includes(tag) ? current.filter((item) => item !== tag) : [...current, tag]
+                        )}
+                        className={
+                          'rounded-full border px-2.5 py-1.5 text-[10px] font-mono font-bold transition-colors ' +
+                          (active
+                            ? 'border-[#ffd84d] bg-[#332b0d] text-[#ffe680]'
+                            : 'border-[#343b4c] bg-[#11151d] text-[#8d99aa] hover:text-white')
+                        }
+                      >
+                        {active ? '★ ' : ''}{tag}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p className="mt-2 text-[10px] font-mono text-[#657187]">
+                  Tags teach musical-mechanism preference separately from Little Guy preference.
+                </p>
+              </div>
+
               <label className="block">
                 <span className="text-xs font-mono text-[#ff9dea] flex items-center gap-2 mb-2">
                   <MessageSquare className="w-3.5 h-3.5" />
