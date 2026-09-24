@@ -132,6 +132,7 @@ export function CompositionLabPanel({ selectedIds, onChange }: CompositionLabPan
   );
 
   const detailEngine = detailEngineId ? getCompositionEngine(detailEngineId) : undefined;
+  const favoriteNoteEngine = favoriteNoteEngineId ? getCompositionEngine(favoriteNoteEngineId) : undefined;
 
   useEffect(() => {
     setLockedIds((current) => {
@@ -885,6 +886,29 @@ export function CompositionLabPanel({ selectedIds, onChange }: CompositionLabPan
                 ))}
               </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => toggleFavorite(detailEngine)}
+                  className={
+                    'rounded-xl border px-4 py-3 font-mono font-black text-xs transition-colors ' +
+                    (favoriteSet.has(detailEngine.id)
+                      ? 'border-[#ffd84d]/60 bg-[#2d2508] text-[#ffe680] hover:border-[#ffd84d]'
+                      : 'border-[#3a465b] bg-[#121824] text-[#cbd5e1] hover:border-[#ffd84d]')
+                  }
+                >
+                  <Star className="inline-block w-3.5 h-3.5 mr-1.5" fill={favoriteSet.has(detailEngine.id) ? 'currentColor' : 'none'} />
+                  {favoriteSet.has(detailEngine.id) ? 'FAVORITE — TAP TO REMOVE' : 'STAR THIS ENGINE'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => openFavoriteNote(detailEngine)}
+                  className="rounded-xl border border-[#ff4fd8]/40 bg-[#251020] px-4 py-3 font-mono font-black text-xs text-[#ff9dea] hover:border-[#ff4fd8]"
+                >
+                  WHY I LIKE THIS…
+                </button>
+              </div>
+
               {selectedSet.has(detailEngine.id) && (
                 <button
                   type="button"
@@ -912,6 +936,79 @@ export function CompositionLabPanel({ selectedIds, onChange }: CompositionLabPan
               >
                 {selectedSet.has(detailEngine.id) ? 'REMOVE FROM ACTIVE BUILD' : 'ADD TO ACTIVE BUILD'}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {favoriteNoteEngine && (
+        <div
+          className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+          onMouseDown={(event) => {
+            if (event.currentTarget === event.target) {
+              setFavoriteNoteEngineId(null);
+              setFavoriteNoteDraft('');
+            }
+          }}
+        >
+          <div className="w-full max-w-lg rounded-2xl border border-[#ff4fd8]/50 bg-[#0d1017] shadow-2xl overflow-hidden">
+            <div className="flex items-start justify-between gap-4 p-4 border-b border-[#252d3b]">
+              <div>
+                <div className="flex items-center gap-2 font-mono font-black text-[#ffe680]">
+                  <Star className="w-4 h-4" fill="currentColor" />
+                  TEACH THE COMPOSITION LAB
+                </div>
+                <p className="mt-1 text-[11px] font-mono text-[#8d99aa]">
+                  {favoriteNoteEngine.name}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setFavoriteNoteEngineId(null);
+                  setFavoriteNoteDraft('');
+                }}
+                className="p-1 text-[#7d8ba1] hover:text-white"
+                aria-label="Close favorite note"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-4 space-y-3">
+              <p className="text-[11px] leading-relaxed font-mono text-[#8d99aa]">
+                Tell it what you like about this mechanism. This becomes a soft preference signal for future generations; it does not force the engine into every song.
+              </p>
+              <textarea
+                value={favoriteNoteDraft}
+                onChange={(event) => setFavoriteNoteDraft(event.target.value)}
+                rows={5}
+                placeholder="Examples: I like the way it turns a physical limitation into structure; I like the unstable rhythm but not the noisy production; this works great with dry narration..."
+                className="w-full resize-y rounded-xl border border-[#30384a] bg-[#080a0f] p-3 text-sm text-white placeholder-[#566173] focus:outline-none focus:border-[#ff4fd8]"
+              />
+              <div className="flex flex-wrap justify-between gap-2">
+                {favoriteSet.has(favoriteNoteEngine.id) ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFavorites(removeCompositionFavorite(favoriteNoteEngine.id));
+                      setFavoriteNoteEngineId(null);
+                      setFavoriteNoteDraft('');
+                      setNotice('Removed ' + favoriteNoteEngine.name + ' from favorites.');
+                    }}
+                    className="px-3 py-2 rounded-lg border border-[#5b2330] text-[#ff9aa9] font-mono text-xs hover:bg-[#2b1216]"
+                  >
+                    UNSTAR
+                  </button>
+                ) : <span />}
+                <button
+                  type="button"
+                  onClick={saveFavoriteNote}
+                  className="px-4 py-2 rounded-lg bg-[#ffd84d] text-black font-mono font-black text-xs hover:bg-[#ffe680]"
+                >
+                  ★ SAVE FAVORITE + NOTE
+                </button>
+              </div>
             </div>
           </div>
         </div>
