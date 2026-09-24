@@ -1,0 +1,528 @@
+import React, { useMemo, useState } from 'react';
+import { ChevronDown, ChevronUp, FlaskConical, Info, Search, Trash2, X } from 'lucide-react';
+import { CompositionDimension, CompositionDomain, CompositionEngine } from '../types';
+import {
+  COMPOSITION_DIMENSION_DOMAINS,
+  COMPOSITION_DIMENSION_JURISDICTIONS,
+  COMPOSITION_DIMENSION_LABELS,
+  COMPOSITION_DIMENSION_LIMITS,
+  COMPOSITION_DOMAIN_LABELS,
+  COMPOSITION_ENGINES,
+  getCompositionEngine,
+  getCompositionEngines,
+} from '../data/compositionEngines';
+
+interface CompositionLabPanelProps {
+  selectedIds: string[];
+  onChange: (ids: string[]) => void;
+}
+
+const DOMAIN_ORDER: CompositionDomain[] = ['voice', 'signal', 'sonic', 'structure'];
+
+const DIMENSION_ORDER: CompositionDimension[] = [
+  'language',
+  'languageMode',
+  'addressee',
+  'ensemble',
+  'gesture',
+  'transmission',
+  'transduction',
+  'recordingDamage',
+  'technology',
+  'soundSource',
+  'tuning',
+  'rhythmPhysics',
+  'spatialAudio',
+  'roleExchange',
+  'temporal',
+  'scale',
+  'epistemology',
+  'audience',
+  'constraint',
+  'economy',
+  'failureMode',
+  'controlAuthority',
+  'prop',
+];
+
+const DOMAIN_ACCENTS: Record<CompositionDomain, string> = {
+  voice: '#ff4fd8',
+  signal: '#ffd24f',
+  sonic: '#00f0ff',
+  structure: '#a879ff',
+};
+
+function selectedCountForDimension(selectedIds: string[], dimension: CompositionDimension): number {
+  return selectedIds.reduce((count, id) => {
+    const engine = getCompositionEngine(id);
+    return count + (engine?.dimension === dimension ? 1 : 0);
+  }, 0);
+}
+
+function engineMatchesSearch(engine: CompositionEngine, query: string): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+
+  return [
+    engine.name,
+    engine.subtitle,
+    engine.shortExplanation,
+    engine.rule,
+    ...engine.tags,
+  ].join(' ').toLowerCase().includes(q);
+}
+
+export function CompositionLabPanel({ selectedIds, onChange }: CompositionLabPanelProps) {
+  const [expanded, setExpanded] = useState(true);
+  const [activeDomain, setActiveDomain] = useState<CompositionDomain>('voice');
+  const [activeDimension, setActiveDimension] = useState<CompositionDimension>('language');
+  const [query, setQuery] = useState('');
+  const [selectedOnly, setSelectedOnly] = useState(false);
+  const [detailEngineId, setDetailEngineId] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+  const selectedEngines = useMemo(() => getCompositionEngines(selectedIds), [selectedIds]);
+
+  const dimensionsForDomain = useMemo(
+    () => DIMENSION_ORDER.filter((dimension) => COMPOSITION_DIMENSION_DOMAINS[dimension] === activeDomain),
+    [activeDomain]
+  );
+
+  const visibleEngines = useMemo(
+    () => COMPOSITION_ENGINES.filter((engine) => {
+      if (engine.dimension !== activeDimension) return false;
+      if (selectedOnly && !selectedSet.has(engine.id)) return false;
+      return engineMatchesSearch(engine, query);
+    }),
+    [activeDimension, query, selectedOnly, selectedSet]
+  );
+
+  const detailEngine = detailEngineId ? getCompositionEngine(detailEngineId) : undefined;
+
+  const changeDomain = (domain: CompositionDomain) => {
+    setActiveDomain(domain);
+    const firstDimension = DIMENSION_ORDER.find((dimension) => COMPOSITION_DIMENSION_DOMAINS[dimension] === domain);
+    if (firstDimension) setActiveDimension(firstDimension);
+    setQuery('');
+    setSelectedOnly(false);
+    setNotice(null);
+  };
+
+  const toggleEngine = (engine: CompositionEngine) => {
+    setNotice(null);
+
+    if (selectedSet.has(engine.id)) {
+      onChange(selectedIds.filter((id) => id !== engine.id));
+      return;
+    }
+
+    const limit = COMPOSITION_DIMENSION_LIMITS[engine.dimension];
+    const used = selectedCountForDimension(selectedIds, engine.dimension);
+
+    if (used >= limit) {
+      setNotice(
+        COMPOSITION_DIMENSION_LABELS[engine.dimension] +
+          ' is full (' +
+          used +
+          '/' +
+          limit +
+          '). Remove one before adding another.'
+      );
+      return;
+    }
+
+    onChange([...selectedIds, engine.id]);
+  };
+
+  const clearDimension = (dimension: CompositionDimension) => {
+    onChange(
+      selectedIds.filter((id) => {
+        const engine = getCompositionEngine(id);
+        return engine?.dimension !== dimension;
+      })
+    );
+    setNotice(null);
+  };
+
+  const clearAll = () => {
+    onChange([]);
+    setNotice(null);
+  };
+
+  const groupedSelected = useMemo(() => {
+    return DIMENSION_ORDER.map((dimension) => ({
+      dimension,
+      engines: selectedEngines.filter((engine) => engine.dimension === dimension),
+    })).filter((group) => group.engines.length > 0);
+  }, [selectedEngines]);
+
+  const currentUsed = selectedCountForDimension(selectedIds, activeDimension);
+  const currentLimit = COMPOSITION_DIMENSION_LIMITS[activeDimension];
+
+  return (
+    <section className="rounded-2xl border border-[#252d3b] bg-[#0d1017] shadow-xl overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setExpanded((value) => !value)}
+        className="w-full px-4 md:px-5 py-4 flex items-center justify-between gap-4 text-left bg-gradient-to-r from-[#111521] via-[#11101d] to-[#10151d] hover:from-[#151a28] transition-colors"
+      >
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <FlaskConical className="w-5 h-5 text-[#00f0ff] flex-shrink-0" />
+            <h2 className="font-mono font-black tracking-[0.12em] text-sm md:text-base text-white">
+              COMPOSITION LAB
+            </h2>
+            <span className="rounded-full border border-[#39445a] bg-[#090b10] px-2 py-0.5 text-[10px] font-mono text-[#aeb8c8]">
+              {COMPOSITION_ENGINES.length} ENGINES
+            </span>
+            {selectedIds.length > 0 && (
+              <span className="rounded-full border border-[#ff4fd8]/50 bg-[#ff4fd8]/10 px-2 py-0.5 text-[10px] font-mono font-bold text-[#ff9dea]">
+                {selectedIds.length} ACTIVE
+              </span>
+            )}
+          </div>
+          <p className="mt-1 text-[11px] md:text-xs font-mono text-[#7d8ba1]">
+            Open the cabinets. Choose physical rules for voice, signal, sound, time, resources, failure, and control.
+          </p>
+        </div>
+        {expanded ? <ChevronUp className="w-5 h-5 text-[#7d8ba1]" /> : <ChevronDown className="w-5 h-5 text-[#7d8ba1]" />}
+      </button>
+
+      {expanded && (
+        <div className="p-4 md:p-5 space-y-5">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+            {DOMAIN_ORDER.map((domain) => {
+              const active = domain === activeDomain;
+              const count = selectedEngines.filter((engine) => engine.domain === domain).length;
+              const accent = DOMAIN_ACCENTS[domain];
+              return (
+                <button
+                  key={domain}
+                  type="button"
+                  onClick={() => changeDomain(domain)}
+                  className={
+                    'rounded-xl border px-3 py-3 text-left transition-all font-mono ' +
+                    (active
+                      ? 'bg-[#151a24] border-white/25 shadow-lg'
+                      : 'bg-[#090c12] border-[#232b3d] hover:border-[#46536b]')
+                  }
+                  style={active ? { boxShadow: '0 0 18px ' + accent + '22', borderColor: accent + '88' } : undefined}
+                >
+                  <div className="text-[11px] md:text-xs font-black tracking-wider" style={{ color: accent }}>
+                    {COMPOSITION_DOMAIN_LABELS[domain]}
+                  </div>
+                  <div className="mt-1 text-[10px] text-[#778397]">
+                    {count > 0 ? count + ' active' : 'nothing selected'}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {dimensionsForDomain.map((dimension) => {
+              const active = dimension === activeDimension;
+              const used = selectedCountForDimension(selectedIds, dimension);
+              const limit = COMPOSITION_DIMENSION_LIMITS[dimension];
+
+              return (
+                <button
+                  key={dimension}
+                  type="button"
+                  onClick={() => {
+                    setActiveDimension(dimension);
+                    setQuery('');
+                    setSelectedOnly(false);
+                    setNotice(null);
+                  }}
+                  className={
+                    'flex-shrink-0 rounded-lg border px-3 py-2 font-mono text-[10px] md:text-[11px] transition-colors ' +
+                    (active
+                      ? 'bg-[#18202b] border-[#00f0ff]/70 text-white'
+                      : 'bg-[#090c12] border-[#232b3d] text-[#8c98aa] hover:text-white hover:border-[#46536b]')
+                  }
+                >
+                  {COMPOSITION_DIMENSION_LABELS[dimension]}
+                  <span className={used > 0 ? 'ml-2 text-[#39ff14]' : 'ml-2 text-[#556177]'}>
+                    {used}/{limit}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="rounded-xl border border-[#232b3d] bg-[#090c12] p-3">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+              <div className="min-w-0">
+                <div className="font-mono text-xs font-bold text-white">
+                  {COMPOSITION_DIMENSION_LABELS[activeDimension]}
+                  <span className="ml-2 text-[#6f7d92] font-normal">
+                    {currentUsed}/{currentLimit}
+                  </span>
+                </div>
+                <p className="mt-1 text-[10px] md:text-[11px] leading-relaxed font-mono text-[#768399]">
+                  {COMPOSITION_DIMENSION_JURISDICTIONS[activeDimension]}
+                </p>
+              </div>
+
+              {currentUsed > 0 && (
+                <button
+                  type="button"
+                  onClick={() => clearDimension(activeDimension)}
+                  className="self-start md:self-auto rounded-lg border border-[#5b2832] bg-[#2a1118] px-3 py-2 text-[10px] font-mono text-[#fca5a5] hover:border-[#ef4444]"
+                >
+                  CLEAR DIMENSION
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-2">
+            <label className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#64748b]" />
+              <input
+                type="text"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder={'Search ' + COMPOSITION_DIMENSION_LABELS[activeDimension].toLowerCase() + '...'}
+                className="w-full rounded-lg border border-[#232b3d] bg-[#080a0f] py-2.5 pl-9 pr-3 text-xs font-mono text-white placeholder-[#556177] focus:outline-none focus:border-[#00f0ff]"
+              />
+            </label>
+
+            <button
+              type="button"
+              onClick={() => setSelectedOnly((value) => !value)}
+              className={
+                'rounded-lg border px-3 py-2.5 text-[10px] font-mono font-bold transition-colors ' +
+                (selectedOnly
+                  ? 'border-[#39ff14]/70 bg-[#39ff14]/10 text-[#8dff78]'
+                  : 'border-[#232b3d] bg-[#080a0f] text-[#7d8ba1] hover:text-white')
+              }
+            >
+              SELECTED ONLY
+            </button>
+          </div>
+
+          {notice && (
+            <div className="flex items-start justify-between gap-3 rounded-lg border border-[#854d0e] bg-[#241b0c] px-3 py-2.5 text-[11px] font-mono text-[#fde68a]">
+              <span>{notice}</span>
+              <button type="button" onClick={() => setNotice(null)} aria-label="Dismiss composition notice">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 max-h-[640px] overflow-y-auto pr-1">
+            {visibleEngines.map((engine) => {
+              const selected = selectedSet.has(engine.id);
+              const accent = engine.accentColor || DOMAIN_ACCENTS[engine.domain];
+
+              return (
+                <div
+                  key={engine.id}
+                  className={
+                    'rounded-xl border p-3.5 transition-all ' +
+                    (selected
+                      ? 'bg-[#141924] border-white/25'
+                      : 'bg-[#090c12] border-[#232b3d] hover:border-[#46536b]')
+                  }
+                  style={selected ? { borderColor: accent + '99', boxShadow: '0 0 14px ' + accent + '1f' } : undefined}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <button
+                      type="button"
+                      onClick={() => toggleEngine(engine)}
+                      className="min-w-0 flex-1 text-left"
+                    >
+                      <div className="font-mono font-black text-xs tracking-wide" style={{ color: selected ? accent : '#f8fafc' }}>
+                        {engine.name}
+                      </div>
+                      <div className="mt-1 font-mono text-[10px] text-[#8d99aa]">
+                        {engine.subtitle}
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setDetailEngineId(engine.id)}
+                      className="flex-shrink-0 p-1.5 rounded-md border border-[#273247] text-[#8290a5] hover:text-white hover:border-[#00f0ff]"
+                      aria-label={'Show details for ' + engine.name}
+                    >
+                      <Info className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => toggleEngine(engine)}
+                    className="mt-3 block w-full text-left"
+                  >
+                    <p className="text-[10px] md:text-[11px] leading-relaxed text-[#98a4b7]">
+                      {engine.shortExplanation}
+                    </p>
+
+                    <div className="mt-3 flex flex-wrap gap-1">
+                      {engine.tags.slice(0, 5).map((tag) => (
+                        <span
+                          key={tag}
+                          className="rounded-full border border-[#253047] bg-[#0d111a] px-2 py-0.5 text-[9px] font-mono text-[#6f7d92]"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+
+                    <div
+                      className={
+                        'mt-3 rounded-md px-2.5 py-1.5 text-center text-[10px] font-mono font-black ' +
+                        (selected
+                          ? 'bg-[#142518] text-[#8dff78] border border-[#2c6a37]'
+                          : 'bg-[#111622] text-[#8d99aa] border border-[#273247]')
+                      }
+                    >
+                      {selected ? 'ACTIVE — TAP TO REMOVE' : 'TAP TO ADD'}
+                    </div>
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+
+          {visibleEngines.length === 0 && (
+            <div className="py-10 text-center rounded-xl border border-dashed border-[#283247] bg-[#090c12] text-xs font-mono text-[#657287]">
+              No engines match this view.
+            </div>
+          )}
+
+          <div className="rounded-xl border border-[#2b3343] bg-[#0a0d13] overflow-hidden">
+            <div className="px-3.5 py-3 border-b border-[#232b3d] flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <div className="font-mono font-black text-xs text-[#ffe680]">
+                  ACTIVE BUILD — {selectedIds.length} ENGINE{selectedIds.length === 1 ? '' : 'S'}
+                </div>
+                <div className="text-[10px] font-mono text-[#66758b] mt-0.5">
+                  These IDs already flow into generation, saves, archive, and fallback.
+                </div>
+              </div>
+              {selectedIds.length > 0 && (
+                <button
+                  type="button"
+                  onClick={clearAll}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-[#5b2832] bg-[#2a1118] px-2.5 py-1.5 text-[10px] font-mono text-[#fca5a5] hover:border-[#ef4444]"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  CLEAR ALL
+                </button>
+              )}
+            </div>
+
+            {groupedSelected.length > 0 ? (
+              <div className="p-3 space-y-3">
+                {groupedSelected.map(({ dimension, engines }) => (
+                  <div key={dimension}>
+                    <div className="mb-1.5 flex items-center gap-2 text-[9px] font-mono font-black tracking-widest text-[#68788f]">
+                      {COMPOSITION_DIMENSION_LABELS[dimension]}
+                      <span>{engines.length}/{COMPOSITION_DIMENSION_LIMITS[dimension]}</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {engines.map((engine) => (
+                        <button
+                          key={engine.id}
+                          type="button"
+                          onClick={() => toggleEngine(engine)}
+                          title="Remove from active build"
+                          className="inline-flex items-center gap-1.5 rounded-full border border-[#3a465b] bg-[#121824] px-2.5 py-1.5 text-[10px] font-mono text-[#d6deea] hover:border-[#ff4fd8]"
+                        >
+                          <span>{engine.name}</span>
+                          <X className="w-3 h-3 text-[#7d8ba1]" />
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-6 text-center text-[11px] font-mono text-[#64748b]">
+                No active Composition Lab engines yet. Pick some weird shit.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {detailEngine && (
+        <div
+          className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4"
+          onMouseDown={(event) => {
+            if (event.currentTarget === event.target) setDetailEngineId(null);
+          }}
+        >
+          <div className="w-full max-w-2xl max-h-[85vh] overflow-y-auto rounded-2xl border border-[#39445a] bg-[#0c1017] shadow-2xl">
+            <div className="sticky top-0 bg-[#0c1017]/95 backdrop-blur border-b border-[#252d3b] p-4 md:p-5 flex items-start justify-between gap-4">
+              <div>
+                <div className="text-[9px] font-mono font-black tracking-[0.16em] text-[#718097]">
+                  {COMPOSITION_DOMAIN_LABELS[detailEngine.domain]} • {COMPOSITION_DIMENSION_LABELS[detailEngine.dimension]}
+                </div>
+                <h3 className="mt-1 text-base md:text-lg font-mono font-black text-white">
+                  {detailEngine.name}
+                </h3>
+                <p className="mt-1 text-xs font-mono text-[#8d99aa]">{detailEngine.subtitle}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDetailEngineId(null)}
+                className="p-1.5 text-[#7d8ba1] hover:text-white"
+                aria-label="Close Composition Lab detail"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-4 md:p-5 space-y-4">
+              <div>
+                <div className="text-[10px] font-mono font-black tracking-wider text-[#ff9dea]">WHAT IT DOES</div>
+                <p className="mt-1.5 text-sm leading-relaxed text-[#d0d8e5]">{detailEngine.shortExplanation}</p>
+              </div>
+
+              <div>
+                <div className="text-[10px] font-mono font-black tracking-wider text-[#00f0ff]">FULL OPERATIONAL RULE</div>
+                <p className="mt-1.5 rounded-xl border border-[#253047] bg-[#080b10] p-3.5 text-xs md:text-sm leading-relaxed font-mono text-[#b9c4d5]">
+                  {detailEngine.rule}
+                </p>
+              </div>
+
+              <div>
+                <div className="text-[10px] font-mono font-black tracking-wider text-[#ffe680]">JURISDICTION</div>
+                <p className="mt-1.5 text-xs leading-relaxed font-mono text-[#8795a9]">
+                  {COMPOSITION_DIMENSION_JURISDICTIONS[detailEngine.dimension]}
+                </p>
+              </div>
+
+              <div className="flex flex-wrap gap-1.5">
+                {detailEngine.tags.map((tag) => (
+                  <span key={tag} className="rounded-full border border-[#2a364c] bg-[#111722] px-2.5 py-1 text-[10px] font-mono text-[#8190a5]">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => toggleEngine(detailEngine)}
+                className={
+                  'w-full rounded-xl border px-4 py-3 font-mono font-black text-xs transition-colors ' +
+                  (selectedSet.has(detailEngine.id)
+                    ? 'border-[#7f1d1d] bg-[#2b1216] text-[#fca5a5] hover:border-[#ef4444]'
+                    : 'border-[#166534] bg-[#102417] text-[#86efac] hover:border-[#39ff14]')
+                }
+              >
+                {selectedSet.has(detailEngine.id) ? 'REMOVE FROM ACTIVE BUILD' : 'ADD TO ACTIVE BUILD'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </section>
+  );
+}
