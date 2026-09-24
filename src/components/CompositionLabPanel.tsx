@@ -511,6 +511,19 @@ export function CompositionLabPanel({ selectedIds, onChange }: CompositionLabPan
             >
               SELECTED ONLY
             </button>
+            <button
+              type="button"
+              onClick={() => setFavoritesOnly((value) => !value)}
+              className={
+                'inline-flex items-center justify-center gap-1.5 rounded-lg border px-3 py-2.5 text-[10px] font-mono font-bold transition-colors ' +
+                (favoritesOnly
+                  ? 'border-[#ffd84d]/70 bg-[#2d2508] text-[#ffe680]'
+                  : 'border-[#232b3d] bg-[#080a0f] text-[#7d8ba1] hover:text-white')
+              }
+            >
+              <Star className="w-3.5 h-3.5" fill={favoritesOnly ? 'currentColor' : 'none'} />
+              FAVORITES ONLY
+            </button>
           </div>
 
           {notice && (
