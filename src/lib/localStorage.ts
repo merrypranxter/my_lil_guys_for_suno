@@ -1,7 +1,7 @@
-import { ArchivedRun, CompositionFavorite, CompositionPreset, MusicControls, MusicFingerprint, MusicStackItem, RealityChaosLevel, RecentCompositionBuild, SavedStack } from '../types';
+import { ArchivedRun, CompositionFavorite, CompositionPreset, MusicBredGenome, MusicControls, MusicFingerprint, MusicStackItem, RealityChaosLevel, RecentCompositionBuild, SavedStack } from '../types';
 import { fingerprintToLine } from '../data/musicTaxonomy';
 import { getCompositionEngine, normalizeCompositionEngineIds } from '../data/compositionEngines';
-import { DEFAULT_MUSIC_CONTROLS, compileMusicStack, normalizeMusicControls, normalizeMusicStack, summarizeMusicStack } from '../data/musicSeedSystem';
+import { DEFAULT_MUSIC_CONTROLS, compileMusicStack, normalizeMusicControls, normalizeMusicGenome, normalizeMusicStack, summarizeMusicStack } from '../data/musicSeedSystem';
 
 const STORAGE_KEYS = {
   SAVED_STACKS: 'lgm_saved_stacks_v1',
@@ -10,6 +10,7 @@ const STORAGE_KEYS = {
   LAST_COMPOSITION_ENGINES: 'lgm_last_composition_engines_v1',
   LAST_MUSIC_STACK: 'lgm_last_music_stack_v1',
   MUSIC_CONTROLS: 'lgm_music_controls_v1',
+  BRED_MUSIC_GENOMES: 'lgm_bred_music_genomes_v1',
   LOCKED_COMPOSITION_ENGINES: 'lgm_locked_composition_engines_v1',
   COMPOSITION_FAVORITES: 'lgm_composition_favorites_v1',
   COMPOSITION_PRESETS: 'lgm_composition_presets_v1',
@@ -173,6 +174,50 @@ export function setSavedMusicControls(controls: MusicControls): void {
   } catch {
     // ignore
   }
+}
+
+
+export function getBredMusicGenomes(): MusicBredGenome[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.BRED_MUSIC_GENOMES);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((item) => normalizeMusicGenome(item))
+      .filter((item): item is MusicBredGenome => Boolean(item))
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .slice(0, 120);
+  } catch {
+    return [];
+  }
+}
+
+function writeBredMusicGenomes(genomes: MusicBredGenome[]): MusicBredGenome[] {
+  const normalized = genomes
+    .map((item) => normalizeMusicGenome(item))
+    .filter((item): item is MusicBredGenome => Boolean(item));
+  const deduped = normalized
+    .filter((item, index, all) => all.findIndex((candidate) => candidate.id === item.id) === index)
+    .sort((a, b) => b.createdAt - a.createdAt)
+    .slice(0, 120);
+  try {
+    localStorage.setItem(STORAGE_KEYS.BRED_MUSIC_GENOMES, JSON.stringify(deduped));
+  } catch {
+    // ignore
+  }
+  return deduped;
+}
+
+export function saveBredMusicGenome(genome: MusicBredGenome): MusicBredGenome[] {
+  const normalized = normalizeMusicGenome(genome);
+  if (!normalized) return getBredMusicGenomes();
+  const current = getBredMusicGenomes().filter((item) => item.id !== normalized.id);
+  return writeBredMusicGenomes([normalized, ...current]);
+}
+
+export function deleteBredMusicGenome(id: string): MusicBredGenome[] {
+  return writeBredMusicGenomes(getBredMusicGenomes().filter((item) => item.id !== id));
 }
 
 
