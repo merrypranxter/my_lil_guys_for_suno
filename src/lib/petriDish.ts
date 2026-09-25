@@ -146,6 +146,18 @@ export function normalizePetriDishChallenge(value: any): PetriDishChallenge {
   const recentFingerprints = Array.isArray(value?.recentFingerprints)
     ? value.recentFingerprints.map(normalizeFingerprint).filter(Boolean).slice(0, 12)
     : [];
+  const forcedFingerprint =
+    normalizeFingerprint(value?.forcedFingerprint) ||
+    recentFingerprints[0] || {
+      genreFamily: 'deliberately unspecified ensemble ancestry',
+      harmony: 'functional contrast with one persistent tension',
+      melody: 'compact motif with traceable mutation',
+      rhythm: 'steady pulse with explicit subdivision logic',
+      timbre: 'clearly separated acoustic and vocal roles',
+      vocal: 'distinct lead and response populations',
+      performance: 'active, legible, physically committed',
+      production: 'dry enough to expose arrangement roles',
+    };
   const likedSignals = Array.isArray(value?.likedSignals)
     ? value.likedSignals.filter((item: unknown): item is string => typeof item === 'string').map((item: string) => item.slice(0, 900)).slice(0, 10)
     : [];
@@ -160,6 +172,7 @@ export function normalizePetriDishChallenge(value: any): PetriDishChallenge {
     baseMusicStack: baseMechanismEnvironment(value?.baseMusicStack || []),
     baseMusicControls: normalizeMusicControls(value?.baseMusicControls),
     recentFingerprints: recentFingerprints as PetriDishChallenge['recentFingerprints'],
+    forcedFingerprint,
     likedSignals,
   };
 }
