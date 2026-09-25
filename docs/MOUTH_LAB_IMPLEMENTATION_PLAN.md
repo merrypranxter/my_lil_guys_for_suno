@@ -1,6 +1,6 @@
 # Mouth Lab — implementation plan
 
-Status: JOB 1 FOUNDATION
+Status: JOB 2 BREEDER IMPLEMENTED
 
 Mouth Lab turns language profiles into transferable vocal machinery.
 
@@ -33,7 +33,7 @@ Those requirements justify a self-contained module rather than inflating the exi
 
 ## Jobs
 
-### Job 1 — FOUNDATION / DONOR + TRAIT VAULT
+### Job 1 — FOUNDATION / DONOR + TRAIT VAULT — COMPLETE
 
 Deliver:
 
@@ -54,7 +54,7 @@ Acceptance:
 - no generic “Mayan”, “African”, “Asian”, or “Indigenous” donor;
 - source/caution metadata survives into the new layer.
 
-### Job 2 — BREEDER + CONFLICT MATRIX
+### Job 2 — BREEDER + CONFLICT MATRIX — IMPLEMENTED
 
 Deliver:
 

@@ -18,7 +18,8 @@
     "verify:genome-surgery": "tsx scripts/verifyGenomeSurgery.ts",
     "verify:fitness": "tsx scripts/verifyFitnessSelection.ts",
     "verify:saturation": "tsx scripts/verifySuccessSaturation.ts",
-    "verify:mouth-lab": "tsx scripts/verifyMouthLab.ts"
+    "verify:mouth-lab": "tsx scripts/verifyMouthLab.ts",
+    "verify:mouth-breeding": "tsx scripts/verifyMouthBreeding.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
