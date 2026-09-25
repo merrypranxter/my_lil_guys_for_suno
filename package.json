@@ -10,7 +10,8 @@
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
     "verify:composition": "tsx scripts/verifyCompositionLab.ts",
-    "verify:seed": "tsx scripts/verifyMusicSeedLab.ts"
+    "verify:seed": "tsx scripts/verifyMusicSeedLab.ts",
+    "verify:breeding": "tsx scripts/verifyMusicBreeding.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
