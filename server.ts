@@ -171,6 +171,7 @@ app.post('/api/generate', async (req, res) => {
   const recentFingerprints = sanitizeFingerprints(req.body?.recentFingerprints);
   const forcedFingerprint = sanitizeFingerprints([req.body?.forcedFingerprint])[0];
   const likedSignals = sanitizeLikedSignals(req.body?.likedSignals);
+  const noveltySignals = sanitizeLikedSignals(req.body?.noveltySignals);
 
   try {
     const { systemInstruction, userPrompt } = buildMasterPrompt({
@@ -185,6 +186,7 @@ app.post('/api/generate', async (req, res) => {
       recentFingerprints,
       forcedFingerprint,
       likedSignals,
+      noveltySignals,
     });
 
     const fingerprintProperties = {
