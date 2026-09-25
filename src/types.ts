@@ -1,3 +1,5 @@
+import type { MouthGenome, MouthPromptMode, MouthSemanticMode } from './mouthLab/types';
+
 export interface LittleGuy {
   id: string;
   name: string;
@@ -356,6 +358,9 @@ export interface GenerationRequest {
   forcedFingerprint?: MusicFingerprint;
   likedSignals?: string[];
   noveltySignals?: string[];
+  mouthGenome?: MouthGenome;
+  mouthPromptMode?: MouthPromptMode;
+  mouthSemanticMode?: MouthSemanticMode;
 }
 
 export interface GenerationResponse {
@@ -382,6 +387,9 @@ export interface RepairRequest {
   musicStack?: MusicStackItem[];
   musicControls?: MusicControls;
   realityChaos?: RealityChaosLevel;
+  mouthGenome?: MouthGenome;
+  mouthPromptMode?: MouthPromptMode;
+  mouthSemanticMode?: MouthSemanticMode;
 }
 
 export interface SavedStack {
@@ -393,6 +401,9 @@ export interface SavedStack {
   musicStack?: MusicStackItem[];
   musicControls?: MusicControls;
   realityChaos?: RealityChaosLevel;
+  mouthGenome?: MouthGenome;
+  mouthPromptMode?: MouthPromptMode;
+  mouthSemanticMode?: MouthSemanticMode;
   createdAt: number;
 }
 
@@ -405,6 +416,9 @@ export interface ArchivedRun {
   musicStack?: MusicStackItem[];
   musicControls?: MusicControls;
   realityChaos?: RealityChaosLevel;
+  mouthGenome?: MouthGenome;
+  mouthPromptMode?: MouthPromptMode;
+  mouthSemanticMode?: MouthSemanticMode;
   seed: string;
   energy: number;
   model: string;

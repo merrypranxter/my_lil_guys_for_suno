@@ -1,6 +1,6 @@
 # Mouth Lab — implementation plan
 
-Status: JOB 3 QUIRK ENGINE IMPLEMENTED
+Status: JOB 4 PROMPT COMPILER IMPLEMENTED
 
 Mouth Lab turns language profiles into transferable vocal machinery.
 
@@ -66,7 +66,7 @@ Deliver:
 - trait-pressure system;
 - intelligibility and stability controls.
 
-### Job 3 — QUIRK ENGINE + SPECIMENS — IMPLEMENTED
+### Job 3 — QUIRK ENGINE + SPECIMENS — COMPLETE
 
 Deliver:
 
@@ -83,7 +83,7 @@ Canonical acceptance specimen:
 
 > intelligible English while every eligible R receives an absurdly committed trill.
 
-### Job 4 — PROMPT COMPILER
+### Job 4 — PROMPT COMPILER — IMPLEMENTED
 
 Deliver:
 

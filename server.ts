@@ -5,6 +5,8 @@ import { GoogleGenAI, Type } from '@google/genai';
 import { buildMasterPrompt, buildRepairPrompt } from './src/lib/buildGenerationPrompt';
 import { generateProceduralTrack } from './src/lib/proceduralGenerator';
 import { MusicFingerprint, RealityChaosLevel } from './src/types';
+import type { MouthPromptMode, MouthSemanticMode } from './src/mouthLab/types';
+import { normalizeMouthGenomeForGeneration } from './src/mouthLab/promptCompiler';
 import { normalizeCompositionEngineIds } from './src/data/compositionEngines';
 import { normalizeMusicControls, normalizeMusicStack } from './src/data/musicSeedSystem';
 import { planGuyActivation } from './src/lib/mindStacking';
@@ -105,6 +107,16 @@ function sanitizeRealityChaos(value: any): RealityChaosLevel {
   return n === 1 || n === 2 || n === 3 || n === 4 ? (n as RealityChaosLevel) : 2;
 }
 
+function sanitizeMouthPromptMode(value: any): MouthPromptMode {
+  return value === 'compact' || value === 'descriptive' || value === 'bracketed'
+    ? value
+    : 'bracketed';
+}
+
+function sanitizeMouthSemanticMode(value: any): MouthSemanticMode {
+  return value === 'englishMeaningAlienMouth' ? value : 'inherit';
+}
+
 async function generateWithResilience(
   contents: string,
   config: any,
@@ -172,6 +184,9 @@ app.post('/api/generate', async (req, res) => {
   const forcedFingerprint = sanitizeFingerprints([req.body?.forcedFingerprint])[0];
   const likedSignals = sanitizeLikedSignals(req.body?.likedSignals);
   const noveltySignals = sanitizeLikedSignals(req.body?.noveltySignals);
+  const mouthGenome = normalizeMouthGenomeForGeneration(req.body?.mouthGenome);
+  const mouthPromptMode = sanitizeMouthPromptMode(req.body?.mouthPromptMode);
+  const mouthSemanticMode = sanitizeMouthSemanticMode(req.body?.mouthSemanticMode);
 
   try {
     const { systemInstruction, userPrompt } = buildMasterPrompt({
@@ -187,6 +202,9 @@ app.post('/api/generate', async (req, res) => {
       forcedFingerprint,
       likedSignals,
       noveltySignals,
+      mouthGenome,
+      mouthPromptMode,
+      mouthSemanticMode,
     });
 
     const fingerprintProperties = {
@@ -288,6 +306,9 @@ app.post('/api/generate', async (req, res) => {
         energy,
         recentFingerprints,
         forcedFingerprint,
+        mouthGenome,
+        mouthPromptMode,
+        mouthSemanticMode,
       });
       const fallbackSeedCoverage = evaluateLiteralSeedCoverage(seed, [fallback.style, fallback.lyrics, fallback.caption]);
       const fallbackSeedNotice =
