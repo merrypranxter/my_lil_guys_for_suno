@@ -270,6 +270,7 @@ export interface PetriDishChallenge {
   baseMusicStack: MusicStackItem[];
   baseMusicControls: MusicControls;
   recentFingerprints: MusicFingerprint[];
+  forcedFingerprint: MusicFingerprint;
   likedSignals: string[];
 }
 
@@ -332,6 +333,7 @@ export interface GenerationRequest {
   seed?: string;
   energy: number;
   recentFingerprints?: MusicFingerprint[];
+  forcedFingerprint?: MusicFingerprint;
   likedSignals?: string[];
 }
 
