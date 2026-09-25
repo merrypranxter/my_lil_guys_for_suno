@@ -74,9 +74,15 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
 
 
   const compiledMusic = compileMusicStack(musicStack, musicControls);
-  const musicSeedBreakdown = compiledMusic.mechanisms.length || compiledMusic.recipes.length
+  const musicSeedBreakdown = compiledMusic.mechanisms.length || compiledMusic.recipes.length || compiledMusic.genomes.length
     ? [
-        'ACTIVE RECIPE MACROS: ' + (compiledMusic.recipes.length ? compiledMusic.recipes.map((recipe) => recipe.name).join(' + ') : 'NONE — mechanisms were hand-stacked'),
+        'ACTIVE RECIPE MACROS: ' + (compiledMusic.recipes.length ? compiledMusic.recipes.map((recipe) => recipe.name).join(' + ') : 'NONE — no built-in recipe macro active'),
+        'ACTIVE BRED GENOMES: ' + (compiledMusic.genomes.length
+          ? compiledMusic.genomes.map((genome) =>
+              genome.name + ' [G' + genome.generation + '] = ' +
+              genome.lineage.parentA.name + ' × ' + genome.lineage.parentB.name
+            ).join(' | ')
+          : 'NONE'),
         'ACTIVE MUSICAL PHYSICS:',
         ...(compiledMusic.mechanisms.length
           ? compiledMusic.mechanisms.map((entry) =>
@@ -89,7 +95,7 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
         ...musicControlsToDirectives(compiledMusic.controls).map((line) => '- ' + line),
         'STACK INTERACTIONS:',
         ...(compiledMusic.interactions.length ? compiledMusic.interactions.map((line) => '- ' + line) : ['- No precomputed interaction; preserve every selected mechanism independently.']),
-        'COMPILER LAW: Recipes are starting physics, not genre presets. Do not paste their wording together. Expand them into mechanisms, preserve stack order and strength, and make overlapping mechanisms reinforce while incompatible mechanisms negotiate through separate jurisdictions.',
+        'COMPILER LAW: Recipes and bred genomes are starting physics, not genre presets. Do not paste their wording together. Expand them into mechanisms, preserve stack order and strength, and make overlapping mechanisms reinforce while incompatible mechanisms negotiate through separate jurisdictions. Genome relationship laws are inherited constraints and must create audible consequences rather than lineage-themed vocabulary.',
       ].join('\n')
     : [
         'NO MUSIC SEED RECIPE OR MECHANISM STACK ACTIVE.',
@@ -292,7 +298,7 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
     '17. MUSICAL PHYSICS CHANGES THE COORDINATE SYSTEM. TUNING changes interval geometry; RHYTHM PHYSICS changes time organization; SPATIAL AUDIO changes physical placement and motion; ROLE EXCHANGE changes which musical system performs which job. These are causal laws, not vibe adjectives.\n' +
     '18. TIME / SCALE / KNOWLEDGE ARE SEPARATE JURISDICTIONS. TEMPORAL changes objective chronology; SCALE changes the level of causality and available operations; EPISTEMOLOGY changes information access/evidence. Do not confuse chronology with subjective altered-state time or knowledge access with attention/headspace.\n' +
     '19. STRUCTURE / CONTROL IS ENFORCEABLE. AUDIENCE FEEDBACK changes the piece through reaction; CONSTRAINTS define legality; ECONOMY defines scarcity and cost; FAILURE MODE defines breakage; CONTROL AUTHORITY defines who may decide; PROP carries state through a recurring physical object. These must create observable consequences.\n' +
-    '20. MUSIC SEED STACK IS PRECOMPILED MUSICAL PHYSICS, NOT A PRESET. Recipe macros may stack. Mechanism chips may stack. Preserve their separate jobs and strengths. If duplicate mechanisms arise through several recipes, reinforce the underlying operation rather than repeating text. If mechanisms conflict, expose and negotiate the conflict instead of averaging them into mush.\n' +
+    '20. MUSIC SEED STACK IS PRECOMPILED MUSICAL PHYSICS, NOT A PRESET. Recipe macros, bred genomes, and mechanism chips may stack. Preserve their separate jobs and strengths. If duplicate mechanisms arise through several ancestors, reinforce the underlying operation rather than repeating text. If mechanisms conflict, expose and negotiate the conflict instead of averaging them into mush. Bred genomes carry an invariant plus a relationship law; both must remain audible or structurally testable.\n' +
     '21. STEMMINESS IS AN ARRANGEMENT VARIABLE, NOT A QUALITY SCORE. High stemminess requires register/role separation, local rather than universal wash, useful exposure windows, and parts that remain interesting when isolated. High kinetic density plus high stemminess means rapid events rotate through distinct actors instead of everybody playing constantly.\n' +
     '22. OUTPUT FORMAT: valid JSON with keys style, lyrics, caption, fingerprint. fingerprint must contain genreFamily, harmony, melody, rhythm, timbre, vocal, performance, production.\n\n' +
     'TARGET CHARACTER COUNTS INCLUDING SPACES AND LINE BREAKS:\n' +
