@@ -36,6 +36,9 @@ jobs:
       - name: Petri Dish regression smoke
         run: npm run verify:dish
 
+      - name: Mind activation budget regression smoke
+        run: npm run verify:minds
+
       - name: Build
         run: npm run build
 
