@@ -48,6 +48,9 @@ jobs:
       - name: Fitness and reproductive selection regression smoke
         run: npm run verify:fitness
 
+      - name: Success saturation and cooldown regression smoke
+        run: npm run verify:saturation
+
       - name: Build
         run: npm run build
 
