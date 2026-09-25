@@ -5,6 +5,8 @@ import { getRealityEngines, REALITY_DIMENSION_JURISDICTIONS, REALITY_DIMENSION_L
 import { COMPOSITION_DIMENSION_JURISDICTIONS, COMPOSITION_DIMENSION_LABELS, getCompositionEngines } from '../data/compositionEngines';
 import { compileMusicStack, musicControlsToDirectives } from '../data/musicSeedSystem';
 import { BoxType, CompositionEngine, LittleGuy, MusicControls, MusicFingerprint, MusicStackItem, RealityChaosLevel, RealityEngine } from '../types';
+import type { MouthGenome, MouthPromptMode, MouthSemanticMode } from '../mouthLab/types';
+import { compileMouthPrompt, normalizeMouthGenomeForGeneration } from '../mouthLab/promptCompiler';
 import { REALITY_CHAOS_LABELS, analyzeRealityChemistry } from './realityChemistry';
 import { assignActivationRoles } from './mindStacking';
 import { renderLayerJurisdictionMatrix, renderSeedSovereigntyContract } from './generationJurisdictions';
@@ -23,10 +25,13 @@ export interface GenerationPromptParams {
   forcedFingerprint?: MusicFingerprint;
   likedSignals?: string[];
   noveltySignals?: string[];
+  mouthGenome?: MouthGenome;
+  mouthPromptMode?: MouthPromptMode;
+  mouthSemanticMode?: MouthSemanticMode;
 }
 
 export function buildMasterPrompt(params: GenerationPromptParams): { systemInstruction: string; userPrompt: string } {
-  const { guyIds, realityEngineIds = [], compositionEngineIds = [], musicStack = [], musicControls, realityChaos = 2, seed, energy, recentFingerprints = [], forcedFingerprint, likedSignals = [], noveltySignals = [] } = params;
+  const { guyIds, realityEngineIds = [], compositionEngineIds = [], musicStack = [], musicControls, realityChaos = 2, seed, energy, recentFingerprints = [], forcedFingerprint, likedSignals = [], noveltySignals = [], mouthGenome, mouthPromptMode = 'bracketed', mouthSemanticMode = 'inherit' } = params;
 
   const selectedGuys: LittleGuy[] = guyIds
     .map((id) => LITTLE_GUYS.find((g) => g.id === id))
@@ -116,6 +121,22 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
         'Use the global controls only as soft pressure. Discover musical structure freely through the Little Guys and Composition Lab.',
         ...musicControlsToDirectives(compiledMusic.controls).map((line) => '- ' + line),
       ].join('\n');
+
+  const normalizedMouthGenome = normalizeMouthGenomeForGeneration(mouthGenome);
+  const compiledMouth = normalizedMouthGenome
+    ? compileMouthPrompt(normalizedMouthGenome, {
+        mode: mouthPromptMode,
+        semanticMode: mouthSemanticMode,
+        includePhenotype: true,
+      })
+    : undefined;
+  const mouthLabBlock = compiledMouth
+    ? compiledMouth.text + '\n' +
+      'MOUTH LAB COMPILER SUMMARY: ' + compiledMouth.summary + '\n' +
+      (compiledMouth.warnings.length
+        ? 'MOUTH LAB WARNINGS: ' + compiledMouth.warnings.join(' | ')
+        : 'MOUTH LAB WARNINGS: none')
+    : 'NO MOUTH LAB GENOME ACTIVE — use Composition Lab language settings normally.';
 
   const activeLanguage = compositionEngines.find((engine) => engine.dimension === 'language');
   const activeLanguageMode = compositionEngines.find((engine) => engine.dimension === 'languageMode');
@@ -335,7 +356,9 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
     '19. STRUCTURE / CONTROL IS ENFORCEABLE. AUDIENCE FEEDBACK changes the piece through reaction; CONSTRAINTS define legality; ECONOMY defines scarcity and cost; FAILURE MODE defines breakage; CONTROL AUTHORITY defines who may decide; PROP carries state through a recurring physical object. These must create observable consequences.\n' +
     '20. MUSIC SEED STACK IS PRECOMPILED MUSICAL PHYSICS, NOT A PRESET AND NOT A STORY GENERATOR. Recipe macros, bred genomes, and mechanism chips may stack, but duplicate stack entries are collapsed before compilation and never receive hidden extra voting power. Genome display names, parent names, generations, and ancestry are UI-only provenance. Generation sees phenotype: mechanisms, controls, invariant, and relationship law. If mechanisms conflict, expose and negotiate the conflict instead of averaging them into mush.\n' +
     '21. STEMMINESS IS AN ARRANGEMENT VARIABLE, NOT A QUALITY SCORE. High stemminess requires register/role separation, local rather than universal wash, useful exposure windows, and parts that remain interesting when isolated. High kinetic density plus high stemminess means rapid events rotate through distinct actors instead of everybody playing constantly.\n' +
-    '22. OUTPUT FORMAT: valid JSON with keys style, lyrics, caption, fingerprint. fingerprint must contain genreFamily, harmony, melody, rhythm, timbre, vocal, performance, production.\n\n' +
+    '22. MOUTH LAB IS VOCAL GENETICS, NOT AN ACCENT PRESET. When active, each Mouth Lab trait owns only its assigned mouth jurisdiction. Preserve distinct donors and explicit conflicts instead of averaging them into a vague foreign accent. Quirks are narrow operational laws: frequency controls how many eligible targets are hit, consistency controls reliability, exaggeration controls audible severity, and takeover controls WHEN the mutation spreads. HIGH and OBSESSIVE pressure must remain audible across section changes.\n' +
+    '23. MOUTH LAB PRECEDENCE: for mouth axes explicitly owned by a Mouth Lab genome, Mouth Lab overrides conflicting single-profile language guidance. Composition Lab language settings may fill only unclaimed mouth axes. If ENGLISH MEANING / ALIEN MOUTH is active, keep semantic propositions and lexical targets in English while non-English donor mechanisms govern the assigned mouth physics. Do not translate into donor languages, invent fake fluent donor-language text, or claim the hybrid is authentic speech.\n' +
+    '24. OUTPUT FORMAT: valid JSON with keys style, lyrics, caption, fingerprint. fingerprint must contain genreFamily, harmony, melody, rhythm, timbre, vocal, performance, production.\n\n' +
     'TARGET CHARACTER COUNTS INCLUDING SPACES AND LINE BREAKS:\n' +
     'style: 975 to 999 characters.\n' +
     'lyrics: 4900 to 4999 characters.\n' +
@@ -349,6 +372,7 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
     'REALITY CHEMISTRY / COLLISION MAP:\n' + realityChemistryBlock + '\n\n' +
     'ACTIVE COMPOSITION LAB ENGINES:\n' + compositionBreakdown + '\n\n' +
     'MUSIC SEED STACK / STACKABLE MUSICAL PHYSICS:\n' + musicSeedBreakdown + '\n\n' +
+    'MOUTH LAB / VOCAL GENOME:\n' + mouthLabBlock + '\n\n' +
     'LANGUAGE / ACCENT FIDELITY:\n' + languageFidelityBlock + '\n\n' +
     'SOUND PALETTE / SOURCE ASSIGNMENT:\n' + soundPaletteBlock + '\n\n' +
     'VOICE TOPOLOGY / ADDRESSEE / BODY:\n' + voiceTopologyBlock + '\n\n' +
@@ -378,6 +402,7 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
     '[ANCHOR / INVARIANT] one recognizable element preserved while the rest mutates.\n' +
     'Invent 5–10 operators that transform behavior: hold A fixed while B migrates; compress X while stretching Y; make A behave like B without becoming B; preserve X while destabilizing everything around it; force incompatible temporal scales to coexist; return to the anchor in a more mutated form.\n' +
     'If the Music Seed Stack is active, translate its mechanisms into concrete STYLE behavior here. Coupling must specify shared pulse/grouping logic; communal infection must specify recruitment; stemminess must specify separation/exposure; event-driven form must specify causal triggers.\n' +
+    (compiledMouth ? compiledMouth.styleDirectives + '\n' : '') +
     (forcedFingerprint
       ? 'The musical ancestry above is frozen for a controlled comparison. Do not replace it with a fresher genre or production family; express the selected genome inside that fixed fingerprint. '
       : 'Do not begin from an industrial/electronic baseline. Choose musical ancestry deliberately and vary it from recent runs. ') +
@@ -385,7 +410,9 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
     'BOX 2 — LYRICS / CONTROL\n' +
     'TARGET: 4900–4999 characters. Every non-sung cue, instrumental instruction, section name, sound effect, and tempo change goes in [SQUARE BRACKETS]. Lyrics may be dry explanation, procedural narration, factual description of what the song is doing, absurdly serious administrative language, phonetic nonsense, or combinations. Avoid neat default pop rhyme. Follow FORM → DESTABILIZE → FRACTURE → COLLAPSE → ANCHOR RETURNS → REFORM STRANGER.\n' +
     'VOCALS ARE A MUSICAL SYSTEM. Choose among many possibilities: scat, nonsense vocables, yodeling, melisma, hocketing, call-and-response, polyphony, dry speech-song, patter, recitative, falsetto flips, whistle register, nasal drones, overtone-rich sustain, ululation, choral writing, rhythmic consonants. If phonetic nonsense is used, hard consonants act as percussion, nasals as resonance, open vowels as sustained melody, rolled consonants as acceleration, dense syllables as compression, long vowels as stretched time, heavy syllables as bass weight.\n' +
-    'The sovereign seed must remain recognizably the semantic subject of the lyrics. The Little Guy stack controls cognitive/causal lyric logic around that subject rather than merely being named. Reality Engines, when active, must visibly control scenario mechanics, speaker behavior, temporal/sensory logic, or delivery according to their jurisdictions without replacing the seed. Composition Lab engines, when active, must visibly control vocal mechanics, signal behavior, sonic materials, musical physics, chronology, information, constraints, resources, failure, authority, or other assigned jurisdictions without colonizing subject matter. Music Seed mechanisms, when active, must create audible structure only: recruited voices must enter because of triggers, coupling layers must retain distinct accent maps, dropouts must expose real parts, and high stemminess must resist wall-of-sound collapse.\n\n' +
+    'The sovereign seed must remain recognizably the semantic subject of the lyrics. The Little Guy stack controls cognitive/causal lyric logic around that subject rather than merely being named. Reality Engines, when active, must visibly control scenario mechanics, speaker behavior, temporal/sensory logic, or delivery according to their jurisdictions without replacing the seed. Composition Lab engines, when active, must visibly control vocal mechanics, signal behavior, sonic materials, musical physics, chronology, information, constraints, resources, failure, authority, or other assigned jurisdictions without colonizing subject matter. Music Seed mechanisms, when active, must create audible structure only: recruited voices must enter because of triggers, coupling layers must retain distinct accent maps, dropouts must expose real parts, and high stemminess must resist wall-of-sound collapse.\n' +
+    (compiledMouth ? compiledMouth.lyricsDirectives + '\n' : '') +
+    '\n' +
     'BOX 3 — CAPTION\n' +
     'TARGET: 490–499 characters. Compact publishable explanation of what the song does, which mechanisms govern it, and why the structure is strange. Take the mechanism seriously. Do not mention prompts or system instructions.\n\n' +
     'FINGERPRINT METADATA\n' +
