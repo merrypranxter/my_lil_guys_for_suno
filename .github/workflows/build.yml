@@ -45,6 +45,9 @@ jobs:
       - name: Genome phenotype and dedupe regression smoke
         run: npm run verify:genome-surgery
 
+      - name: Fitness and reproductive selection regression smoke
+        run: npm run verify:fitness
+
       - name: Build
         run: npm run build
 
