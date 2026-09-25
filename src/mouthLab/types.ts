@@ -102,7 +102,27 @@ export interface MouthGenome {
   intelligibility: number;
   stability: number;
   mutation: number;
+  breedingSeed: string;
   createdAt: number;
+}
+
+export interface MouthManualAssignment {
+  axis: MouthAxis;
+  donorId: string;
+  traitIds: string[];
+  pressure?: MouthTraitPressure;
+}
+
+export interface MouthBreedingRequest {
+  parentDonorIds: string[];
+  breedingSeed: string;
+  objectiveId?: string;
+  semanticAnchorLanguageProfileId?: string;
+  intelligibility?: number;
+  stability?: number;
+  mutation?: number;
+  requestedName?: string;
+  manualAssignments?: MouthManualAssignment[];
 }
 
 export interface MouthTraitRelationshipRule {
@@ -110,4 +130,43 @@ export interface MouthTraitRelationshipRule {
   traitBId: string;
   relationship: MouthTraitRelationship;
   explanation: string;
+  resolutionLaw: string;
+  severity: 1 | 2 | 3 | 4 | 5;
+}
+
+export interface MouthPhenotypeTrait {
+  traitId: string;
+  donorId?: string;
+  axis: MouthAxis;
+  pressure: MouthTraitPressure;
+  salience: number;
+  consistency: number;
+  expectedAudibility: 'subtle' | 'intermittent' | 'clear' | 'dominant';
+  suppressedByTraitId?: string;
+}
+
+export interface MouthPhenotypeInteraction {
+  traitAId: string;
+  traitBId: string;
+  relationship: MouthTraitRelationship;
+  explanation: string;
+  resolutionLaw: string;
+  severity: 1 | 2 | 3 | 4 | 5;
+}
+
+export interface MouthPhenotype {
+  genomeId: string;
+  activeTraits: MouthPhenotypeTrait[];
+  suppressedTraits: MouthPhenotypeTrait[];
+  interactions: MouthPhenotypeInteraction[];
+  audiblePriority: string[];
+  summary: string;
+  warnings: string[];
+}
+
+export interface MouthBreedingResult {
+  genome: MouthGenome;
+  phenotype: MouthPhenotype;
+  excludedParentDonorIds: string[];
+  warnings: string[];
 }
