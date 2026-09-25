@@ -11,6 +11,7 @@ import { getMouthDonor } from './donors';
 import { getMouthTrait } from './traits';
 import { getMouthQuirkDefinition } from './quirks';
 import { projectMouthPhenotype } from './phenotype';
+import { normalizeMouthDynamics, mouthCastLabel } from './dynamics';
 import { clampMouthControl } from './determinism';
 
 const VALID_AXES = new Set([
@@ -243,6 +244,7 @@ export function normalizeMouthGenomeForGeneration(value: unknown): MouthGenome |
     quirks,
     mutationScars: mutationScars as MouthGenome['mutationScars'],
     linkedGeneBundles: linkedGeneBundles as MouthGenome['linkedGeneBundles'],
+    dynamics: normalizeMouthDynamics(raw.dynamics),
     createdAt: Number.isFinite(raw.createdAt) ? Number(raw.createdAt) : Date.now(),
   };
 }
@@ -406,6 +408,141 @@ function interactionLines(genome: MouthGenome): string[] {
     );
 }
 
+
+function dynamicTargetName(targetType: 'trait' | 'quirk' | undefined, targetId: string | undefined): string {
+  if (!targetId) return 'unspecified target';
+  if (targetType === 'trait') return traitName(targetId);
+  if (targetType === 'quirk') return quirkName(targetId);
+  return targetId;
+}
+
+function castProfileLine(genome: MouthGenome): string[] {
+  const profiles = genome.dynamics?.castProfiles || [];
+  return profiles.map((profile) => {
+    const traitParts = profile.assignments.flatMap((assignment) =>
+      assignment.traitIds.map(
+        (traitId) =>
+          assignment.axis.toUpperCase() +
+          '=' +
+          traitName(traitId) +
+          ' [' +
+          assignment.pressure.toUpperCase() +
+          ']',
+      ),
+    );
+    const quirkParts = profile.quirks
+      .filter((quirk) => quirk.enabled)
+      .map((quirk) => quirkName(quirk.quirkId));
+
+    return (
+      'CAST MOUTH ' +
+      mouthCastLabel(profile.role) +
+      ' (' +
+      profile.label +
+      '): ' +
+      [...traitParts, ...quirkParts].join('; ') +
+      '. Keep this mouth specific to that voice role unless a timeline infection/swap explicitly transfers it.'
+    );
+  });
+}
+
+function expressionLines(genome: MouthGenome): string[] {
+  return (genome.dynamics?.expressionRules || []).map((rule) => {
+    const target = dynamicTargetName(rule.targetType, rule.targetId);
+    const role = rule.castRole ? ' in ' + mouthCastLabel(rule.castRole) : '';
+    const trigger = rule.trigger ? '; trigger=' + rule.trigger : '';
+    const law =
+      rule.state === 'dominant'
+        ? 'express whenever eligible and override weaker competing expression'
+        : rule.state === 'recessive'
+          ? 'remain weak unless dominant competitors are absent, suppressed, or exhausted'
+          : rule.state === 'latent'
+            ? 'remain silent until a timeline event or explicit trigger activates it'
+            : 'remain off until the stated trigger becomes true';
+
+    return (
+      'EXPRESSION ' +
+      rule.state.toUpperCase() +
+      role +
+      ': ' +
+      target +
+      ' strength=' +
+      rule.strength +
+      '/100; ' +
+      law +
+      trigger +
+      '.'
+    );
+  });
+}
+
+function mutationTimelineLines(genome: MouthGenome): string[] {
+  return (genome.dynamics?.timeline || []).map((event) => {
+    const target = dynamicTargetName(event.targetType, event.targetId);
+    const sourceRole = event.sourceCastRole ? mouthCastLabel(event.sourceCastRole) : '';
+    const targetRole = event.targetCastRole ? mouthCastLabel(event.targetCastRole) : '';
+    const castClause =
+      event.action === 'infectCast'
+        ? ' from ' + (sourceRole || 'active donor voice') + ' into ' + targetRole
+        : event.action === 'swapCastMouth'
+          ? ' between ' + (sourceRole || 'source voice') + ' and ' + targetRole
+          : targetRole
+            ? ' in ' + targetRole
+            : '';
+    const time =
+      (event.sectionLabel ? event.sectionLabel + ' / ' : '') +
+      event.positionPercent +
+      '% of song';
+    const trigger = event.trigger ? '; condition=' + event.trigger : '';
+
+    return (
+      'TIMELINE @ ' +
+      time +
+      ': ' +
+      event.action +
+      castClause +
+      (event.targetId ? '; target=' + target : '') +
+      '; amount=' +
+      event.amount +
+      '/100' +
+      trigger +
+      '. This state change must remain in force until another event explicitly reverses or replaces it.'
+    );
+  });
+}
+
+function transductionLines(genome: MouthGenome): string[] {
+  return (genome.dynamics?.transductions || []).map((rule) => {
+    const role = rule.castRole ? ' for ' + mouthCastLabel(rule.castRole) : '';
+    const direction =
+      rule.direction === 'languageToMusic'
+        ? 'LANGUAGE → MUSIC'
+        : 'MUSIC → LANGUAGE';
+    return (
+      direction +
+      role +
+      ': ' +
+      rule.source +
+      ' → ' +
+      rule.target +
+      ' at ' +
+      rule.strength +
+      '/100. Mapping: ' +
+      rule.mapping +
+      (rule.trigger ? ' Trigger: ' + rule.trigger + '.' : '')
+    );
+  });
+}
+
+function dynamicLines(genome: MouthGenome): string[] {
+  return [
+    ...castProfileLine(genome),
+    ...expressionLines(genome),
+    ...mutationTimelineLines(genome),
+    ...transductionLines(genome),
+  ];
+}
+
 function compactText(genome: MouthGenome, mode: MouthSemanticMode): string {
   const assignments = genome.assignments
     .flatMap((assignment) =>
@@ -443,6 +580,12 @@ function compactText(genome: MouthGenome, mode: MouthSemanticMode): string {
       : semanticPolicy(genome, mode),
     assignments,
     quirks ? 'QUIRKS: ' + quirks : '',
+    dynamicLines(genome).length
+      ? 'DYNAMICS: cast=' + (genome.dynamics?.castProfiles.length || 0) +
+        '; expression=' + (genome.dynamics?.expressionRules.length || 0) +
+        '; timeline=' + (genome.dynamics?.timeline.length || 0) +
+        '; transduction=' + (genome.dynamics?.transductions.length || 0) + '.'
+      : '',
     'Controls: intelligibility=' +
       genome.intelligibility +
       '; stability=' +
@@ -509,6 +652,22 @@ function bracketedText(genome: MouthGenome, mode: MouthSemanticMode): string {
     lines.push('[' + line + ']');
   }
 
+  for (const line of castProfileLine(genome)) {
+    lines.push('[CAST GENETICS: ' + line + ']');
+  }
+
+  for (const line of expressionLines(genome)) {
+    lines.push('[CONDITIONAL PHONETICS: ' + line + ']');
+  }
+
+  for (const line of mutationTimelineLines(genome)) {
+    lines.push('[MUTATION TIMELINE: ' + line + ']');
+  }
+
+  for (const line of transductionLines(genome)) {
+    lines.push('[TRANSDUCTION: ' + line + ']');
+  }
+
   lines.push(
     '[ANTI-CARICATURE: transplant operational phonetic/morphological mechanisms only. Do not invent personality, ethnicity, intelligence, social class, or comedy from a donor language. Do not use fake eye-dialect as the main representation.]',
   );
@@ -554,6 +713,7 @@ function descriptiveText(genome: MouthGenome, mode: MouthSemanticMode): string {
     ' Build the vocal organism so ' +
     clauses.filter(Boolean).join('; ') +
     (quirkClauses.length ? '. Superimpose these bounded mutations: ' + quirkClauses.join('; ') : '') +
+    (dynamicLines(genome).length ? '. Dynamic behavior: ' + dynamicLines(genome).join(' ') : '') +
     '. Preserve separate jurisdictions and expose conflicts procedurally instead of averaging them into a generic accent.'
   );
 }
@@ -570,6 +730,12 @@ function styleDirectives(genome: MouthGenome, mode: MouthSemanticMode): string {
     '[MOUTH LAB STYLE PRIORITY: ' + (priorities.join(' > ') || 'none') + ']',
     '[MOUTH LAB SEMANTICS: ' + semanticPolicy(genome, mode) + ']',
     '[MOUTH LAB PERFORMANCE: preserve separate mouth jurisdictions; high/obsessive traits must remain audible across section changes; conflict rules create events rather than mush.]',
+    ...(genome.dynamics?.castProfiles.length
+      ? ['[CAST MOUTHS: ' + genome.dynamics.castProfiles.map((profile) => mouthCastLabel(profile.role) + '=' + profile.label).join(' | ') + ']']
+      : []),
+    ...(genome.dynamics?.transductions.length
+      ? ['[MOUTH TRANSDUCTION ACTIVE: language and music may drive one another only through the explicit mappings in LYRICS/CONTROL.]']
+      : []),
   ].join(' ');
 }
 
@@ -593,6 +759,10 @@ function lyricsDirectives(genome: MouthGenome, mode: MouthSemanticMode): string 
     ...pressureReinforcementLines(genome).map((line) => '[ENFORCEMENT: ' + line + ']'),
     ...interactionLines(genome).map((line) => '[NEGOTIATION: ' + line + ']'),
     ...scarLines(genome).map((line) => '[' + line + ']'),
+    ...castProfileLine(genome).map((line) => '[CAST GENETICS: ' + line + ']'),
+    ...expressionLines(genome).map((line) => '[CONDITIONAL PHONETICS: ' + line + ']'),
+    ...mutationTimelineLines(genome).map((line) => '[MUTATION TIMELINE: ' + line + ']'),
+    ...transductionLines(genome).map((line) => '[TRANSDUCTION: ' + line + ']'),
   ];
 
   return parts.join('\n');
@@ -630,6 +800,12 @@ export function compileMouthPrompt(
       mode +
       '; semantic mode=' +
       semanticMode +
+      '; cast mouths=' +
+      (genome.dynamics?.castProfiles.length || 0) +
+      '; timeline events=' +
+      (genome.dynamics?.timeline.length || 0) +
+      '; transductions=' +
+      (genome.dynamics?.transductions.length || 0) +
       '.',
     activeTraitIds: Array.from(
       new Set(genome.assignments.flatMap((assignment) => assignment.traitIds)),
