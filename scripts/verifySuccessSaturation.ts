@@ -67,7 +67,7 @@ for (let i = 0; i < 8; i += 1) {
     energy: 4,
     model: 'qa',
     style: 'style',
-    lyrics: 'lyrics',
+    lyrics: 'ontology system ontology system',
     caption: 'caption',
     charCounts: { style: 5, lyrics: 6, caption: 7 },
   });
@@ -88,6 +88,10 @@ const noveltySignals = getNoveltyPressureSignals(8);
 assert.ok(
   noveltySignals.some((line) => line.includes(hotGene) && line.includes('SUCCESS SATURATION')),
   'Cooling mechanism should be emitted as a generation novelty signal.'
+);
+assert.ok(
+  noveltySignals.some((line) => line.includes('SEMANTIC SELF-REFERENCE COOLDOWN') && line.includes('ontology')),
+  'Repeated architectural self-description should trigger semantic cooldown pressure.'
 );
 
 promoteBredMusicGenome(genome, {
