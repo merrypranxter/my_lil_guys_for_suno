@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { LittleGuy, SavedStack } from '../types';
 import { ArrowUp, ArrowDown, X, Trash2, Bookmark, Dices, Flame, Sparkles, FolderHeart, FlaskConical } from 'lucide-react';
-import { getStackChemistry, STACK_RECIPES } from '../lib/mindStacking';
+import { ACTIVE_GUY_MAX, getStackChemistry, STACK_RECIPES } from '../lib/mindStacking';
 
 interface StackPanelProps {
   stackGuys: LittleGuy[];
@@ -58,7 +58,7 @@ export function StackPanel({
             </h2>
           </div>
           <p className="text-[11px] font-mono text-[#7d8ba1]">
-            Order matters. Primary guy establishes ontology; secondary guys constrain and mutate.
+            Order matters. Position 1 is the protected lead. If this pool exceeds the activation budget, each generation chooses a diverse subset instead of installing everybody.
           </p>
         </div>
 
@@ -116,6 +116,17 @@ export function StackPanel({
           )}
         </div>
       </div>
+
+      {stackGuys.length > ACTIVE_GUY_MAX && (
+        <div className="rounded-lg border border-[#00f0ff]/35 bg-[#081820] px-3 py-2.5 font-mono">
+          <div className="text-[11px] font-bold text-[#7ff7ff]">
+            ACTIVATION BUDGET: {ACTIVE_GUY_MAX} / {stackGuys.length} MINDS PER RUN
+          </div>
+          <div className="mt-1 text-[10px] leading-relaxed text-[#7d8ba1]">
+            Nothing was deleted. This is now a candidate pool. The lead stays installed; support, counterforce, and wildcard minds are selected for family and jurisdiction distance on each generation.
+          </div>
+        </div>
+      )}
 
       {showRecipes && (
         <div className="p-3 bg-[#0a0c12] border border-[#40203d] rounded-lg space-y-2">
