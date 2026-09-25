@@ -60,6 +60,9 @@ jobs:
       - name: Mouth Lab quirk/specimen regression smoke
         run: npm run verify:mouth-quirks
 
+      - name: Mouth Lab prompt compiler regression smoke
+        run: npm run verify:mouth-compiler
+
       - name: Build
         run: npm run build
 
