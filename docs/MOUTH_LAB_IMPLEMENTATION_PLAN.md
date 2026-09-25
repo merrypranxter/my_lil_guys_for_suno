@@ -1,6 +1,6 @@
 # Mouth Lab — implementation plan
 
-Status: JOB 4 PROMPT COMPILER IMPLEMENTED
+Status: JOB 5 MOUTH LAB UI IMPLEMENTED
 
 Mouth Lab turns language profiles into transferable vocal machinery.
 
@@ -83,7 +83,7 @@ Canonical acceptance specimen:
 
 > intelligible English while every eligible R receives an absurdly committed trill.
 
-### Job 4 — PROMPT COMPILER — IMPLEMENTED
+### Job 4 — PROMPT COMPILER — COMPLETE
 
 Deliver:
 
@@ -94,7 +94,7 @@ Deliver:
 - English Meaning / Alien Mouth mode;
 - GenerationRequest integration while preserving old requests.
 
-### Job 5 — MOUTH LAB UI
+### Job 5 — MOUTH LAB UI — IMPLEMENTED
 
 Deliver:
 

@@ -1,4 +1,6 @@
 import { ArchivedRun, CompositionFavorite, CompositionPreset, GenomeFitnessRecord, GenomePromotionReason, MusicBredGenome, MusicControls, MusicFingerprint, MusicStackItem, PetriDishExperiment, RealityChaosLevel, RecentCompositionBuild, SavedStack } from '../types';
+import type { MouthGenome, MouthPromptMode, MouthSemanticMode } from '../mouthLab/types';
+import { normalizeMouthGenomeForGeneration } from '../mouthLab/promptCompiler';
 import { fingerprintToLine } from '../data/musicTaxonomy';
 import { getCompositionEngine, normalizeCompositionEngineIds } from '../data/compositionEngines';
 import { DEFAULT_MUSIC_CONTROLS, compileMusicStack, getMusicMechanism, musicGenomePhenotypeSignature, normalizeMusicControls, normalizeMusicGenome, normalizeMusicStack, summarizeMusicStack } from '../data/musicSeedSystem';
@@ -22,6 +24,9 @@ const STORAGE_KEYS = {
   ENERGY: 'lgm_energy_v1',
   LAST_SEED: 'lgm_last_seed_v1',
   RUN_ARCHIVE: 'lgm_run_archive_v1',
+  LAST_MOUTH_GENOME: 'lgm_last_mouth_genome_v1',
+  MOUTH_PROMPT_MODE: 'lgm_mouth_prompt_mode_v1',
+  MOUTH_SEMANTIC_MODE: 'lgm_mouth_semantic_mode_v1',
 };
 
 const MAX_ARCHIVE_RUNS = 150;
@@ -39,6 +44,15 @@ export function getSavedStacks(): SavedStack[] {
       compositionEngineIds: Array.isArray(stack?.compositionEngineIds) ? stack.compositionEngineIds : [],
       musicStack: normalizeMusicStack(stack?.musicStack),
       musicControls: normalizeMusicControls(stack?.musicControls),
+      mouthGenome: normalizeMouthGenomeForGeneration(stack?.mouthGenome),
+      mouthPromptMode:
+        stack?.mouthPromptMode === 'compact' || stack?.mouthPromptMode === 'descriptive'
+          ? stack.mouthPromptMode
+          : 'bracketed',
+      mouthSemanticMode:
+        stack?.mouthSemanticMode === 'englishMeaningAlienMouth'
+          ? 'englishMeaningAlienMouth'
+          : 'inherit',
     }));
   } catch (e) {
     console.error('Failed to load saved stacks from localStorage', e);
@@ -53,7 +67,10 @@ export function saveStackToFavorites(
   realityChaos: RealityChaosLevel = 2,
   compositionEngineIds: string[] = [],
   musicStack: MusicStackItem[] = [],
-  musicControls: MusicControls = DEFAULT_MUSIC_CONTROLS
+  musicControls: MusicControls = DEFAULT_MUSIC_CONTROLS,
+  mouthGenome?: MouthGenome,
+  mouthPromptMode: MouthPromptMode = 'bracketed',
+  mouthSemanticMode: MouthSemanticMode = 'inherit'
 ): SavedStack[] {
   try {
     const current = getSavedStacks();
@@ -66,6 +83,9 @@ export function saveStackToFavorites(
       musicStack: normalizeMusicStack(musicStack),
       musicControls: normalizeMusicControls(musicControls),
       realityChaos,
+      mouthGenome: normalizeMouthGenomeForGeneration(mouthGenome),
+      mouthPromptMode,
+      mouthSemanticMode,
       createdAt: Date.now(),
     };
     const updated = [newStack, ...current];
@@ -158,6 +178,68 @@ export function getLastMusicStack(): MusicStackItem[] {
 export function setLastMusicStack(items: MusicStackItem[]): void {
   try {
     localStorage.setItem(STORAGE_KEYS.LAST_MUSIC_STACK, JSON.stringify(normalizeMusicStack(items)));
+  } catch {
+    // ignore
+  }
+}
+
+
+export function getLastMouthGenome(): MouthGenome | undefined {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.LAST_MOUTH_GENOME);
+    return raw ? normalizeMouthGenomeForGeneration(JSON.parse(raw)) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export function setLastMouthGenome(genome?: MouthGenome): void {
+  try {
+    if (!genome) {
+      localStorage.removeItem(STORAGE_KEYS.LAST_MOUTH_GENOME);
+      return;
+    }
+    const normalized = normalizeMouthGenomeForGeneration(genome);
+    if (!normalized) {
+      localStorage.removeItem(STORAGE_KEYS.LAST_MOUTH_GENOME);
+      return;
+    }
+    localStorage.setItem(STORAGE_KEYS.LAST_MOUTH_GENOME, JSON.stringify(normalized));
+  } catch {
+    // ignore
+  }
+}
+
+export function getSavedMouthPromptMode(): MouthPromptMode {
+  try {
+    const value = localStorage.getItem(STORAGE_KEYS.MOUTH_PROMPT_MODE);
+    return value === 'compact' || value === 'descriptive' ? value : 'bracketed';
+  } catch {
+    return 'bracketed';
+  }
+}
+
+export function setSavedMouthPromptMode(mode: MouthPromptMode): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.MOUTH_PROMPT_MODE, mode);
+  } catch {
+    // ignore
+  }
+}
+
+export function getSavedMouthSemanticMode(): MouthSemanticMode {
+  try {
+    return localStorage.getItem(STORAGE_KEYS.MOUTH_SEMANTIC_MODE) === 'englishMeaningAlienMouth'
+      ? 'englishMeaningAlienMouth'
+      : 'inherit';
+  } catch {
+    return 'inherit';
+  }
+}
+
+export function setSavedMouthSemanticMode(mode: MouthSemanticMode): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.MOUTH_SEMANTIC_MODE, mode);
   } catch {
     // ignore
   }
@@ -691,6 +773,15 @@ export function getRunArchive(): ArchivedRun[] {
       compositionEngineIds: Array.isArray(run?.compositionEngineIds) ? run.compositionEngineIds : [],
       musicStack: normalizeMusicStack(run?.musicStack),
       musicControls: normalizeMusicControls(run?.musicControls),
+      mouthGenome: normalizeMouthGenomeForGeneration(run?.mouthGenome),
+      mouthPromptMode:
+        run?.mouthPromptMode === 'compact' || run?.mouthPromptMode === 'descriptive'
+          ? run.mouthPromptMode
+          : 'bracketed',
+      mouthSemanticMode:
+        run?.mouthSemanticMode === 'englishMeaningAlienMouth'
+          ? 'englishMeaningAlienMouth'
+          : 'inherit',
       feedbackTags: Array.isArray(run?.feedbackTags) ? run.feedbackTags.filter((tag: unknown) => typeof tag === 'string') : [],
       likedMechanismIds: validMechanismIds(run?.likedMechanismIds),
       dislikedMechanismIds: validMechanismIds(run?.dislikedMechanismIds),
@@ -915,6 +1006,11 @@ export function runToMarkdown(run: ArchivedRun): string {
     '**Reality chaos:** ' + (run.realityChaos || 2),
     '**Composition engines:** ' + (run.compositionEngineIds.length ? run.compositionEngineIds.join(' → ') : '(none)'),
     '**Music seed stack:** ' + summarizeMusicStack(run.musicStack || [], run.musicControls),
+    '**Mouth Lab genome:** ' + (run.mouthGenome
+      ? run.mouthGenome.name + ' [' + run.mouthGenome.parentDonorIds.join(' × ') + ']'
+      : '(none)'),
+    '**Mouth compiler mode:** ' + (run.mouthPromptMode || 'bracketed'),
+    '**Mouth semantic mode:** ' + (run.mouthSemanticMode || 'inherit'),
     '**Seed:** ' + (run.seed || '(none)'),
     '**Energy:** ' + run.energy,
     '**Model:** ' + run.model,

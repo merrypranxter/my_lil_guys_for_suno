@@ -21,7 +21,8 @@
     "verify:mouth-lab": "tsx scripts/verifyMouthLab.ts",
     "verify:mouth-breeding": "tsx scripts/verifyMouthBreeding.ts",
     "verify:mouth-quirks": "tsx scripts/verifyMouthQuirks.ts",
-    "verify:mouth-compiler": "tsx scripts/verifyMouthCompiler.ts"
+    "verify:mouth-compiler": "tsx scripts/verifyMouthCompiler.ts",
+    "verify:mouth-ui": "tsx scripts/verifyMouthUi.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
