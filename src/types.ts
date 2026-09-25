@@ -254,6 +254,63 @@ export interface MusicBredGenome {
   lineage: MusicGenomeLineage;
 }
 
+export interface PetriDishParentSnapshot {
+  ref: MusicGenomeParentRef;
+  mechanismIds: string[];
+  controls: MusicControls;
+}
+
+export interface PetriDishChallenge {
+  guyIds: string[];
+  realityEngineIds: string[];
+  compositionEngineIds: string[];
+  realityChaos: RealityChaosLevel;
+  seed: string;
+  energy: number;
+  baseMusicStack: MusicStackItem[];
+  baseMusicControls: MusicControls;
+  recentFingerprints: MusicFingerprint[];
+  forcedFingerprint: MusicFingerprint;
+  likedSignals: string[];
+}
+
+export interface PetriDishResult {
+  mode: 'local' | 'ai';
+  style: string;
+  lyrics: string;
+  caption: string;
+  fingerprint?: MusicFingerprint;
+  model: string;
+  charCounts: {
+    style: number;
+    lyrics: number;
+    caption: number;
+  };
+  notice?: string;
+  error?: string;
+  createdAt: number;
+}
+
+export interface PetriDishSibling {
+  id: string;
+  genome: MusicBredGenome;
+  breedingSeed: string;
+  selected: boolean;
+  result?: PetriDishResult;
+}
+
+export interface PetriDishExperiment {
+  id: string;
+  name: string;
+  createdAt: number;
+  updatedAt: number;
+  familySeed: string;
+  parentA: PetriDishParentSnapshot;
+  parentB: PetriDishParentSnapshot;
+  challenge: PetriDishChallenge;
+  siblings: PetriDishSibling[];
+}
+
 export type MusicStackItemKind = 'recipe' | 'mechanism' | 'genome';
 
 export interface MusicStackItem {
@@ -276,6 +333,7 @@ export interface GenerationRequest {
   seed?: string;
   energy: number;
   recentFingerprints?: MusicFingerprint[];
+  forcedFingerprint?: MusicFingerprint;
   likedSignals?: string[];
 }
 

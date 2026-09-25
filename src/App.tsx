@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { LITTLE_GUYS } from './data/littleGuys';
-import { ArchivedRun, LittleGuy, BoxType, SavedStack, GenerationResponse, MusicControls, MusicStackItem, RealityChaosLevel } from './types';
+import { ArchivedRun, LittleGuy, BoxType, SavedStack, GenerationResponse, MusicBredGenome, MusicControls, MusicStackItem, PetriDishExperiment, PetriDishSibling, RealityChaosLevel } from './types';
 import { generateProceduralTrack, clampAndPad, TARGETS } from './lib/proceduralGenerator';
 import { buildSmartStack, resolveRecipe } from './lib/mindStacking';
 import { getMindMetadata } from './data/mindMetadata';
@@ -11,6 +11,9 @@ import { ControlsPanel } from './components/ControlsPanel';
 import { RealityEnginePanel } from './components/RealityEnginePanel';
 import { CompositionLabPanel } from './components/CompositionLabPanel';
 import { MusicSeedLabPanel } from './components/MusicSeedLabPanel';
+import { PetriDishPanel } from './components/PetriDishPanel';
+import { genomeToStackItem } from './lib/musicBreeding';
+import { blendSiblingControls, buildSiblingMusicStack } from './lib/petriDish';
 import { MUSIC_FEEDBACK_TAGS } from './data/musicSeedSystem';
 import { OutputBox } from './components/OutputBox';
 import {
@@ -208,6 +211,43 @@ export default function App() {
 
   const handleDeleteSavedStack = (id: string) => {
     setSavedStacks(deleteSavedStack(id));
+  };
+
+
+  const handleOpenPetriSibling = (experiment: PetriDishExperiment, sibling: PetriDishSibling) => {
+    const challenge = experiment.challenge;
+    setStackGuyIds([...challenge.guyIds]);
+    setRealityEngineIds([...challenge.realityEngineIds]);
+    setCompositionEngineIds([...challenge.compositionEngineIds]);
+    setRealityChaos(challenge.realityChaos);
+    handleSeedChange(challenge.seed);
+    handleEnergyChange(challenge.energy);
+    setMusicStack(buildSiblingMusicStack(challenge.baseMusicStack, sibling.genome));
+    setMusicControls(blendSiblingControls(challenge.baseMusicControls, sibling.genome.controls));
+
+    if (sibling.result && !sibling.result.error) {
+      setOutputs({
+        style: sibling.result.style,
+        lyrics: sibling.result.lyrics,
+        caption: sibling.result.caption,
+      });
+      setCurrentRun(null);
+      setNoticeMessage(
+        'Loaded Petri Dish sibling ' + sibling.genome.name + ' and restored the frozen challenge. The displayed dish result is a preview until you generate/archive it in the main lab.'
+      );
+    } else {
+      setNoticeMessage(
+        'Loaded Petri Dish sibling ' + sibling.genome.name + ' and restored the frozen challenge.'
+      );
+    }
+    setErrorMessage(null);
+  };
+
+  const handleStackPetriGenome = (genome: MusicBredGenome) => {
+    setMusicStack((current) => [...current, genomeToStackItem(genome)]);
+    setMusicControls((current) => blendSiblingControls(current, genome.controls));
+    setNoticeMessage('Stacked bred genome ' + genome.name + ' into the main Music Seed Lab.');
+    setErrorMessage(null);
   };
 
   const archiveGeneration = (data: GenerationResponse, effectiveModel: string) => {
@@ -580,6 +620,19 @@ export default function App() {
           controls={musicControls}
           onControlsChange={setMusicControls}
           preferenceWeights={getLikedMusicMechanismWeights()}
+        />
+
+        <PetriDishPanel
+          guyIds={stackGuyIds}
+          realityEngineIds={realityEngineIds}
+          compositionEngineIds={compositionEngineIds}
+          realityChaos={realityChaos}
+          seed={seed}
+          energy={energy}
+          musicStack={musicStack}
+          musicControls={musicControls}
+          onOpenSibling={handleOpenPetriSibling}
+          onStackSibling={handleStackPetriGenome}
         />
 
         <CompositionLabPanel

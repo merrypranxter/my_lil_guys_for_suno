@@ -1,7 +1,8 @@
-import { ArchivedRun, CompositionFavorite, CompositionPreset, MusicBredGenome, MusicControls, MusicFingerprint, MusicStackItem, RealityChaosLevel, RecentCompositionBuild, SavedStack } from '../types';
+import { ArchivedRun, CompositionFavorite, CompositionPreset, MusicBredGenome, MusicControls, MusicFingerprint, MusicStackItem, PetriDishExperiment, RealityChaosLevel, RecentCompositionBuild, SavedStack } from '../types';
 import { fingerprintToLine } from '../data/musicTaxonomy';
 import { getCompositionEngine, normalizeCompositionEngineIds } from '../data/compositionEngines';
 import { DEFAULT_MUSIC_CONTROLS, compileMusicStack, normalizeMusicControls, normalizeMusicGenome, normalizeMusicStack, summarizeMusicStack } from '../data/musicSeedSystem';
+import { normalizePetriDishExperiment } from './petriDish';
 
 const STORAGE_KEYS = {
   SAVED_STACKS: 'lgm_saved_stacks_v1',
@@ -11,6 +12,7 @@ const STORAGE_KEYS = {
   LAST_MUSIC_STACK: 'lgm_last_music_stack_v1',
   MUSIC_CONTROLS: 'lgm_music_controls_v1',
   BRED_MUSIC_GENOMES: 'lgm_bred_music_genomes_v1',
+  PETRI_DISHES: 'lgm_petri_dishes_v1',
   LOCKED_COMPOSITION_ENGINES: 'lgm_locked_composition_engines_v1',
   COMPOSITION_FAVORITES: 'lgm_composition_favorites_v1',
   COMPOSITION_PRESETS: 'lgm_composition_presets_v1',
@@ -218,6 +220,57 @@ export function saveBredMusicGenome(genome: MusicBredGenome): MusicBredGenome[] 
 
 export function deleteBredMusicGenome(id: string): MusicBredGenome[] {
   return writeBredMusicGenomes(getBredMusicGenomes().filter((item) => item.id !== id));
+}
+
+
+export function getPetriDishes(): PetriDishExperiment[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.PETRI_DISHES);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((item) => normalizePetriDishExperiment(item))
+      .filter((item): item is PetriDishExperiment => Boolean(item))
+      .sort((a, b) => b.updatedAt - a.updatedAt)
+      .slice(0, 24);
+  } catch {
+    return [];
+  }
+}
+
+function writePetriDishes(dishes: PetriDishExperiment[]): PetriDishExperiment[] {
+  const normalized = dishes
+    .map((item) => normalizePetriDishExperiment(item))
+    .filter((item): item is PetriDishExperiment => Boolean(item));
+  const deduped = normalized
+    .filter((item, index, all) => all.findIndex((candidate) => candidate.id === item.id) === index)
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .slice(0, 24);
+  try {
+    localStorage.setItem(STORAGE_KEYS.PETRI_DISHES, JSON.stringify(deduped));
+  } catch (e) {
+    console.warn('Petri Dish storage hit browser limits; keeping newest experiments only.', e);
+    try {
+      const reduced = deduped.slice(0, 8);
+      localStorage.setItem(STORAGE_KEYS.PETRI_DISHES, JSON.stringify(reduced));
+      return reduced;
+    } catch {
+      return getPetriDishes();
+    }
+  }
+  return deduped;
+}
+
+export function savePetriDish(experiment: PetriDishExperiment): PetriDishExperiment[] {
+  const normalized = normalizePetriDishExperiment(experiment);
+  if (!normalized) return getPetriDishes();
+  const current = getPetriDishes().filter((item) => item.id !== normalized.id);
+  return writePetriDishes([normalized, ...current]);
+}
+
+export function deletePetriDish(id: string): PetriDishExperiment[] {
+  return writePetriDishes(getPetriDishes().filter((item) => item.id !== id));
 }
 
 

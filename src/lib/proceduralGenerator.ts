@@ -16,6 +16,7 @@ export interface ProceduralTrackParams {
   seed?: string;
   energy: number;
   recentFingerprints?: MusicFingerprint[];
+  forcedFingerprint?: MusicFingerprint;
 }
 
 export interface ProceduralTrackResult {
@@ -102,6 +103,7 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
     seed = '',
     energy = 3,
     recentFingerprints = [],
+    forcedFingerprint,
   } = params;
 
   const selectedGuys = guyIds
@@ -112,7 +114,7 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
   const primary = guys[0];
   const secondaries = guys.slice(1);
   const subject = seed && seed.trim() ? seed.trim() : primary.name;
-  const fingerprint = chooseDiverseFingerprint(recentFingerprints);
+  const fingerprint = forcedFingerprint || chooseDiverseFingerprint(recentFingerprints);
   const tempo = tempoForEnergy(energy, fingerprint.rhythm);
 
   const realityEngines = getRealityEngines(realityEngineIds);

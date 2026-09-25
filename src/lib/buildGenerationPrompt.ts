@@ -17,11 +17,12 @@ export interface GenerationPromptParams {
   seed?: string;
   energy: number;
   recentFingerprints?: MusicFingerprint[];
+  forcedFingerprint?: MusicFingerprint;
   likedSignals?: string[];
 }
 
 export function buildMasterPrompt(params: GenerationPromptParams): { systemInstruction: string; userPrompt: string } {
-  const { guyIds, realityEngineIds = [], compositionEngineIds = [], musicStack = [], musicControls, realityChaos = 2, seed, energy, recentFingerprints = [], likedSignals = [] } = params;
+  const { guyIds, realityEngineIds = [], compositionEngineIds = [], musicStack = [], musicControls, realityChaos = 2, seed, energy, recentFingerprints = [], forcedFingerprint, likedSignals = [] } = params;
 
   const selectedGuys: LittleGuy[] = guyIds
     .map((id) => LITTLE_GUYS.find((g) => g.id === id))
@@ -272,6 +273,14 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
     ? recentFingerprints.slice(0, 12).map((f, i) => (i + 1) + '. ' + fingerprintToLine(f)).join('\n')
     : 'No recent fingerprints recorded yet.';
 
+  const frozenFingerprintBlock = forcedFingerprint
+    ? [
+        'CONTROLLED-EXPERIMENT FINGERPRINT IS FROZEN.',
+        fingerprintToLine(forcedFingerprint),
+        'Do not choose a different genre family, rhythm ancestry, vocal architecture, production ancestry, or other fingerprint field. The active Music Seed genome/mechanisms are the experimental variable; the musical fingerprint is environmental control.',
+      ].join('\n')
+    : 'NONE — choose a fresh fingerprint normally using the anti-monoculture rules.';
+
   const likedBlock = likedSignals.length
     ? likedSignals.slice(0, 10).join('\n')
     : 'No explicit positive feedback recorded yet.';
@@ -283,7 +292,7 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
     '2. STACK NEGOTIATION IS MANDATORY. The primary guy establishes the world; secondary guys exert pressure only through their jurisdictions.\n' +
     '3. STACK CHEMISTRY IS OPERATIONAL. Mind family and chaos ratings are not decoration: low-chaos minds should stabilize, measure, narrate, or regulate; high-chaos minds should create real structural discontinuity. Do not let five minds all perform the same kind of weirdness. Preserve distinct jobs and productive friction.\n' +
     '4. MUSICAL TRADITIONS ARE RULE SYSTEMS, NOT LABELS. Harmony, melody, rhythm, timbre, vocal behavior, performance attitude, and production must receive separate jurisdiction. Do not simply write genre A + genre B + genre C.\n' +
-    '5. ANTI-MONOCULTURE: recent musical fingerprints are evidence of territory already explored. Unless the user seed explicitly asks for repetition, move to genuinely different musical ancestry rather than swapping synonyms. If the last several runs were electronic, industrial, synth-heavy, glitchy, or mechanically clinical, preferentially move toward acoustic, vocal, ensemble, folk, dance-band, rock, theatrical, orchestral, communal, or other contrasting systems. Industrial/electronic is one option among many, never the default.\n' +
+    '5. ANTI-MONOCULTURE: recent musical fingerprints are evidence of territory already explored. Unless a CONTROLLED-EXPERIMENT FINGERPRINT is explicitly frozen, move to genuinely different musical ancestry rather than swapping synonyms. If a frozen fingerprint is present, DO NOT diversify away from it: keep every fingerprint field fixed so the Music Seed genome remains the principal experimental variable.\n' +
     '6. POSITIVE FEEDBACK IS A SOFT PREFERENCE SIGNAL. Starred runs, Composition Lab engine favorites, and user notes indicate mechanisms worth revisiting, but do not clone a past song or force a favorite engine into every generation. Infer what property was liked, then express that property through new material.\n' +
     '7. REALITY ENGINES ARE A SEPARATE LAYER FROM MINDS. Minds govern generative cognition. Reality Engines govern format, role, world, species/origin, venue, headspace, altered-state phenomenology, or tone. Never collapse these layers into one adjective cloud.\n' +
     '8. REALITY ENGINE JURISDICTIONS ARE MANDATORY. A selected engine must perform work through its own jurisdiction. FORMAT changes sequence or event mechanics; ROLE changes obligations and diction; WORLD changes normal assumptions; SPECIES changes embodiment/reference frame; VENUE changes local constraints; HEADSPACE changes attention/salience/tempo; ALTERED STATE changes identity/time/embodiment/perception/reality-testing mechanics; TONE colors delivery without replacing mechanism.\n' +
@@ -324,6 +333,7 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
     'REALITY ENGINE NEGOTIATION RULE:\n' +
     'Treat each selected engine as an operational law in its own jurisdiction. Do not merely name it or decorate lyrics with its vocabulary. If the format is a game show, the lyric architecture must actually behave like one. If the headspace is overloaded, attention and thread management must actually change. If an altered-state engine is active, use its defined phenomenological mechanism rather than generic drug imagery. Preserve productive incompatibility between layers. Use the collision map above to decide WHERE the song generates events: the high-friction seam should repeatedly force one jurisdiction to solve a problem created by another.\n\n' +
     'ENERGY PARAMETER:\n' + (energyLabels[energy] || energyLabels[3]) + '\n\n' +
+    'CONTROLLED-EXPERIMENT / FROZEN MUSICAL FINGERPRINT:\n' + frozenFingerprintBlock + '\n\n' +
     'OPTIONAL SEED / SUBJECT / EXPERIMENT:\n' +
     (seed && seed.trim() ? '"' + seed.trim() + '"' : 'NONE PROVIDED — derive subject organically from the primary Little Guy ontology') + '\n\n' +
     'RECENT TERRITORY — AVOID ACCIDENTAL REPETITION:\n' + recentBlock + '\n\n' +
@@ -339,7 +349,10 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
     '[ANCHOR / INVARIANT] one recognizable element preserved while the rest mutates.\n' +
     'Invent 5–10 operators that transform behavior: hold A fixed while B migrates; compress X while stretching Y; make A behave like B without becoming B; preserve X while destabilizing everything around it; force incompatible temporal scales to coexist; return to the anchor in a more mutated form.\n' +
     'If the Music Seed Stack is active, translate its mechanisms into concrete STYLE behavior here. Coupling must specify shared pulse/grouping logic; communal infection must specify recruitment; stemminess must specify separation/exposure; event-driven form must specify causal triggers.\n' +
-    'Do not begin from an industrial/electronic baseline. Choose musical ancestry deliberately and vary it from recent runs. Music should stay active and engaging unless the seed explicitly demands otherwise. No artist names.\n\n' +
+    (forcedFingerprint
+      ? 'The musical ancestry above is frozen for a controlled comparison. Do not replace it with a fresher genre or production family; express the selected genome inside that fixed fingerprint. '
+      : 'Do not begin from an industrial/electronic baseline. Choose musical ancestry deliberately and vary it from recent runs. ') +
+    'Music should stay active and engaging unless the seed explicitly demands otherwise. No artist names.\n\n' +
     'BOX 2 — LYRICS / CONTROL\n' +
     'TARGET: 4900–4999 characters. Every non-sung cue, instrumental instruction, section name, sound effect, and tempo change goes in [SQUARE BRACKETS]. Lyrics may be dry explanation, procedural narration, factual description of what the song is doing, absurdly serious administrative language, phonetic nonsense, or combinations. Avoid neat default pop rhyme. Follow FORM → DESTABILIZE → FRACTURE → COLLAPSE → ANCHOR RETURNS → REFORM STRANGER.\n' +
     'VOCALS ARE A MUSICAL SYSTEM. Choose among many possibilities: scat, nonsense vocables, yodeling, melisma, hocketing, call-and-response, polyphony, dry speech-song, patter, recitative, falsetto flips, whistle register, nasal drones, overtone-rich sustain, ululation, choral writing, rhythmic consonants. If phonetic nonsense is used, hard consonants act as percussion, nasals as resonance, open vowels as sustained melody, rolled consonants as acceleration, dense syllables as compression, long vowels as stretched time, heavy syllables as bass weight.\n' +
@@ -347,7 +360,9 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
     'BOX 3 — CAPTION\n' +
     'TARGET: 490–499 characters. Compact publishable explanation of what the song does, which mechanisms govern it, and why the structure is strange. Take the mechanism seriously. Do not mention prompts or system instructions.\n\n' +
     'FINGERPRINT METADATA\n' +
-    'Return a concise factual description of the actual musical choices you used. Each fingerprint field should be a short phrase, not a paragraph.\n\n' +
+    (forcedFingerprint
+      ? 'Return the frozen fingerprint fields exactly as specified above; do not mutate the metadata between experimental siblings.\n\n'
+      : 'Return a concise factual description of the actual musical choices you used. Each fingerprint field should be a short phrase, not a paragraph.\n\n') +
     'Return ONLY valid JSON with style, lyrics, caption, fingerprint.';
 
   return { systemInstruction, userPrompt };
