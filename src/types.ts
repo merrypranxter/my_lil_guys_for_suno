@@ -355,6 +355,7 @@ export interface GenerationRequest {
   recentFingerprints?: MusicFingerprint[];
   forcedFingerprint?: MusicFingerprint;
   likedSignals?: string[];
+  noveltySignals?: string[];
 }
 
 export interface GenerationResponse {

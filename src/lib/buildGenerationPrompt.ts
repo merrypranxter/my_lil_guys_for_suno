@@ -8,6 +8,7 @@ import { BoxType, CompositionEngine, LittleGuy, MusicControls, MusicFingerprint,
 import { REALITY_CHAOS_LABELS, analyzeRealityChemistry } from './realityChemistry';
 import { assignActivationRoles } from './mindStacking';
 import { renderLayerJurisdictionMatrix, renderSeedSovereigntyContract } from './generationJurisdictions';
+import { renderFingerprintNoveltyPressure } from './noveltyPressure';
 
 export interface GenerationPromptParams {
   guyIds: string[];
@@ -21,10 +22,11 @@ export interface GenerationPromptParams {
   recentFingerprints?: MusicFingerprint[];
   forcedFingerprint?: MusicFingerprint;
   likedSignals?: string[];
+  noveltySignals?: string[];
 }
 
 export function buildMasterPrompt(params: GenerationPromptParams): { systemInstruction: string; userPrompt: string } {
-  const { guyIds, realityEngineIds = [], compositionEngineIds = [], musicStack = [], musicControls, realityChaos = 2, seed, energy, recentFingerprints = [], forcedFingerprint, likedSignals = [] } = params;
+  const { guyIds, realityEngineIds = [], compositionEngineIds = [], musicStack = [], musicControls, realityChaos = 2, seed, energy, recentFingerprints = [], forcedFingerprint, likedSignals = [], noveltySignals = [] } = params;
 
   const selectedGuys: LittleGuy[] = guyIds
     .map((id) => LITTLE_GUYS.find((g) => g.id === id))
@@ -288,6 +290,15 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
     ? recentFingerprints.slice(0, 12).map((f, i) => (i + 1) + '. ' + fingerprintToLine(f)).join('\n')
     : 'No recent fingerprints recorded yet.';
 
+  const noveltyBlock = [
+    renderFingerprintNoveltyPressure(recentFingerprints, forcedFingerprint),
+    ...(forcedFingerprint
+      ? ['Mechanism-level cooldown signals are observational only during a frozen comparison. Do not mutate the controlled environment to satisfy novelty pressure.']
+      : noveltySignals.length
+      ? noveltySignals.slice(0, 10)
+      : ['No mechanism-level success saturation is currently high enough to trigger a cooldown.']),
+  ].join('\n');
+
   const frozenFingerprintBlock = forcedFingerprint
     ? [
         'CONTROLLED-EXPERIMENT FINGERPRINT IS FROZEN.',
@@ -307,8 +318,8 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
     '2. STACK NEGOTIATION IS MANDATORY. The LEAD establishes the governing cognitive premise around the sovereign seed; SUPPORT minds propagate it, the COUNTERFORCE stresses it from a distinct jurisdiction, and the WILDCARD may create one bounded discontinuity. Minds own cognitive transformation, not subject replacement, scenario ownership, or musical ancestry.\n' +
     '3. STACK CHEMISTRY IS OPERATIONAL. Mind family and chaos ratings are not decoration: low-chaos minds should stabilize, measure, narrate, or regulate; high-chaos minds should create real structural discontinuity. Active minds have an explicit job budget. Do not make every mind perform the same mutation or give each one a cameo line. Preserve distinct causal jobs and productive friction.\n' +
     '4. MUSICAL TRADITIONS ARE RULE SYSTEMS, NOT LABELS. Harmony, melody, rhythm, timbre, vocal behavior, performance attitude, and production must receive separate jurisdiction. Do not simply write genre A + genre B + genre C.\n' +
-    '5. ANTI-MONOCULTURE: recent musical fingerprints are evidence of territory already explored. Unless a CONTROLLED-EXPERIMENT FINGERPRINT is explicitly frozen, move to genuinely different musical ancestry rather than swapping synonyms. If a frozen fingerprint is present, DO NOT diversify away from it: keep every fingerprint field fixed so the Music Seed genome remains the principal experimental variable.\n' +
-    '6. POSITIVE FEEDBACK IS A SOFT PREFERENCE SIGNAL. Starred runs, Composition Lab engine favorites, and user notes indicate mechanisms worth revisiting, but do not clone a past song or force a favorite engine into every generation. Infer what property was liked, then express that property through new material.\n' +
+    '5. ANTI-MONOCULTURE / SUCCESS SATURATION: recent musical fingerprints and mechanism exposure are evidence of territory already explored. A successful trait is not banned or forgotten; repeated recent use temporarily reduces its selection priority. Unless a CONTROLLED-EXPERIMENT FINGERPRINT is explicitly frozen, prefer genuinely different load-bearing musical ancestry rather than synonym swaps. If an overexposed trait is explicitly selected now, KEEP IT but mutate its partners and at least two surrounding dimensions. If a frozen fingerprint is present, suspend novelty pressure and keep every fingerprint field fixed.\n' +
+    '6. POSITIVE FEEDBACK AND RECENCY ARE DIFFERENT SIGNALS. Starred runs and trait fitness record durable preference; success saturation is temporary ecological pressure. A beloved mechanism may cool down for several runs without losing its positive fitness. Do not convert repeated success into permanent monoculture.\n' +
     '7. REALITY ENGINES ARE A SEPARATE LAYER FROM MINDS. Minds govern generative cognition. Reality Engines govern format, role, world, species/origin, venue, headspace, altered-state phenomenology, or tone. Never collapse these layers into one adjective cloud.\n' +
     '8. REALITY ENGINE JURISDICTIONS ARE MANDATORY. A selected engine must perform work through its own jurisdiction. FORMAT changes sequence or event mechanics; ROLE changes obligations and diction; WORLD changes normal assumptions; SPECIES changes embodiment/reference frame; VENUE changes local constraints; HEADSPACE changes attention/salience/tempo; ALTERED STATE changes identity/time/embodiment/perception/reality-testing mechanics; TONE colors delivery without replacing mechanism.\n' +
     '9. COLLISIONS MUST NEGOTIATE, NOT BLEND. When two active layers conflict, generate from the seam and preserve both constraints rather than averaging them into generic surrealism.\n' +
@@ -354,7 +365,8 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
     'SOVEREIGN SEED / SUBJECT / EXPERIMENT:\n' +
     (seed && seed.trim() ? '"' + seed.trim() + '"' : 'NONE PROVIDED — derive subject organically from the LEAD mind, while keeping lower layers inside their jurisdictions') + '\n\n' +
     'RECENT TERRITORY — AVOID ACCIDENTAL REPETITION:\n' + recentBlock + '\n\n' +
-    'POSITIVE PREFERENCE SIGNALS — PRESERVE THE LIKED PRINCIPLE, NOT THE SURFACE COPY:\n' + likedBlock + '\n\n' +
+    'SUCCESS SATURATION / TEMPORARY COOLDOWNS:\n' + noveltyBlock + '\n\n' +
+    'POSITIVE PREFERENCE SIGNALS — DURABLE FITNESS, NOT A COMMAND TO REPEAT:\n' + likedBlock + '\n\n' +
     'MUSICAL POSSIBILITY SPACE — THIS IS A LIBRARY, NOT A REQUIRED CHECKLIST:\n' + MUSICAL_VOCABULARY_PROMPT + '\n\n' +
     'BOX 1 — STYLE\n' +
     'TARGET: 975–999 characters. Use PRODUCTIVE CONTRADICTION UNDER CONSTRAINT. First choose distinct systems, then give each separate jurisdiction:\n' +

@@ -48,6 +48,8 @@ import {
   getLikedMusicMechanismWeights,
   getLikedMindWeights,
   getLikedRealityWeights,
+  getNoveltyPressureSignals,
+  getRecentMechanismSaturation,
   promoteGenomesFromRun,
   runToMarkdown,
   archiveToMarkdown,
@@ -394,6 +396,7 @@ export default function App() {
       ...getMusicPreferenceSignals(4),
       ...getLikedPreferenceSignals(5),
     ].slice(0, 10);
+    const noveltySignals = getNoveltyPressureSignals(8);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 65000);
 
@@ -412,6 +415,7 @@ export default function App() {
           energy,
           recentFingerprints,
           likedSignals,
+          noveltySignals,
         }),
         signal: controller.signal,
       });
@@ -642,6 +646,8 @@ export default function App() {
   const currentFeedbackMechanisms = currentRun
     ? compileMusicStack(currentRun.musicStack || [], currentRun.musicControls).mechanisms.map((entry) => entry.mechanism)
     : [];
+  const mechanismSaturation = getRecentMechanismSaturation(8);
+  const coolingMechanismCount = Object.values(mechanismSaturation).filter((value) => value >= 0.72).length;
 
   const filteredGuys = LITTLE_GUYS.filter((guy) => {
     if (!searchQuery.trim()) return true;
@@ -787,7 +793,7 @@ export default function App() {
           id="music"
           title="MUSIC SEED LAB"
           eyebrow="04 • behavior recipes / genes"
-          summary={musicStack.length + ' music seed' + (musicStack.length === 1 ? '' : 's') + ' in the stack'}
+          summary={musicStack.length + ' music seed' + (musicStack.length === 1 ? '' : 's') + ' in the stack' + (coolingMechanismCount ? ' • ' + coolingMechanismCount + ' traits cooling' : '')}
           tone="yellow"
           open={moduleOpen.music}
           active={activeModule === 'music'}
@@ -799,6 +805,7 @@ export default function App() {
             controls={musicControls}
             onControlsChange={setMusicControls}
             preferenceWeights={getLikedMusicMechanismWeights()}
+            noveltySaturation={mechanismSaturation}
           />
         </ModuleSection>
 

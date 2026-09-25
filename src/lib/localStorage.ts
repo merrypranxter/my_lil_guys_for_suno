@@ -3,6 +3,7 @@ import { fingerprintToLine } from '../data/musicTaxonomy';
 import { getCompositionEngine, normalizeCompositionEngineIds } from '../data/compositionEngines';
 import { DEFAULT_MUSIC_CONTROLS, compileMusicStack, getMusicMechanism, musicGenomePhenotypeSignature, normalizeMusicControls, normalizeMusicGenome, normalizeMusicStack, summarizeMusicStack } from '../data/musicSeedSystem';
 import { normalizePetriDishExperiment } from './petriDish';
+import { applySuccessSaturation, buildMechanismNoveltySignals, buildSemanticNoveltySignals, mechanismSaturationMap } from './noveltyPressure';
 
 const STORAGE_KEYS = {
   SAVED_STACKS: 'lgm_saved_stacks_v1',
@@ -810,19 +811,35 @@ export function getMusicMechanismFitnessScores(limit = 60): Record<string, numbe
   return scores;
 }
 
+export function getRecentMechanismSaturation(limit = 8): Record<string, number> {
+  return mechanismSaturationMap(getRunArchive(), limit);
+}
+
+export function getNoveltyPressureSignals(limit = 8): string[] {
+  const runs = getRunArchive();
+  return [
+    ...buildMechanismNoveltySignals(runs, limit),
+    ...buildSemanticNoveltySignals(runs, limit),
+  ].slice(0, 10);
+}
+
 export function getGenomeMechanismFitness(genome: MusicBredGenome): Record<string, number> {
   const normalized = normalizeMusicGenome(genome);
   if (!normalized) return {};
 
   const global = getMusicMechanismFitnessScores();
   const record = getGenomeFitnessRecord(normalized);
+  const saturation = getRecentMechanismSaturation();
   const out: Record<string, number> = {};
 
   for (const id of normalized.mechanismIds) {
     let score = global[id] || 0;
     if (record?.likedMechanismIds.includes(id)) score += 1;
     if (record?.dislikedMechanismIds.includes(id)) score -= 1;
-    out[id] = Math.max(-1, Math.min(1, Math.round(score * 100) / 100));
+
+    // Fitness is durable preference; saturation is temporary ecological pressure.
+    // A beloved gene can cool down without being forgotten.
+    out[id] = applySuccessSaturation(score, saturation[id] || 0);
   }
 
   return out;
