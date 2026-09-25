@@ -540,6 +540,7 @@ export function reidentifyMouthGenome(genome: MouthGenome): MouthGenome {
     mutationScars: genome.mutationScars.map(({ createdAt, ...item }) => item),
     linkedGeneBundles: genome.linkedGeneBundles.map(({ createdAt, ...item }) => item),
     dynamics: genome.dynamics || undefined,
+    lineage: genome.lineage || undefined,
   });
 
   return {
