@@ -13,7 +13,8 @@
     "verify:seed": "tsx scripts/verifyMusicSeedLab.ts",
     "verify:breeding": "tsx scripts/verifyMusicBreeding.ts",
     "verify:dish": "tsx scripts/verifyPetriDish.ts",
-    "verify:minds": "tsx scripts/verifyMindActivation.ts"
+    "verify:minds": "tsx scripts/verifyMindActivation.ts",
+    "verify:jurisdictions": "tsx scripts/verifyJurisdictions.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
