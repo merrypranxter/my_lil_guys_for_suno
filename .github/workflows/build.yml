@@ -66,6 +66,9 @@ jobs:
       - name: Mouth Lab UI persistence regression smoke
         run: npm run verify:mouth-ui
 
+      - name: Mouth Lab dynamic-mouth regression smoke
+        run: npm run verify:mouth-dynamics
+
       - name: Build
         run: npm run build
 
