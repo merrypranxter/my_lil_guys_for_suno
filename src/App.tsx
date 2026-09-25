@@ -14,7 +14,7 @@ import { MusicSeedLabPanel } from './components/MusicSeedLabPanel';
 import { PetriDishPanel } from './components/PetriDishPanel';
 import { genomeToStackItem } from './lib/musicBreeding';
 import { blendSiblingControls, buildSiblingMusicStack } from './lib/petriDish';
-import { MUSIC_FEEDBACK_TAGS } from './data/musicSeedSystem';
+import { MUSIC_FEEDBACK_TAGS, musicGenomePhenotypeSignature } from './data/musicSeedSystem';
 import { OutputBox } from './components/OutputBox';
 import { ModuleDock, ModuleSection } from './components/ModuleShell';
 import type { ModuleNavItem } from './components/ModuleShell';
@@ -315,6 +315,22 @@ export default function App() {
   };
 
   const handleStackPetriGenome = (genome: MusicBredGenome) => {
+    const signature = musicGenomePhenotypeSignature(genome);
+    const alreadyActive = musicStack.some(
+      (item) =>
+        !item.muted &&
+        item.kind === 'genome' &&
+        musicGenomePhenotypeSignature(item.genome) === signature
+    );
+
+    if (alreadyActive) {
+      setNoticeMessage(
+        'Phenotype already active. Duplicate genome copies no longer add hidden weight; change the existing strength if you want more influence.'
+      );
+      setErrorMessage(null);
+      return;
+    }
+
     setMusicStack((current) => [...current, genomeToStackItem(genome)]);
     setMusicControls((current) => blendSiblingControls(current, genome.controls));
     setNoticeMessage('Stacked bred genome ' + genome.name + ' into the main Music Seed Lab.');
