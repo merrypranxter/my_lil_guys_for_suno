@@ -515,6 +515,9 @@ export function breedMouthGenome(request: MouthBreedingRequest): MouthBreedingRe
     stability,
     mutation,
     breedingSeed,
+    quirks: [],
+    mutationScars: [],
+    linkedGeneBundles: [],
     createdAt: Date.now(),
   };
 

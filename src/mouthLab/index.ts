@@ -6,3 +6,7 @@ export * from './conflictMatrix';
 export * from './determinism';
 export * from './phenotype';
 export * from './breeder';
+export * from './quirks';
+export * from './specimens';
+export * from './surgery';
+export * from './persistence';

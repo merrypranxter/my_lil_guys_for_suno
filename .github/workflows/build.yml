@@ -57,6 +57,9 @@ jobs:
       - name: Mouth Lab breeding regression smoke
         run: npm run verify:mouth-breeding
 
+      - name: Mouth Lab quirk/specimen regression smoke
+        run: npm run verify:mouth-quirks
+
       - name: Build
         run: npm run build
 

@@ -2,10 +2,12 @@ import {
   MouthGenome,
   MouthPhenotype,
   MouthPhenotypeInteraction,
+  MouthPhenotypeQuirk,
   MouthPhenotypeTrait,
   MouthTraitPressure,
 } from './types';
 import { getMouthTrait } from './traits';
+import { getMouthQuirkDefinition } from './quirks';
 import { getMouthTraitRelationship } from './conflictMatrix';
 import { MOUTH_PRESSURE_RANK } from './determinism';
 
@@ -135,6 +137,46 @@ function assignmentTraitRows(genome: MouthGenome): MouthPhenotypeTrait[] {
   return rows;
 }
 
+
+function quirkRows(genome: MouthGenome): MouthPhenotypeQuirk[] {
+  return (genome.quirks || [])
+    .filter((instance) => instance.enabled)
+    .map((instance) => {
+      const definition = getMouthQuirkDefinition(instance.quirkId);
+      if (!definition) return undefined;
+
+      let salience = Math.round(
+        instance.frequency * 0.28 +
+        instance.consistency * 0.34 +
+        instance.exaggeration * 0.38,
+      );
+
+      const intelligibilityProtection = genome.intelligibility / 100;
+      salience -= Math.round(
+        definition.intelligibilityRisk * 5 * intelligibilityProtection,
+      );
+      salience = Math.max(5, Math.min(100, salience));
+
+      return {
+        instanceId: instance.id,
+        quirkId: instance.quirkId,
+        axis: definition.axis,
+        frequency: instance.frequency,
+        consistency: instance.consistency,
+        exaggeration: instance.exaggeration,
+        expectedAudibility: audibilityFor(salience),
+        takeover: { ...instance.takeover },
+      } satisfies MouthPhenotypeQuirk;
+    })
+    .filter((row): row is MouthPhenotypeQuirk => Boolean(row))
+    .sort(
+      (a, b) =>
+        b.exaggeration + b.consistency + b.frequency -
+          (a.exaggeration + a.consistency + a.frequency) ||
+        a.quirkId.localeCompare(b.quirkId),
+    );
+}
+
 function chooseSuppressed(
   a: MouthPhenotypeTrait,
   b: MouthPhenotypeTrait,
@@ -154,6 +196,7 @@ function chooseSuppressed(
 export function projectMouthPhenotype(genome: MouthGenome): MouthPhenotype {
   const interactions = interactionInstances(genome);
   const rows = assignmentTraitRows(genome);
+  const activeQuirks = quirkRows(genome);
   const suppressedByTrait = new Map<string, string>();
   const warnings: string[] = [];
 
@@ -236,7 +279,25 @@ export function projectMouthPhenotype(genome: MouthGenome): MouthPhenotype {
     );
   }
 
-  const audiblePriority = activeTraits.slice(0, 5).map((row) => row.traitId);
+  const priorityCandidates = [
+    ...activeTraits.map((row) => ({
+      id: row.traitId,
+      score: row.salience,
+    })),
+    ...activeQuirks.map((row) => ({
+      id: 'quirk:' + row.quirkId,
+      score: Math.round(
+        row.frequency * 0.28 +
+        row.consistency * 0.34 +
+        row.exaggeration * 0.38,
+      ),
+    })),
+  ];
+
+  const audiblePriority = priorityCandidates
+    .sort((a, b) => b.score - a.score || a.id.localeCompare(b.id))
+    .slice(0, 5)
+    .map((row) => row.id);
 
   const anchor = genome.semanticAnchorLanguageProfileId
     ? ' Semantic anchor: ' + genome.semanticAnchorLanguageProfileId + '.'
@@ -245,8 +306,13 @@ export function projectMouthPhenotype(genome: MouthGenome): MouthPhenotype {
   const summary =
     'Expected phenotype: ' +
     activeTraits.length +
-    ' active traits across ' +
-    new Set(activeTraits.map((row) => row.axis)).size +
+    ' active traits and ' +
+    activeQuirks.length +
+    ' active quirks across ' +
+    new Set([
+      ...activeTraits.map((row) => row.axis),
+      ...activeQuirks.map((row) => row.axis),
+    ]).size +
     ' mouth jurisdictions; intelligibility ' +
     genome.intelligibility +
     '/100, stability ' +
@@ -260,6 +326,7 @@ export function projectMouthPhenotype(genome: MouthGenome): MouthPhenotype {
     genomeId: genome.id,
     activeTraits,
     suppressedTraits,
+    activeQuirks,
     interactions,
     audiblePriority,
     summary,
