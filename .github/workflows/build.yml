@@ -33,6 +33,9 @@ jobs:
       - name: Music Genetics regression smoke
         run: npm run verify:breeding
 
+      - name: Petri Dish regression smoke
+        run: npm run verify:dish
+
       - name: Build
         run: npm run build
 
