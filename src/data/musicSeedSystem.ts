@@ -420,6 +420,104 @@ export function normalizeMusicGenome(value: unknown): MusicBredGenome | undefine
   };
 }
 
+
+function stableGenomeHash(input: string): string {
+  let hash = 2166136261 >>> 0;
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36);
+}
+
+export function musicGenomePhenotypeKey(genomeValue: unknown): string {
+  const genome = normalizeMusicGenome(genomeValue);
+  if (!genome) return '';
+
+  const mechanisms = [...genome.mechanismIds].sort().join(',');
+  const controls = [
+    genome.controls.stemminess,
+    genome.controls.kineticDensity,
+    genome.controls.socialInfection,
+    genome.controls.coupling,
+    genome.controls.interruption,
+    genome.controls.anchorStrength,
+    genome.controls.castSize,
+  ].join(',');
+  const invariant = genome.lineage.invariant.trim().replace(/\s+/g, ' ');
+  const relationshipLaw = genome.lineage.relationshipLaw.trim().replace(/\s+/g, ' ');
+
+  // Deliberately excludes display name, genome id, parent names, generation, and timestamps.
+  // Those are genealogy metadata, not musical phenotype.
+  return [mechanisms, controls, invariant, relationshipLaw].join('||');
+}
+
+export function musicGenomePhenotypeSignature(genomeValue: unknown): string {
+  const key = musicGenomePhenotypeKey(genomeValue);
+  return key ? 'pheno_' + stableGenomeHash(key) : '';
+}
+
+export interface SuppressedMusicDuplicate {
+  key: string;
+  kind: MusicStackItem['kind'];
+  keptInstanceId: string;
+  suppressedInstanceIds: string[];
+  count: number;
+}
+
+function generationKeyForMusicStackItem(item: MusicStackItem): string {
+  if (item.kind === 'recipe') return 'recipe:' + item.refId;
+  if (item.kind === 'mechanism') return 'mechanism:' + item.refId;
+  const signature = musicGenomePhenotypeSignature(item.genome);
+  return signature ? 'genome:' + signature : 'genome:' + item.refId;
+}
+
+export function dedupeMusicStackForGeneration(stackValue: unknown): {
+  stack: MusicStackItem[];
+  suppressedDuplicates: SuppressedMusicDuplicate[];
+} {
+  const active = normalizeMusicStack(stackValue).filter((item) => !item.muted);
+  const slots = new Map<string, { item: MusicStackItem; index: number; suppressed: string[] }>();
+  const unique: MusicStackItem[] = [];
+
+  active.forEach((item) => {
+    const key = generationKeyForMusicStackItem(item);
+    const existing = slots.get(key);
+    if (!existing) {
+      const index = unique.length;
+      const clone = { ...item };
+      unique.push(clone);
+      slots.set(key, { item: clone, index, suppressed: [] });
+      return;
+    }
+
+    // Duplicate stack entries are never secret weighting. The strongest explicit
+    // strength wins; every extra copy is suppressed rather than accumulated.
+    if (item.strength > existing.item.strength) {
+      existing.suppressed.push(existing.item.instanceId);
+      const replacement = { ...item };
+      unique[existing.index] = replacement;
+      existing.item = replacement;
+    } else {
+      existing.suppressed.push(item.instanceId);
+    }
+  });
+
+  const suppressedDuplicates: SuppressedMusicDuplicate[] = [];
+  slots.forEach((slot, key) => {
+    if (!slot.suppressed.length) return;
+    suppressedDuplicates.push({
+      key,
+      kind: slot.item.kind,
+      keptInstanceId: slot.item.instanceId,
+      suppressedInstanceIds: [...slot.suppressed],
+      count: slot.suppressed.length,
+    });
+  });
+
+  return { stack: unique, suppressedDuplicates };
+}
+
 export function normalizeMusicStack(value: unknown): MusicStackItem[] {
   if (!Array.isArray(value)) return [];
   const out: MusicStackItem[] = [];
@@ -457,12 +555,22 @@ export interface CompiledMusicMechanism {
   sources: string[];
 }
 
+export interface CompiledMusicGenomePhenotype {
+  signature: string;
+  mechanismIds: string[];
+  controls: MusicControls;
+  invariant: string;
+  relationshipLaw: string;
+}
+
 export interface CompiledMusicStack {
   recipes: MusicSeedRecipe[];
   genomes: MusicBredGenome[];
+  genomePhenotypes: CompiledMusicGenomePhenotype[];
   mechanisms: CompiledMusicMechanism[];
   interactions: string[];
   controls: MusicControls;
+  suppressedDuplicates: SuppressedMusicDuplicate[];
 }
 
 function hasMechanism(compiled: CompiledMusicMechanism[], id: string): boolean {
@@ -473,10 +581,12 @@ export function compileMusicStack(
   stackValue: unknown,
   controlsValue?: Partial<MusicControls> | null
 ): CompiledMusicStack {
-  const stack = normalizeMusicStack(stackValue).filter((item) => !item.muted);
+  const deduped = dedupeMusicStackForGeneration(stackValue);
+  const stack = deduped.stack;
   const controls = normalizeMusicControls(controlsValue);
   const recipes: MusicSeedRecipe[] = [];
   const genomes: MusicBredGenome[] = [];
+  const genomePhenotypes: CompiledMusicGenomePhenotype[] = [];
   const contributions = new Map<string, { strengths: number[]; sources: string[] }>();
 
   const addContribution = (mechanismId: string, strength: number, source: string) => {
@@ -489,22 +599,32 @@ export function compileMusicStack(
 
   stack.forEach((item) => {
     if (item.kind === 'mechanism') {
-      addContribution(item.refId, item.strength, 'manual');
+      addContribution(item.refId, item.strength, 'manual mechanism');
       return;
     }
 
     if (item.kind === 'genome') {
       const genome = normalizeMusicGenome(item.genome);
       if (!genome) return;
+      const signature = musicGenomePhenotypeSignature(genome);
       genomes.push(genome);
-      genome.mechanismIds.forEach((mechanismId) => addContribution(mechanismId, item.strength, genome.name));
+      genomePhenotypes.push({
+        signature,
+        mechanismIds: [...genome.mechanismIds],
+        controls: normalizeMusicControls(genome.controls),
+        invariant: genome.lineage.invariant,
+        relationshipLaw: genome.lineage.relationshipLaw,
+      });
+      const source = 'bred phenotype ' + genomePhenotypes.length + ' [' + signature + ']';
+      genome.mechanismIds.forEach((mechanismId) => addContribution(mechanismId, item.strength, source));
       return;
     }
 
     const recipe = getMusicSeedRecipe(item.refId);
     if (!recipe) return;
     recipes.push(recipe);
-    recipe.mechanismIds.forEach((mechanismId) => addContribution(mechanismId, item.strength, recipe.name));
+    const source = 'recipe macro ' + recipes.length;
+    recipe.mechanismIds.forEach((mechanismId) => addContribution(mechanismId, item.strength, source));
   });
 
   const mechanisms: CompiledMusicMechanism[] = [];
@@ -546,14 +666,22 @@ export function compileMusicStack(
     interactions.push('Multiple rhythmic truths must share a common substrate or recurring alignment point so complexity remains physically graspable.');
   }
 
-  genomes.forEach((genome) => {
+  genomePhenotypes.forEach((phenotype, index) => {
     interactions.push(
-      'GENOME LAW — ' + genome.name + ' [generation ' + genome.generation + ']: ' +
-      genome.lineage.invariant + ' ' + genome.lineage.relationshipLaw
+      'GENOME PHENOTYPE LAW ' + (index + 1) + ' [' + phenotype.signature + ']: ' +
+      phenotype.invariant + ' ' + phenotype.relationshipLaw
     );
   });
 
-  return { recipes, genomes, mechanisms, interactions, controls };
+  return {
+    recipes,
+    genomes,
+    genomePhenotypes,
+    mechanisms,
+    interactions,
+    controls,
+    suppressedDuplicates: deduped.suppressedDuplicates,
+  };
 }
 
 function band(value: number, low: string, mid: string, high: string): string {
@@ -580,7 +708,7 @@ export function summarizeMusicStack(stackValue: unknown, controlsValue?: Partial
   const recipes = compiled.recipes.map((item) => item.name).join(' + ') || 'NO RECIPE';
   const genomes = compiled.genomes.map((item) => item.name + ' G' + item.generation).join(' + ') || 'NO GENOME';
   const mechanisms = compiled.mechanisms.map((item) => item.mechanism.name).join(' + ') || 'no mechanism chips';
-  return 'recipes=' + recipes + ' | genomes=' + genomes + ' | mechanisms=' + mechanisms + ' | stemminess=' + compiled.controls.stemminess + ' | coupling=' + compiled.controls.coupling;
+  return 'recipes=' + recipes + ' | genomes=' + genomes + ' | mechanisms=' + mechanisms + ' | suppressedDuplicates=' + compiled.suppressedDuplicates.reduce((sum, item) => sum + item.count, 0) + ' | stemminess=' + compiled.controls.stemminess + ' | coupling=' + compiled.controls.coupling;
 }
 
 export function mechanismFamilies(): MusicMechanismFamily[] {
