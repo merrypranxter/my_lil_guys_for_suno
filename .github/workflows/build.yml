@@ -30,6 +30,9 @@ jobs:
       - name: Music Seed Lab regression smoke
         run: npm run verify:seed
 
+      - name: Music Genetics regression smoke
+        run: npm run verify:breeding
+
       - name: Build
         run: npm run build
 

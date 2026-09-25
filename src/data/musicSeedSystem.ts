@@ -1,4 +1,5 @@
 import {
+  MusicBredGenome,
   MusicControls,
   MusicMechanism,
   MusicMechanismFamily,
@@ -363,17 +364,75 @@ export function normalizeMusicControls(value?: Partial<MusicControls> | null): M
   };
 }
 
+export function normalizeMusicGenome(value: unknown): MusicBredGenome | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const raw = value as any;
+  const id = typeof raw.id === 'string' ? raw.id.trim().slice(0, 120) : '';
+  const name = typeof raw.name === 'string' ? raw.name.trim().slice(0, 120) : '';
+  const mechanismIds: string[] = Array.isArray(raw.mechanismIds)
+    ? Array.from(new Set<string>(
+        raw.mechanismIds.filter(
+          (item: unknown): item is string => typeof item === 'string' && Boolean(getMusicMechanism(item))
+        )
+      )).slice(0, 8)
+    : [];
+  if (!id || !name || mechanismIds.length === 0) return undefined;
+
+  const lineageRaw = raw.lineage && typeof raw.lineage === 'object' ? raw.lineage : {};
+  const parent = (candidate: any, fallbackName: string) => ({
+    id: typeof candidate?.id === 'string' ? candidate.id.slice(0, 120) : 'unknown',
+    name: typeof candidate?.name === 'string' ? candidate.name.slice(0, 120) : fallbackName,
+    kind: candidate?.kind === 'genome' ? 'genome' as const : 'recipe' as const,
+    generation: Math.max(0, Math.min(99, Number.isFinite(Number(candidate?.generation)) ? Math.round(Number(candidate.generation)) : 0)),
+  });
+  const sanitizeMechanismIds = (items: unknown): string[] =>
+    Array.isArray(items)
+      ? Array.from(new Set<string>(
+          items.filter(
+            (item: unknown): item is string => typeof item === 'string' && Boolean(getMusicMechanism(item))
+          )
+        )).slice(0, 8)
+      : [];
+
+  return {
+    id,
+    name,
+    description: typeof raw.description === 'string' ? raw.description.slice(0, 600) : '',
+    mechanismIds,
+    controls: normalizeMusicControls(raw.controls),
+    generation: Math.max(1, Math.min(99, Number.isFinite(Number(raw.generation)) ? Math.round(Number(raw.generation)) : 1)),
+    createdAt: Number.isFinite(Number(raw.createdAt)) ? Number(raw.createdAt) : Date.now(),
+    lineage: {
+      parentA: parent(lineageRaw.parentA, 'Parent A'),
+      parentB: parent(lineageRaw.parentB, 'Parent B'),
+      breedingSeed: typeof lineageRaw.breedingSeed === 'string' ? lineageRaw.breedingSeed.slice(0, 180) : 'default-breeding-seed',
+      invariant: typeof lineageRaw.invariant === 'string' ? lineageRaw.invariant.slice(0, 700) : 'Invariant not recorded.',
+      inheritedFromA: sanitizeMechanismIds(lineageRaw.inheritedFromA),
+      inheritedFromB: sanitizeMechanismIds(lineageRaw.inheritedFromB),
+      mutationMechanismId:
+        typeof lineageRaw.mutationMechanismId === 'string' && getMusicMechanism(lineageRaw.mutationMechanismId)
+          ? lineageRaw.mutationMechanismId
+          : undefined,
+      relationshipLaw: typeof lineageRaw.relationshipLaw === 'string'
+        ? lineageRaw.relationshipLaw.slice(0, 1000)
+        : 'Parents must remain audibly distinguishable while their inherited mechanisms negotiate.',
+    },
+  };
+}
+
 export function normalizeMusicStack(value: unknown): MusicStackItem[] {
   if (!Array.isArray(value)) return [];
   const out: MusicStackItem[] = [];
 
   value.slice(0, 24).forEach((raw: any, index) => {
     if (!raw || typeof raw !== 'object') return;
-    const kind = raw.kind === 'recipe' || raw.kind === 'mechanism' ? raw.kind : null;
+    const kind = raw.kind === 'recipe' || raw.kind === 'mechanism' || raw.kind === 'genome' ? raw.kind : null;
     const refId = typeof raw.refId === 'string' ? raw.refId.trim() : '';
     if (!kind || !refId) return;
     if (kind === 'recipe' && !getMusicSeedRecipe(refId)) return;
     if (kind === 'mechanism' && !getMusicMechanism(refId)) return;
+    const genome = kind === 'genome' ? normalizeMusicGenome(raw.genome) : undefined;
+    if (kind === 'genome' && (!genome || genome.id !== refId)) return;
 
     out.push({
       instanceId:
@@ -385,6 +444,7 @@ export function normalizeMusicStack(value: unknown): MusicStackItem[] {
       muted: Boolean(raw.muted),
       locked: Boolean(raw.locked),
       strength: clamp100(raw.strength, 70),
+      ...(genome ? { genome } : {}),
     });
   });
 
@@ -399,6 +459,7 @@ export interface CompiledMusicMechanism {
 
 export interface CompiledMusicStack {
   recipes: MusicSeedRecipe[];
+  genomes: MusicBredGenome[];
   mechanisms: CompiledMusicMechanism[];
   interactions: string[];
   controls: MusicControls;
@@ -415,6 +476,7 @@ export function compileMusicStack(
   const stack = normalizeMusicStack(stackValue).filter((item) => !item.muted);
   const controls = normalizeMusicControls(controlsValue);
   const recipes: MusicSeedRecipe[] = [];
+  const genomes: MusicBredGenome[] = [];
   const contributions = new Map<string, { strengths: number[]; sources: string[] }>();
 
   const addContribution = (mechanismId: string, strength: number, source: string) => {
@@ -428,6 +490,14 @@ export function compileMusicStack(
   stack.forEach((item) => {
     if (item.kind === 'mechanism') {
       addContribution(item.refId, item.strength, 'manual');
+      return;
+    }
+
+    if (item.kind === 'genome') {
+      const genome = normalizeMusicGenome(item.genome);
+      if (!genome) return;
+      genomes.push(genome);
+      genome.mechanismIds.forEach((mechanismId) => addContribution(mechanismId, item.strength, genome.name));
       return;
     }
 
@@ -476,7 +546,14 @@ export function compileMusicStack(
     interactions.push('Multiple rhythmic truths must share a common substrate or recurring alignment point so complexity remains physically graspable.');
   }
 
-  return { recipes, mechanisms, interactions, controls };
+  genomes.forEach((genome) => {
+    interactions.push(
+      'GENOME LAW — ' + genome.name + ' [generation ' + genome.generation + ']: ' +
+      genome.lineage.invariant + ' ' + genome.lineage.relationshipLaw
+    );
+  });
+
+  return { recipes, genomes, mechanisms, interactions, controls };
 }
 
 function band(value: number, low: string, mid: string, high: string): string {
@@ -501,8 +578,9 @@ export function musicControlsToDirectives(controlsValue?: Partial<MusicControls>
 export function summarizeMusicStack(stackValue: unknown, controlsValue?: Partial<MusicControls> | null): string {
   const compiled = compileMusicStack(stackValue, controlsValue);
   const recipes = compiled.recipes.map((item) => item.name).join(' + ') || 'NO RECIPE';
+  const genomes = compiled.genomes.map((item) => item.name + ' G' + item.generation).join(' + ') || 'NO GENOME';
   const mechanisms = compiled.mechanisms.map((item) => item.mechanism.name).join(' + ') || 'no mechanism chips';
-  return 'recipes=' + recipes + ' | mechanisms=' + mechanisms + ' | stemminess=' + compiled.controls.stemminess + ' | coupling=' + compiled.controls.coupling;
+  return 'recipes=' + recipes + ' | genomes=' + genomes + ' | mechanisms=' + mechanisms + ' | stemminess=' + compiled.controls.stemminess + ' | coupling=' + compiled.controls.coupling;
 }
 
 export function mechanismFamilies(): MusicMechanismFamily[] {

@@ -225,7 +225,36 @@ export interface MusicSeedRecipe {
   defaultControls?: Partial<MusicControls>;
 }
 
-export type MusicStackItemKind = 'recipe' | 'mechanism';
+export interface MusicGenomeParentRef {
+  id: string;
+  name: string;
+  kind: 'recipe' | 'genome';
+  generation: number;
+}
+
+export interface MusicGenomeLineage {
+  parentA: MusicGenomeParentRef;
+  parentB: MusicGenomeParentRef;
+  breedingSeed: string;
+  invariant: string;
+  inheritedFromA: string[];
+  inheritedFromB: string[];
+  mutationMechanismId?: string;
+  relationshipLaw: string;
+}
+
+export interface MusicBredGenome {
+  id: string;
+  name: string;
+  description: string;
+  mechanismIds: string[];
+  controls: MusicControls;
+  generation: number;
+  createdAt: number;
+  lineage: MusicGenomeLineage;
+}
+
+export type MusicStackItemKind = 'recipe' | 'mechanism' | 'genome';
 
 export interface MusicStackItem {
   instanceId: string;
@@ -234,6 +263,7 @@ export interface MusicStackItem {
   muted: boolean;
   locked: boolean;
   strength: number;
+  genome?: MusicBredGenome;
 }
 
 export interface GenerationRequest {
