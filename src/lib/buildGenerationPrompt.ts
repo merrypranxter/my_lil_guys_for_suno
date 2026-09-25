@@ -6,6 +6,7 @@ import { COMPOSITION_DIMENSION_JURISDICTIONS, COMPOSITION_DIMENSION_LABELS, getC
 import { compileMusicStack, musicControlsToDirectives } from '../data/musicSeedSystem';
 import { BoxType, CompositionEngine, LittleGuy, MusicControls, MusicFingerprint, MusicStackItem, RealityChaosLevel, RealityEngine } from '../types';
 import { REALITY_CHAOS_LABELS, analyzeRealityChemistry } from './realityChemistry';
+import { assignActivationRoles } from './mindStacking';
 
 export interface GenerationPromptParams {
   guyIds: string[];
@@ -33,6 +34,7 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
 
   const primaryGuy: LittleGuy = guys[0] || fallbackGuy;
   const secondaryGuys: LittleGuy[] = guys.slice(1);
+  const activationSlots = assignActivationRoles(guys);
 
   const realityEngines: RealityEngine[] = getRealityEngines(realityEngineIds);
   const realityChemistry = analyzeRealityChemistry(realityEngineIds);
@@ -250,22 +252,26 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
     5: 'ENERGY LEVEL 5: Critical Meltdown / Hyper-Drive Overload (maximum kinetic velocity and extreme structural stress)',
   };
 
-  const stackBreakdown = guys
-    .map((g, idx) => {
+  const stackBreakdown = activationSlots
+    .map((slot, idx) => {
+      const g = slot.guy;
       const meta = getMindMetadata(g.id);
-      const chemistryLine = 'Family: ' + meta.family + ' | Chaos: ' + meta.chaos + '/5 | Stack role: ' + meta.roleHint;
-      if (idx === 0) {
-        return '[POSITION 1 - PRIMARY GENERATIVE FOUNDATION]: ' + g.name + ' (' + g.subtitle + ')\n' +
-          'Jurisdiction: ' + g.defaultJurisdiction + '\n' +
-          chemistryLine + '\n' +
-          'Operational Rule: ' + g.rule + '\n' +
-          'Role: Establishes the core generative ontology, default baseline mechanics, and primary structural world.';
-      }
-      return '[POSITION ' + (idx + 1) + ' - MUTATOR / REGULATOR]: ' + g.name + ' (' + g.subtitle + ')\n' +
+      const chemistryLine = 'Family: ' + meta.family + ' | Chaos: ' + meta.chaos + '/5 | Mind hint: ' + meta.roleHint;
+      const roleLabel = slot.role.toUpperCase();
+      const roleInstruction =
+        slot.role === 'lead'
+          ? 'Establish the core generative premise. Other minds may pressure it, but must not silently replace it.'
+          : slot.role === 'counterforce'
+          ? 'Apply productive resistance from a different family/jurisdiction. Stress the lead premise without flattening into compromise.'
+          : slot.role === 'wildcard'
+          ? 'Introduce one bounded discontinuity or unexpected route. Do not infect every dimension or become generic chaos.'
+          : 'Develop, propagate, constrain, or operationalize the lead premise through this mind’s own jurisdiction.';
+
+      return '[ACTIVE ' + (idx + 1) + ' — ' + roleLabel + ']: ' + g.name + ' (' + g.subtitle + ')\n' +
         'Jurisdiction: ' + g.defaultJurisdiction + '\n' +
         chemistryLine + '\n' +
         'Operational Rule: ' + g.rule + '\n' +
-        'Role: Must actively mutate, constrain, damage, invert, or regulate Position 1 without erasing it. Force the systems to negotiate in separate jurisdictions.';
+        'Activation role: ' + roleInstruction;
     })
     .join('\n\n');
 
@@ -289,8 +295,8 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
     'Your purpose is to produce three precisely engineered creative outputs for SUNO music generation using cognitive/generative rules called Little Guys, plus compact metadata describing the musical territory selected.\n\n' +
     'CRITICAL ARCHITECTURAL DIRECTIVES:\n' +
     '1. NEVER produce generic weirdness salad or superficial surrealism. Cognitive rules are operational constraints and physical laws.\n' +
-    '2. STACK NEGOTIATION IS MANDATORY. The primary guy establishes the world; secondary guys exert pressure only through their jurisdictions.\n' +
-    '3. STACK CHEMISTRY IS OPERATIONAL. Mind family and chaos ratings are not decoration: low-chaos minds should stabilize, measure, narrate, or regulate; high-chaos minds should create real structural discontinuity. Do not let five minds all perform the same kind of weirdness. Preserve distinct jobs and productive friction.\n' +
+    '2. STACK NEGOTIATION IS MANDATORY. The LEAD establishes the governing premise; SUPPORT minds propagate it, the COUNTERFORCE stresses it from a distinct jurisdiction, and the WILDCARD may create one bounded discontinuity. No role may silently take over every dimension.\n' +
+    '3. STACK CHEMISTRY IS OPERATIONAL. Mind family and chaos ratings are not decoration: low-chaos minds should stabilize, measure, narrate, or regulate; high-chaos minds should create real structural discontinuity. Active minds have an explicit job budget. Do not make every mind perform the same mutation or give each one a cameo line. Preserve distinct causal jobs and productive friction.\n' +
     '4. MUSICAL TRADITIONS ARE RULE SYSTEMS, NOT LABELS. Harmony, melody, rhythm, timbre, vocal behavior, performance attitude, and production must receive separate jurisdiction. Do not simply write genre A + genre B + genre C.\n' +
     '5. ANTI-MONOCULTURE: recent musical fingerprints are evidence of territory already explored. Unless a CONTROLLED-EXPERIMENT FINGERPRINT is explicitly frozen, move to genuinely different musical ancestry rather than swapping synonyms. If a frozen fingerprint is present, DO NOT diversify away from it: keep every fingerprint field fixed so the Music Seed genome remains the principal experimental variable.\n' +
     '6. POSITIVE FEEDBACK IS A SOFT PREFERENCE SIGNAL. Starred runs, Composition Lab engine favorites, and user notes indicate mechanisms worth revisiting, but do not clone a past song or force a favorite engine into every generation. Infer what property was liked, then express that property through new material.\n' +
