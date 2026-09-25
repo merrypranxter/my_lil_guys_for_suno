@@ -308,6 +308,10 @@ export default function App() {
       );
     }
     setErrorMessage(null);
+    setModuleOpen((current) => ({ ...current, output: true }));
+    window.setTimeout(() => {
+      document.getElementById('output-section')?.scrollIntoView({ behavior: 'smooth' });
+    }, 80);
   };
 
   const handleStackPetriGenome = (genome: MusicBredGenome) => {
@@ -455,6 +459,10 @@ export default function App() {
           });
           archiveGeneration(fallbackResponse, 'procedural-synthesizer');
           setNoticeMessage('Generated track using the diverse procedural engine while AI models recalibrate.');
+          setModuleOpen((current) => ({ ...current, output: true }));
+          window.setTimeout(() => {
+            document.getElementById('output-section')?.scrollIntoView({ behavior: 'smooth' });
+          }, 100);
           return;
         } catch (localErr) {
           console.error('Local fallback failed:', localErr);
@@ -960,7 +968,6 @@ export default function App() {
             )}
           </div>
         </ModuleSection>
-        </div>
       </main>
 
       <footer className="border-t border-[#161a24] bg-[#090b0e] py-6 px-4 text-center font-mono text-xs text-[#526077]">
