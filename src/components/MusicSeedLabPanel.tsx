@@ -3,7 +3,9 @@ import {
   ArrowDown,
   ArrowUp,
   Dices,
+  Dna,
   FlaskConical,
+  GitBranch,
   Lock,
   Minus,
   Plus,
@@ -15,7 +17,7 @@ import {
   VolumeX,
   X,
 } from 'lucide-react';
-import { MusicControls, MusicStackItem } from '../types';
+import { MusicBredGenome, MusicControls, MusicStackItem } from '../types';
 import {
   DEFAULT_MUSIC_CONTROLS,
   MUSIC_MECHANISMS,
@@ -26,6 +28,18 @@ import {
   mechanismFamilies,
   normalizeMusicControls,
 } from '../data/musicSeedSystem';
+import {
+  breedMusicGenome,
+  describeGenomeInheritance,
+  genomeToStackItem,
+  parentFromGenome,
+  parentFromRecipe,
+} from '../lib/musicBreeding';
+import {
+  deleteBredMusicGenome,
+  getBredMusicGenomes,
+  saveBredMusicGenome,
+} from '../lib/localStorage';
 
 interface MusicSeedLabPanelProps {
   stack: MusicStackItem[];
@@ -59,9 +73,22 @@ function blendRecipeControls(current: MusicControls, defaults: Partial<MusicCont
 }
 
 function labelFor(item: MusicStackItem): string {
+  if (item.kind === 'genome') return item.genome?.name || item.refId;
   return item.kind === 'recipe'
     ? getMusicSeedRecipe(item.refId)?.name || item.refId
     : getMusicMechanism(item.refId)?.name || item.refId;
+}
+
+function descriptionFor(item: MusicStackItem): string {
+  if (item.kind === 'genome') {
+    const genome = item.genome;
+    return genome
+      ? 'Generation ' + genome.generation + ' bred genome • ' + genome.mechanismIds.length + ' mechanisms • ' + genome.lineage.invariant
+      : 'Bred music genome';
+  }
+  return item.kind === 'recipe'
+    ? getMusicSeedRecipe(item.refId)?.description || ''
+    : getMusicMechanism(item.refId)?.shortExplanation || '';
 }
 
 function SliderRow({
@@ -110,6 +137,14 @@ export function MusicSeedLabPanel({
   const [showRecipes, setShowRecipes] = useState(true);
   const [showMechanisms, setShowMechanisms] = useState(false);
   const [showControls, setShowControls] = useState(true);
+  const [showBreeder, setShowBreeder] = useState(false);
+  const [genomes, setGenomes] = useState<MusicBredGenome[]>(() => getBredMusicGenomes());
+  const [parentAId, setParentAId] = useState('');
+  const [parentBId, setParentBId] = useState('');
+  const [breedingSeed, setBreedingSeed] = useState('');
+  const [childName, setChildName] = useState('');
+  const [breedingError, setBreedingError] = useState<string | null>(null);
+  const [lastBredGenome, setLastBredGenome] = useState<MusicBredGenome | null>(null);
   const compiled = useMemo(() => compileMusicStack(stack, controls), [stack, controls]);
 
   const updateItem = (instanceId: string, patch: Partial<MusicStackItem>) => {
@@ -142,8 +177,74 @@ export function MusicSeedLabPanel({
     onChange([...stack, makeItem('mechanism', mechanismId, Math.round(70 + Math.min(20, weight * 20)))]);
   };
 
+
+  const addGenome = (genome: MusicBredGenome) => {
+    onChange([...stack, genomeToStackItem(genome)]);
+    const nextControls = { ...controls };
+    (Object.keys(genome.controls) as Array<keyof MusicControls>).forEach((key) => {
+      nextControls[key] = Math.round(controls[key] * 0.55 + genome.controls[key] * 0.45);
+    });
+    onControlsChange(normalizeMusicControls(nextControls));
+  };
+
+  const breedingParents = [
+    ...MUSIC_SEED_RECIPES.map((recipe) => ({
+      key: 'recipe:' + recipe.id,
+      label: recipe.name + ' • G0',
+      parent: parentFromRecipe(recipe),
+    })),
+    ...genomes.map((genome) => ({
+      key: 'genome:' + genome.id,
+      label: genome.name + ' • G' + genome.generation,
+      parent: parentFromGenome(genome),
+    })),
+  ];
+
+  const resolveBreedingParent = (key: string) =>
+    breedingParents.find((item) => item.key === key)?.parent;
+
+  const breedSelectedParents = () => {
+    setBreedingError(null);
+    const parentA = resolveBreedingParent(parentAId);
+    const parentB = resolveBreedingParent(parentBId);
+    if (!parentA || !parentB) {
+      setBreedingError('Pick two parents first.');
+      return;
+    }
+    if (parentAId === parentBId) {
+      setBreedingError('The same bastard cannot be both parents.');
+      return;
+    }
+
+    try {
+      const child = breedMusicGenome(parentA, parentB, breedingSeed, childName);
+      setGenomes(saveBredMusicGenome(child));
+      setLastBredGenome(child);
+      addGenome(child);
+      setChildName('');
+    } catch (error: any) {
+      setBreedingError(error?.message || 'Breeding failed.');
+    }
+  };
+
+  const useFirstTwoActiveMacros = () => {
+    const active = stack.filter((item) => !item.muted && (item.kind === 'recipe' || item.kind === 'genome')).slice(0, 2);
+    if (active.length < 2) {
+      setBreedingError('Need two active recipe/genome macros in the stack.');
+      return;
+    }
+    setBreedingError(null);
+    setParentAId(active[0].kind + ':' + active[0].refId);
+    setParentBId(active[1].kind + ':' + active[1].refId);
+    setShowBreeder(true);
+  };
+
+  const rollBreedingSeed = () => {
+    setBreedingSeed('cross-' + Math.random().toString(36).slice(2, 9));
+  };
+
   const rerollItem = (item: MusicStackItem) => {
-    if (item.locked) return;
+    if (item.locked || item.kind === 'genome') return;
     if (item.kind === 'recipe') {
       const pool = MUSIC_SEED_RECIPES.filter((recipe) => recipe.id !== item.refId);
       if (!pool.length) return;
@@ -165,7 +266,7 @@ export function MusicSeedLabPanel({
 
   const clearUnlocked = () => onChange(stack.filter((item) => item.locked));
 
-  const noRecipe = () => onChange(stack.filter((item) => item.kind !== 'recipe' || item.locked));
+  const noRecipe = () => onChange(stack.filter((item) => (item.kind !== 'recipe' && item.kind !== 'genome') || item.locked));
 
   const stemmySurprise = () => {
     const locked = stack.filter((item) => item.locked);
@@ -225,6 +326,14 @@ export function MusicSeedLabPanel({
             </button>
             <button
               type="button"
+              onClick={() => setShowBreeder((value) => !value)}
+              className="px-3 py-2 rounded-lg border border-[#a879ff]/45 bg-[#1b1230] text-[#c7a7ff] font-mono text-xs font-black hover:border-[#a879ff]"
+            >
+              <Dna className="inline-block w-3.5 h-3.5 mr-1" />
+              BREED RECIPES
+            </button>
+            <button
+              type="button"
               onClick={stemmySurprise}
               className="px-3 py-2 rounded-lg border border-[#39ff14]/35 bg-[#102417] text-[#86efac] font-mono text-xs font-black hover:border-[#39ff14]"
               title="Keep locked items, then roll high-stem-value mechanisms and crank stemminess."
@@ -269,6 +378,162 @@ export function MusicSeedLabPanel({
                   </button>
                 ))}
               </div>
+            </div>
+          )}
+
+          {showBreeder && (
+            <div className="rounded-xl border border-[#5a3a76] bg-[#0d0915] p-3 md:p-4 space-y-4">
+              <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2 text-[#c7a7ff]">
+                    <Dna className="w-4 h-4" />
+                    <span className="text-xs font-mono font-black tracking-[0.16em]">MUSIC GENETICS — BREED THE BASTARDS</span>
+                  </div>
+                  <p className="mt-1 text-[10px] leading-relaxed font-mono text-[#8d7ca8]">
+                    Two-parent deterministic crossover. Child size stays near the parental average; each parent contributes real mechanisms; one invariant survives; 0–1 bounded mutation may occur; a new relationship law resolves parental friction.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={useFirstTwoActiveMacros}
+                  className="shrink-0 rounded-lg border border-[#4a405c] bg-[#171221] px-2.5 py-1.5 text-[10px] font-mono text-[#c6b6d9] hover:text-white"
+                >
+                  USE FIRST TWO ACTIVE MACROS
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <label className="block">
+                  <span className="text-[9px] font-mono font-black text-[#ff9dea]">PARENT A</span>
+                  <select
+                    value={parentAId}
+                    onChange={(event) => setParentAId(event.target.value)}
+                    className="mt-1 w-full rounded-lg border border-[#3c3348] bg-[#090a0f] px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-[#a879ff]"
+                  >
+                    <option value="">pick parent A…</option>
+                    {breedingParents.map((item) => (
+                      <option key={'a-' + item.key} value={item.key}>{item.label}</option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="block">
+                  <span className="text-[9px] font-mono font-black text-[#7eeeff]">PARENT B</span>
+                  <select
+                    value={parentBId}
+                    onChange={(event) => setParentBId(event.target.value)}
+                    className="mt-1 w-full rounded-lg border border-[#3c3348] bg-[#090a0f] px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-[#00f0ff]"
+                  >
+                    <option value="">pick parent B…</option>
+                    {breedingParents.map((item) => (
+                      <option key={'b-' + item.key} value={item.key}>{item.label}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-2">
+                <label className="block">
+                  <span className="text-[9px] font-mono font-black text-[#ffe680]">BREEDING SEED</span>
+                  <input
+                    type="text"
+                    value={breedingSeed}
+                    onChange={(event) => setBreedingSeed(event.target.value)}
+                    placeholder="same parents + same seed = same genetics"
+                    className="mt-1 w-full rounded-lg border border-[#3c3348] bg-[#090a0f] px-3 py-2 text-xs font-mono text-white placeholder-[#5e5868] focus:outline-none focus:border-[#ffe680]"
+                  />
+                </label>
+                <button
+                  type="button"
+                  onClick={rollBreedingSeed}
+                  className="self-end rounded-lg border border-[#4a405c] bg-[#171221] px-3 py-2 text-[10px] font-mono text-[#ffe680] hover:border-[#ffe680]"
+                >
+                  ROLL SEED
+                </button>
+              </div>
+
+              <label className="block">
+                <span className="text-[9px] font-mono font-black text-[#86efac]">OPTIONAL CHILD NAME</span>
+                <input
+                  type="text"
+                  value={childName}
+                  onChange={(event) => setChildName(event.target.value)}
+                  placeholder="leave blank and the genetics lab names the creature"
+                  className="mt-1 w-full rounded-lg border border-[#3c3348] bg-[#090a0f] px-3 py-2 text-xs font-mono text-white placeholder-[#5e5868] focus:outline-none focus:border-[#39ff14]"
+                />
+              </label>
+
+              {breedingError && (
+                <div className="rounded-lg border border-[#7f1d1d] bg-[#2b1216] px-3 py-2 text-[10px] font-mono text-[#fca5a5]">
+                  {breedingError}
+                </div>
+              )}
+
+              <button
+                type="button"
+                onClick={breedSelectedParents}
+                className="w-full rounded-xl border border-[#a879ff] bg-gradient-to-r from-[#2b1647] to-[#40122f] px-4 py-3 font-mono text-xs font-black text-white shadow-[0_0_20px_rgba(168,121,255,0.18)] hover:brightness-115"
+              >
+                🧬 BREED THE BASTARDS
+              </button>
+
+              {lastBredGenome && (
+                <div className="rounded-xl border border-[#4b3d5f] bg-[#120f18] p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
+                      <div className="text-xs font-mono font-black text-white">{lastBredGenome.name}</div>
+                      <div className="text-[9px] font-mono text-[#c7a7ff]">GENERATION {lastBredGenome.generation} • {lastBredGenome.mechanismIds.length} GENES</div>
+                    </div>
+                    <span className="rounded bg-[#a879ff] px-2 py-1 text-[9px] font-mono font-black text-black">NEW OFFSPRING</span>
+                  </div>
+                  <pre className="mt-2 whitespace-pre-wrap text-[10px] leading-relaxed font-mono text-[#9ba7ba]">
+                    {describeGenomeInheritance(lastBredGenome)}
+                  </pre>
+                </div>
+              )}
+
+              {genomes.length > 0 && (
+                <div>
+                  <div className="mb-2 flex items-center gap-2 text-[9px] font-mono font-black tracking-[0.16em] text-[#9d8bb5]">
+                    <GitBranch className="w-3.5 h-3.5" />
+                    YOUR BREEDING LINEAGES ({genomes.length})
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-72 overflow-y-auto pr-1">
+                    {genomes.map((genome) => (
+                      <div key={genome.id} className="rounded-xl border border-[#352d42] bg-[#100d15] p-3">
+                        <div className="flex items-start justify-between gap-2">
+                          <button
+                            type="button"
+                            onClick={() => addGenome(genome)}
+                            className="min-w-0 flex-1 text-left"
+                          >
+                            <div className="font-mono font-black text-xs text-white truncate">{genome.name}</div>
+                            <div className="mt-0.5 text-[9px] font-mono text-[#a879ff]">
+                              G{genome.generation} • {genome.mechanismIds.length} genes
+                            </div>
+                            <div className="mt-1 text-[10px] leading-snug text-[#7f899a] line-clamp-2">{genome.description}</div>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setGenomes(deleteBredMusicGenome(genome.id))}
+                            className="p-1.5 rounded border border-[#4a252d] bg-[#211116] text-[#f87171] hover:text-white"
+                            title="Delete from breeding library; active stack copies survive."
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => addGenome(genome)}
+                          className="mt-2 w-full rounded-lg border border-[#4a405c] bg-[#181320] px-2.5 py-1.5 text-[10px] font-mono font-black text-[#c7a7ff] hover:border-[#a879ff]"
+                        >
+                          + ADD OFFSPRING TO STACK
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -324,8 +589,12 @@ export function MusicSeedLabPanel({
                     key={item.instanceId}
                     className={
                       'rounded-xl border p-3 transition-opacity ' +
-                      (item.muted ? 'border-[#282b31] bg-[#0b0c10] opacity-45' : item.kind === 'recipe'
+                      (item.muted
+                        ? 'border-[#282b31] bg-[#0b0c10] opacity-45'
+                        : item.kind === 'recipe'
                         ? 'border-[#4a2948] bg-[#151019]'
+                        : item.kind === 'genome'
+                        ? 'border-[#5a3a76] bg-[#120f18] shadow-[0_0_12px_rgba(168,121,255,0.08)]'
                         : 'border-[#234152] bg-[#0d151c]')
                     }
                   >
@@ -334,9 +603,13 @@ export function MusicSeedLabPanel({
                         <div className="flex flex-wrap items-center gap-2">
                           <span className={
                             'rounded px-1.5 py-0.5 text-[9px] font-mono font-black ' +
-                            (item.kind === 'recipe' ? 'bg-[#ff4fd8] text-black' : 'bg-[#00f0ff] text-black')
+                            (item.kind === 'recipe'
+                              ? 'bg-[#ff4fd8] text-black'
+                              : item.kind === 'genome'
+                              ? 'bg-[#a879ff] text-black'
+                              : 'bg-[#00f0ff] text-black')
                           }>
-                            {item.kind === 'recipe' ? 'RECIPE' : 'MECHANISM'}
+                            {item.kind === 'recipe' ? 'RECIPE' : item.kind === 'genome' ? 'GENOME' : 'MECHANISM'}
                           </span>
                           <span className="font-mono font-black text-sm text-white truncate">{labelFor(item)}</span>
                           <span className="text-[10px] font-mono text-[#7c8799]">strength {item.strength}</span>
@@ -344,10 +617,13 @@ export function MusicSeedLabPanel({
                           {item.muted && <span className="text-[9px] font-mono text-[#94a3b8]">MUTED</span>}
                         </div>
                         <div className="mt-1 text-[10px] text-[#7d8ba1]">
-                          {item.kind === 'recipe'
-                            ? getMusicSeedRecipe(item.refId)?.description
-                            : getMusicMechanism(item.refId)?.shortExplanation}
+                          {descriptionFor(item)}
                         </div>
+                        {item.kind === 'genome' && item.genome && (
+                          <div className="mt-1 text-[9px] font-mono text-[#a879ff]">
+                            {item.genome.lineage.parentA.name} × {item.genome.lineage.parentB.name}
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex flex-wrap items-center gap-1">
@@ -355,7 +631,7 @@ export function MusicSeedLabPanel({
                         <button type="button" onClick={() => moveItem(index, 1)} disabled={index === stack.length - 1} className="p-1.5 rounded border border-[#30384a] bg-[#111620] text-[#94a3b8] disabled:opacity-25" title="Move down"><ArrowDown className="w-3.5 h-3.5" /></button>
                         <button type="button" onClick={() => updateItem(item.instanceId, { strength: Math.max(0, item.strength - 10) })} className="p-1.5 rounded border border-[#30384a] bg-[#111620] text-[#94a3b8]" title="Weaken"><Minus className="w-3.5 h-3.5" /></button>
                         <button type="button" onClick={() => updateItem(item.instanceId, { strength: Math.min(100, item.strength + 10) })} className="p-1.5 rounded border border-[#30384a] bg-[#111620] text-[#94a3b8]" title="Strengthen"><Plus className="w-3.5 h-3.5" /></button>
-                        <button type="button" onClick={() => rerollItem(item)} disabled={item.locked} className="p-1.5 rounded border border-[#423a26] bg-[#1c180d] text-[#ffd84d] disabled:opacity-25" title="Reroll only this"><Shuffle className="w-3.5 h-3.5" /></button>
+                        <button type="button" onClick={() => rerollItem(item)} disabled={item.locked || item.kind === 'genome'} className="p-1.5 rounded border border-[#423a26] bg-[#1c180d] text-[#ffd84d] disabled:opacity-25" title={item.kind === 'genome' ? 'Bred genomes keep their lineage; breed a new child instead.' : 'Reroll only this'}><Shuffle className="w-3.5 h-3.5" /></button>
                         <button type="button" onClick={() => updateItem(item.instanceId, { muted: !item.muted })} className="p-1.5 rounded border border-[#30384a] bg-[#111620] text-[#9fb0c7]" title={item.muted ? 'Unmute' : 'Mute'}>{item.muted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}</button>
                         <button type="button" onClick={() => updateItem(item.instanceId, { locked: !item.locked })} className="p-1.5 rounded border border-[#4b4026] bg-[#1c180d] text-[#ffe680]" title={item.locked ? 'Unlock' : 'Lock'}>{item.locked ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}</button>
                         <button type="button" onClick={() => removeItem(item.instanceId)} className="p-1.5 rounded border border-[#4a252d] bg-[#211116] text-[#f87171]" title="Remove"><X className="w-3.5 h-3.5" /></button>
@@ -369,7 +645,12 @@ export function MusicSeedLabPanel({
 
           {compiled.mechanisms.length > 0 && (
             <div className="rounded-xl border border-[#253244] bg-[#090d12] p-3">
-              <div className="text-[9px] font-mono font-black tracking-[0.18em] text-[#8aa0ba]">COMPILED ACTIVE PHYSICS</div>
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-[9px] font-mono font-black tracking-[0.18em] text-[#8aa0ba]">COMPILED ACTIVE PHYSICS</div>
+                {compiled.genomes.length > 0 && (
+                  <div className="text-[9px] font-mono text-[#a879ff]">{compiled.genomes.length} ACTIVE GENOME{compiled.genomes.length === 1 ? '' : 'S'}</div>
+                )}
+              </div>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 {compiled.mechanisms.map((entry) => (
                   <span key={entry.mechanism.id} className="rounded-full border border-[#2b3b4f] bg-[#111827] px-2 py-1 text-[9px] font-mono text-[#a8d8ff]">
