@@ -63,6 +63,9 @@ jobs:
       - name: Mouth Lab prompt compiler regression smoke
         run: npm run verify:mouth-compiler
 
+      - name: Mouth Lab UI persistence regression smoke
+        run: npm run verify:mouth-ui
+
       - name: Build
         run: npm run build
 
