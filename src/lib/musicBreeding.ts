@@ -51,7 +51,7 @@ function makeRng(seedText: string): () => number {
 }
 
 function uniqueValidMechanisms(ids: string[]): string[] {
-  return Array.from(new Set(ids.filter((id) => Boolean(getMusicMechanism(id))));
+  return Array.from(new Set(ids.filter((id) => Boolean(getMusicMechanism(id)))));
 }
 
 function recipeControls(recipe: MusicSeedRecipe): MusicControls {
