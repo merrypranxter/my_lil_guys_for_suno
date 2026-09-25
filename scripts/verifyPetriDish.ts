@@ -73,6 +73,16 @@ const experiment = createPetriDishExperiment({
     baseMusicStack: baseStack,
     baseMusicControls: DEFAULT_MUSIC_CONTROLS,
     recentFingerprints: [],
+    forcedFingerprint: {
+      genreFamily: 'fixed test family',
+      harmony: 'fixed harmony',
+      melody: 'fixed melody',
+      rhythm: 'fixed rhythm',
+      timbre: 'fixed timbre',
+      vocal: 'fixed vocal',
+      performance: 'fixed performance',
+      production: 'fixed production',
+    },
     likedSignals: ['test signal'],
   },
 });
@@ -80,6 +90,7 @@ const experiment = createPetriDishExperiment({
 assert.equal(experiment.siblings.length, 4);
 assert.equal(experiment.challenge.baseMusicStack.length, 1);
 assert.equal(experiment.challenge.seed, 'same-song-seed');
+assert.equal(experiment.challenge.forcedFingerprint.rhythm, 'fixed rhythm', 'Controlled dish should freeze one musical fingerprint');
 
 for (const sibling of experiment.siblings) {
   const stack = buildSiblingMusicStack(experiment.challenge.baseMusicStack, sibling.genome);
@@ -102,6 +113,7 @@ assert.equal(normalized?.siblings.length, 4);
 assert.equal(normalized?.siblings[0].selected, true);
 assert.equal(normalized?.parentA.ref.name, experiment.parentA.ref.name);
 assert.equal(normalized?.challenge.likedSignals[0], 'test signal');
+assert.equal(normalized?.challenge.forcedFingerprint.production, 'fixed production');
 
 console.log(
   'Petri Dish verification passed:',
