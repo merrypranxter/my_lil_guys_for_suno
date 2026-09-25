@@ -18,6 +18,7 @@ export interface MusicBreedingParent {
   ref: MusicGenomeParentRef;
   mechanismIds: string[];
   controls: MusicControls;
+  mechanismFitness?: Record<string, number>;
 }
 
 const CONTROL_KEYS: Array<keyof MusicControls> = [
@@ -68,10 +69,14 @@ export function parentFromRecipe(recipe: MusicSeedRecipe): MusicBreedingParent {
     },
     mechanismIds: uniqueValidMechanisms(recipe.mechanismIds),
     controls: recipeControls(recipe),
+    mechanismFitness: {},
   };
 }
 
-export function parentFromGenome(genome: MusicBredGenome): MusicBreedingParent {
+export function parentFromGenome(
+  genome: MusicBredGenome,
+  mechanismFitness: Record<string, number> = {}
+): MusicBreedingParent {
   return {
     ref: {
       id: genome.id,
@@ -81,6 +86,7 @@ export function parentFromGenome(genome: MusicBredGenome): MusicBreedingParent {
     },
     mechanismIds: uniqueValidMechanisms(genome.mechanismIds),
     controls: normalizeMusicControls(genome.controls),
+    mechanismFitness: { ...mechanismFitness },
   };
 }
 
@@ -103,6 +109,26 @@ function shuffled<T>(items: T[], rng: () => number): T[] {
     [out[i], out[j]] = [out[j], out[i]];
   }
   return out;
+}
+
+function mechanismFitnessScore(parent: MusicBreedingParent, id: string): number {
+  const raw = Number(parent.mechanismFitness?.[id] || 0);
+  if (!Number.isFinite(raw)) return 0;
+  return Math.max(-1, Math.min(1, raw));
+}
+
+function fitnessOrdered(
+  ids: string[],
+  parent: MusicBreedingParent,
+  rng: () => number
+): string[] {
+  return ids
+    .map((id) => ({
+      id,
+      score: mechanismFitnessScore(parent, id) * 8 + rng(),
+    }))
+    .sort((a, b) => b.score - a.score)
+    .map((entry) => entry.id);
 }
 
 function closestControlInvariant(a: MusicControls, b: MusicControls): { key: keyof MusicControls; value: number; label: string } {
@@ -132,7 +158,16 @@ function chooseInvariant(
 } {
   const sharedIds = a.mechanismIds.filter((id) => b.mechanismIds.includes(id));
   if (sharedIds.length > 0) {
-    const id = choose(shuffled(sharedIds, rng), rng);
+    const sharedIdsRanked = sharedIds
+      .map((id) => ({
+        id,
+        score:
+          mechanismFitnessScore(a, id) +
+          mechanismFitnessScore(b, id) +
+          rng() * 0.2,
+      }))
+      .sort((x, y) => y.score - x.score);
+    const id = sharedIdsRanked[0].id;
     const mech = getMusicMechanism(id)!;
     return {
       text: 'Shared invariant: ' + mech.name + ' survives the crossover unchanged.',
@@ -146,9 +181,32 @@ function chooseInvariant(
     b.mechanismIds.some((id) => getMusicMechanism(id)?.family === family)
   );
   if (sharedFamilies.length > 0) {
-    const family = choose(shuffled(sharedFamilies, rng), rng);
-    const fromA = shuffled(a.mechanismIds.filter((id) => getMusicMechanism(id)?.family === family), rng)[0];
-    const fromB = shuffled(b.mechanismIds.filter((id) => getMusicMechanism(id)?.family === family), rng)[0];
+    const rankedFamilies = sharedFamilies
+      .map((family) => {
+        const aBest = Math.max(
+          ...a.mechanismIds
+            .filter((id) => getMusicMechanism(id)?.family === family)
+            .map((id) => mechanismFitnessScore(a, id))
+        );
+        const bBest = Math.max(
+          ...b.mechanismIds
+            .filter((id) => getMusicMechanism(id)?.family === family)
+            .map((id) => mechanismFitnessScore(b, id))
+        );
+        return { family, score: aBest + bBest + rng() * 0.2 };
+      })
+      .sort((x, y) => y.score - x.score);
+    const family = rankedFamilies[0].family;
+    const fromA = fitnessOrdered(
+      a.mechanismIds.filter((id) => getMusicMechanism(id)?.family === family),
+      a,
+      rng
+    )[0];
+    const fromB = fitnessOrdered(
+      b.mechanismIds.filter((id) => getMusicMechanism(id)?.family === family),
+      b,
+      rng
+    )[0];
     return {
       text:
         'Shared invariant: the ' +
@@ -338,8 +396,8 @@ export function breedMusicGenome(
   const targetBase = Math.round((idsA.length + idsB.length) / 2);
   const targetSize = Math.max(3, Math.min(7, targetBase + (rng() < 0.25 ? -1 : rng() > 0.8 ? 1 : 0)));
 
-  const remainingA = shuffled(idsA.filter((id) => !child.includes(id)), rng);
-  const remainingB = shuffled(idsB.filter((id) => !child.includes(id)), rng);
+  const remainingA = fitnessOrdered(idsA.filter((id) => !child.includes(id)), parentA, rng);
+  const remainingB = fitnessOrdered(idsB.filter((id) => !child.includes(id)), parentB, rng);
 
   if (!inheritedFromA.length && remainingA.length) {
     const id = remainingA.shift()!;

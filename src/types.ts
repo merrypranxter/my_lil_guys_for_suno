@@ -254,6 +254,26 @@ export interface MusicBredGenome {
   lineage: MusicGenomeLineage;
 }
 
+export type GenomePromotionReason =
+  | 'starred-run'
+  | 'manual-promotion'
+  | 'petri-survivor'
+  | 'legacy';
+
+export interface GenomeFitnessRecord {
+  phenotypeSignature: string;
+  genomeIds: string[];
+  approved: boolean;
+  approvalCount: number;
+  likedMechanismIds: string[];
+  dislikedMechanismIds: string[];
+  sourceRunIds: string[];
+  note: string;
+  reason: GenomePromotionReason;
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface PetriDishParentSnapshot {
   ref: MusicGenomeParentRef;
   mechanismIds: string[];
@@ -399,4 +419,6 @@ export interface ArchivedRun {
   starred: boolean;
   feedback: string;
   feedbackTags?: string[];
+  likedMechanismIds?: string[];
+  dislikedMechanismIds?: string[];
 }

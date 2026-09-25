@@ -1,7 +1,7 @@
-import { ArchivedRun, CompositionFavorite, CompositionPreset, MusicBredGenome, MusicControls, MusicFingerprint, MusicStackItem, PetriDishExperiment, RealityChaosLevel, RecentCompositionBuild, SavedStack } from '../types';
+import { ArchivedRun, CompositionFavorite, CompositionPreset, GenomeFitnessRecord, GenomePromotionReason, MusicBredGenome, MusicControls, MusicFingerprint, MusicStackItem, PetriDishExperiment, RealityChaosLevel, RecentCompositionBuild, SavedStack } from '../types';
 import { fingerprintToLine } from '../data/musicTaxonomy';
 import { getCompositionEngine, normalizeCompositionEngineIds } from '../data/compositionEngines';
-import { DEFAULT_MUSIC_CONTROLS, compileMusicStack, normalizeMusicControls, normalizeMusicGenome, normalizeMusicStack, summarizeMusicStack } from '../data/musicSeedSystem';
+import { DEFAULT_MUSIC_CONTROLS, compileMusicStack, getMusicMechanism, musicGenomePhenotypeSignature, normalizeMusicControls, normalizeMusicGenome, normalizeMusicStack, summarizeMusicStack } from '../data/musicSeedSystem';
 import { normalizePetriDishExperiment } from './petriDish';
 
 const STORAGE_KEYS = {
@@ -12,6 +12,7 @@ const STORAGE_KEYS = {
   LAST_MUSIC_STACK: 'lgm_last_music_stack_v1',
   MUSIC_CONTROLS: 'lgm_music_controls_v1',
   BRED_MUSIC_GENOMES: 'lgm_bred_music_genomes_v1',
+  GENOME_FITNESS: 'lgm_genome_fitness_v1',
   PETRI_DISHES: 'lgm_petri_dishes_v1',
   LOCKED_COMPOSITION_ENGINES: 'lgm_locked_composition_engines_v1',
   COMPOSITION_FAVORITES: 'lgm_composition_favorites_v1',
@@ -179,6 +180,142 @@ export function setSavedMusicControls(controls: MusicControls): void {
 }
 
 
+
+function validMechanismIds(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return Array.from(new Set(
+    value.filter(
+      (item: unknown): item is string =>
+        typeof item === 'string' && Boolean(getMusicMechanism(item))
+    )
+  )).slice(0, 24);
+}
+
+function normalizeGenomeFitnessRecord(value: unknown): GenomeFitnessRecord | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const raw = value as any;
+  const phenotypeSignature =
+    typeof raw.phenotypeSignature === 'string' ? raw.phenotypeSignature.trim().slice(0, 160) : '';
+  if (!phenotypeSignature) return undefined;
+
+  const reasons: GenomePromotionReason[] = ['starred-run', 'manual-promotion', 'petri-survivor', 'legacy'];
+  const reason: GenomePromotionReason = reasons.includes(raw.reason) ? raw.reason : 'legacy';
+  const now = Date.now();
+
+  return {
+    phenotypeSignature,
+    genomeIds: Array.isArray(raw.genomeIds)
+      ? Array.from(new Set<string>(raw.genomeIds.filter((id: unknown): id is string => typeof id === 'string' && Boolean(id.trim())))).slice(0, 40)
+      : [],
+    approved: raw.approved !== false,
+    approvalCount: Math.max(1, Math.min(999, Number.isFinite(Number(raw.approvalCount)) ? Math.round(Number(raw.approvalCount)) : 1)),
+    likedMechanismIds: validMechanismIds(raw.likedMechanismIds),
+    dislikedMechanismIds: validMechanismIds(raw.dislikedMechanismIds),
+    sourceRunIds: Array.isArray(raw.sourceRunIds)
+      ? Array.from(new Set<string>(raw.sourceRunIds.filter((id: unknown): id is string => typeof id === 'string' && Boolean(id.trim())))).slice(0, 80)
+      : [],
+    note: typeof raw.note === 'string' ? raw.note.slice(0, 1600) : '',
+    reason,
+    createdAt: Number.isFinite(Number(raw.createdAt)) ? Number(raw.createdAt) : now,
+    updatedAt: Number.isFinite(Number(raw.updatedAt)) ? Number(raw.updatedAt) : now,
+  };
+}
+
+export function getGenomeFitnessRecords(): GenomeFitnessRecord[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.GENOME_FITNESS);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((item) => normalizeGenomeFitnessRecord(item))
+      .filter((item): item is GenomeFitnessRecord => Boolean(item))
+      .sort((a, b) => b.updatedAt - a.updatedAt)
+      .slice(0, 240);
+  } catch {
+    return [];
+  }
+}
+
+function writeGenomeFitnessRecords(records: GenomeFitnessRecord[]): GenomeFitnessRecord[] {
+  const normalized = records
+    .map((item) => normalizeGenomeFitnessRecord(item))
+    .filter((item): item is GenomeFitnessRecord => Boolean(item));
+  const deduped = normalized
+    .filter((item, index, all) =>
+      all.findIndex((candidate) => candidate.phenotypeSignature === item.phenotypeSignature) === index
+    )
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .slice(0, 240);
+
+  try {
+    localStorage.setItem(STORAGE_KEYS.GENOME_FITNESS, JSON.stringify(deduped));
+  } catch {
+    // ignore
+  }
+  return deduped;
+}
+
+export function getGenomeFitnessRecord(genomeOrSignature: MusicBredGenome | string): GenomeFitnessRecord | undefined {
+  const signature =
+    typeof genomeOrSignature === 'string'
+      ? genomeOrSignature
+      : musicGenomePhenotypeSignature(genomeOrSignature);
+  if (!signature) return undefined;
+  return getGenomeFitnessRecords().find((record) => record.phenotypeSignature === signature);
+}
+
+export function upsertGenomeFitness(
+  genome: MusicBredGenome,
+  options: {
+    reason?: GenomePromotionReason;
+    likedMechanismIds?: string[];
+    dislikedMechanismIds?: string[];
+    sourceRunId?: string;
+    note?: string;
+  } = {}
+): GenomeFitnessRecord | undefined {
+  const normalized = normalizeMusicGenome(genome);
+  if (!normalized) return undefined;
+  const phenotypeSignature = musicGenomePhenotypeSignature(normalized);
+  if (!phenotypeSignature) return undefined;
+
+  const current = getGenomeFitnessRecords();
+  const existing = current.find((item) => item.phenotypeSignature === phenotypeSignature);
+  const liked = validMechanismIds(options.likedMechanismIds)
+    .filter((id) => normalized.mechanismIds.includes(id));
+  const disliked = validMechanismIds(options.dislikedMechanismIds)
+    .filter((id) => normalized.mechanismIds.includes(id) && !liked.includes(id));
+  const now = Date.now();
+
+  const next: GenomeFitnessRecord = {
+    phenotypeSignature,
+    genomeIds: Array.from(new Set([normalized.id, ...(existing?.genomeIds || [])])),
+    approved: true,
+    approvalCount: Math.min(999, (existing?.approvalCount || 0) + 1),
+    likedMechanismIds: Array.from(new Set([...(existing?.likedMechanismIds || []), ...liked]))
+      .filter((id) => !disliked.includes(id)),
+    dislikedMechanismIds: Array.from(new Set([...(existing?.dislikedMechanismIds || []), ...disliked]))
+      .filter((id) => !liked.includes(id)),
+    sourceRunIds: Array.from(new Set([
+      ...(options.sourceRunId ? [options.sourceRunId] : []),
+      ...(existing?.sourceRunIds || []),
+    ])).slice(0, 80),
+    note: options.note?.trim()
+      ? options.note.trim().slice(0, 1600)
+      : existing?.note || '',
+    reason: options.reason || existing?.reason || 'manual-promotion',
+    createdAt: existing?.createdAt || now,
+    updatedAt: now,
+  };
+
+  writeGenomeFitnessRecords([
+    next,
+    ...current.filter((item) => item.phenotypeSignature !== phenotypeSignature),
+  ]);
+  return next;
+}
+
 export function getBredMusicGenomes(): MusicBredGenome[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.BRED_MUSIC_GENOMES);
@@ -217,6 +354,49 @@ export function saveBredMusicGenome(genome: MusicBredGenome): MusicBredGenome[] 
   const current = getBredMusicGenomes().filter((item) => item.id !== normalized.id);
   return writeBredMusicGenomes([normalized, ...current]);
 }
+
+export function promoteBredMusicGenome(
+  genome: MusicBredGenome,
+  options: {
+    reason?: GenomePromotionReason;
+    likedMechanismIds?: string[];
+    dislikedMechanismIds?: string[];
+    sourceRunId?: string;
+    note?: string;
+  } = {}
+): MusicBredGenome[] {
+  const normalized = normalizeMusicGenome(genome);
+  if (!normalized) return getBredMusicGenomes();
+  upsertGenomeFitness(normalized, options);
+  return saveBredMusicGenome(normalized);
+}
+
+export function promoteGenomesFromRun(run: ArchivedRun): number {
+  if (!run.starred) return 0;
+  const seen = new Set<string>();
+  let promoted = 0;
+
+  for (const item of normalizeMusicStack(run.musicStack || [])) {
+    if (item.kind !== 'genome' || !item.genome) continue;
+    const genome = normalizeMusicGenome(item.genome);
+    if (!genome) continue;
+    const signature = musicGenomePhenotypeSignature(genome);
+    if (!signature || seen.has(signature)) continue;
+    seen.add(signature);
+
+    promoteBredMusicGenome(genome, {
+      reason: 'starred-run',
+      likedMechanismIds: run.likedMechanismIds || [],
+      dislikedMechanismIds: run.dislikedMechanismIds || [],
+      sourceRunId: run.id,
+      note: run.feedback,
+    });
+    promoted += 1;
+  }
+
+  return promoted;
+}
+
 
 export function deleteBredMusicGenome(id: string): MusicBredGenome[] {
   return writeBredMusicGenomes(getBredMusicGenomes().filter((item) => item.id !== id));
@@ -511,6 +691,8 @@ export function getRunArchive(): ArchivedRun[] {
       musicStack: normalizeMusicStack(run?.musicStack),
       musicControls: normalizeMusicControls(run?.musicControls),
       feedbackTags: Array.isArray(run?.feedbackTags) ? run.feedbackTags.filter((tag: unknown) => typeof tag === 'string') : [],
+      likedMechanismIds: validMechanismIds(run?.likedMechanismIds),
+      dislikedMechanismIds: validMechanismIds(run?.dislikedMechanismIds),
     }));
   } catch (e) {
     console.error('Failed to load run archive', e);
@@ -585,36 +767,74 @@ export function getLikedPreferenceSignals(limit = 10): string[] {
 
 export function getMusicPreferenceSignals(limit = 8): string[] {
   return getRunArchive()
-    .filter((run) => run.starred && (run.musicStack?.length || run.feedbackTags?.length))
+    .filter((run) => run.starred && (run.musicStack?.length || run.feedbackTags?.length || run.likedMechanismIds?.length || run.dislikedMechanismIds?.length))
     .slice(0, limit)
     .map((run) => {
       const stack = summarizeMusicStack(run.musicStack || [], run.musicControls);
       const tags = run.feedbackTags?.length ? ' User tagged: ' + run.feedbackTags.join(', ') + '.' : '';
+      const liked = run.likedMechanismIds?.length ? ' Breed-positive mechanisms: ' + run.likedMechanismIds.join(', ') + '.' : '';
+      const disliked = run.dislikedMechanismIds?.length ? ' Suppress-inheritance mechanisms: ' + run.dislikedMechanismIds.join(', ') + '.' : '';
       const note = run.feedback.trim() ? ' User note: ' + run.feedback.trim() : '';
-      return 'MUSIC MECHANISM FAVORITE — ' + stack + '.' + tags + note;
+      return 'MUSIC FITNESS SIGNAL — ' + stack + '.' + tags + liked + disliked + note;
     });
 }
 
-export function getLikedMusicMechanismWeights(limit = 40): Record<string, number> {
-  const weights: Record<string, number> = {};
+export function getMusicMechanismFitnessScores(limit = 60): Record<string, number> {
+  const scores: Record<string, number> = {};
   const starred = getRunArchive().filter((run) => run.starred).slice(0, limit);
 
   for (const run of starred) {
+    const liked = validMechanismIds(run.likedMechanismIds);
+    const disliked = validMechanismIds(run.dislikedMechanismIds);
+    const explicit = liked.length > 0 || disliked.length > 0;
+
+    if (explicit) {
+      for (const id of liked) scores[id] = (scores[id] || 0) + 2.0;
+      for (const id of disliked) scores[id] = (scores[id] || 0) - 2.5;
+      continue;
+    }
+
+    // A whole-run star with no trait selection is weak evidence, not permission
+    // to make every active mechanism genetically dominant forever.
     const compiled = compileMusicStack(run.musicStack || [], run.musicControls);
-    const tagBoost = run.feedbackTags?.length ? 1.25 : 1;
-    const noteBoost = run.feedback.trim() ? 1.2 : 1;
     for (const entry of compiled.mechanisms) {
-      const strengthBoost = 0.6 + entry.strength / 100;
-      weights[entry.mechanism.id] = (weights[entry.mechanism.id] || 0) + strengthBoost * tagBoost * noteBoost;
+      scores[entry.mechanism.id] = (scores[entry.mechanism.id] || 0) + 0.25;
     }
   }
 
-  const max = Math.max(0, ...Object.values(weights));
-  if (max <= 0) return weights;
-  for (const id of Object.keys(weights)) {
-    weights[id] = Math.round((weights[id] / max) * 100) / 100;
+  const maxAbs = Math.max(0, ...Object.values(scores).map((value) => Math.abs(value)));
+  if (maxAbs <= 0) return scores;
+  for (const id of Object.keys(scores)) {
+    scores[id] = Math.round((scores[id] / maxAbs) * 100) / 100;
   }
-  return weights;
+  return scores;
+}
+
+export function getGenomeMechanismFitness(genome: MusicBredGenome): Record<string, number> {
+  const normalized = normalizeMusicGenome(genome);
+  if (!normalized) return {};
+
+  const global = getMusicMechanismFitnessScores();
+  const record = getGenomeFitnessRecord(normalized);
+  const out: Record<string, number> = {};
+
+  for (const id of normalized.mechanismIds) {
+    let score = global[id] || 0;
+    if (record?.likedMechanismIds.includes(id)) score += 1;
+    if (record?.dislikedMechanismIds.includes(id)) score -= 1;
+    out[id] = Math.max(-1, Math.min(1, Math.round(score * 100) / 100));
+  }
+
+  return out;
+}
+
+export function getLikedMusicMechanismWeights(limit = 60): Record<string, number> {
+  const signed = getMusicMechanismFitnessScores(limit);
+  const positive: Record<string, number> = {};
+  for (const [id, score] of Object.entries(signed)) {
+    if (score > 0) positive[id] = score;
+  }
+  return positive;
 }
 
 export function getLikedMindWeights(limit = 30): Record<string, number> {
@@ -684,6 +904,8 @@ export function runToMarkdown(run: ArchivedRun): string {
     '**Starred:** ' + (run.starred ? 'YES ★' : 'No'),
     '**Feedback:** ' + feedback,
     '**Feedback tags:** ' + (run.feedbackTags?.length ? run.feedbackTags.join(', ') : 'None'),
+    '**Breed-positive mechanisms:** ' + (run.likedMechanismIds?.length ? run.likedMechanismIds.join(', ') : 'None'),
+    '**Suppress-inheritance mechanisms:** ' + (run.dislikedMechanismIds?.length ? run.dislikedMechanismIds.join(', ') : 'None'),
     '**Musical fingerprint:** ' + fingerprint,
     '**Character counts:** style ' + run.charCounts.style + ' / lyrics ' + run.charCounts.lyrics + ' / caption ' + run.charCounts.caption,
     '',
