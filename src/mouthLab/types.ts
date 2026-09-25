@@ -98,6 +98,20 @@ export interface MouthMutationEvent {
   amount: number;
 }
 
+export type MouthMutationCurveShape = 'linear' | 'step' | 'exponential' | 'oscillating';
+
+export interface MouthMutationCurve {
+  id: string;
+  targetType: MouthDynamicTargetType;
+  targetId: string;
+  startPercent: number;
+  endPercent: number;
+  startStrength: number;
+  endStrength: number;
+  shape: MouthMutationCurveShape;
+  castRole?: MouthCastRole;
+}
+
 export type MouthTransductionDirection = 'languageToMusic' | 'musicToLanguage';
 
 export type MouthMusicVariable =
@@ -124,6 +138,7 @@ export interface MouthTransductionRule {
 export interface MouthDynamics {
   castProfiles: MouthCastProfile[];
   expressionRules: MouthExpressionRule[];
+  mutationCurves: MouthMutationCurve[];
   timeline: MouthMutationEvent[];
   transductions: MouthTransductionRule[];
 }
