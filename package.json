@@ -16,7 +16,8 @@
     "verify:minds": "tsx scripts/verifyMindActivation.ts",
     "verify:jurisdictions": "tsx scripts/verifyJurisdictions.ts",
     "verify:genome-surgery": "tsx scripts/verifyGenomeSurgery.ts",
-    "verify:fitness": "tsx scripts/verifyFitnessSelection.ts"
+    "verify:fitness": "tsx scripts/verifyFitnessSelection.ts",
+    "verify:saturation": "tsx scripts/verifySuccessSaturation.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
