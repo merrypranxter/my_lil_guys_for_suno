@@ -36,6 +36,7 @@ import {
   parentFromGenome,
   parentFromRecipe,
 } from '../lib/musicBreeding';
+import { applySuccessSaturation } from '../lib/noveltyPressure';
 import {
   deleteBredMusicGenome,
   getBredMusicGenomes,
@@ -49,6 +50,7 @@ interface MusicSeedLabPanelProps {
   controls: MusicControls;
   onControlsChange: (controls: MusicControls) => void;
   preferenceWeights?: Record<string, number>;
+  noveltySaturation?: Record<string, number>;
 }
 
 function makeItem(kind: 'recipe' | 'mechanism', refId: string, strength = 72): MusicStackItem {
@@ -134,6 +136,7 @@ export function MusicSeedLabPanel({
   controls,
   onControlsChange,
   preferenceWeights = {},
+  noveltySaturation = {},
 }: MusicSeedLabPanelProps) {
   const [expanded, setExpanded] = useState(true);
   const [showRecipes, setShowRecipes] = useState(true);
@@ -149,6 +152,19 @@ export function MusicSeedLabPanel({
   const [lastBredGenome, setLastBredGenome] = useState<MusicBredGenome | null>(null);
   const [stackNotice, setStackNotice] = useState<string | null>(null);
   const compiled = useMemo(() => compileMusicStack(stack, controls), [stack, controls]);
+  const selectionScore = (mechanismId: string) =>
+    applySuccessSaturation(preferenceWeights[mechanismId] || 0, noveltySaturation[mechanismId] || 0);
+  const recipeFreshness = (recipeId: string) => {
+    const recipe = getMusicSeedRecipe(recipeId);
+    if (!recipe || recipe.mechanismIds.length === 0) return 1;
+    const average =
+      recipe.mechanismIds.reduce((sum, id) => sum + (noveltySaturation[id] || 0), 0) /
+      recipe.mechanismIds.length;
+    return 1 - average;
+  };
+  const coolingMechanisms = MUSIC_MECHANISMS
+    .filter((mechanism) => (noveltySaturation[mechanism.id] || 0) >= 0.72)
+    .sort((a, b) => (noveltySaturation[b.id] || 0) - (noveltySaturation[a.id] || 0));
 
   const updateItem = (instanceId: string, patch: Partial<MusicStackItem>) => {
     onChange(stack.map((item) => item.instanceId === instanceId ? { ...item, ...patch } : item));
@@ -289,11 +305,15 @@ export function MusicSeedLabPanel({
   const rerollItem = (item: MusicStackItem) => {
     if (item.locked || item.kind === 'genome') return;
     if (item.kind === 'recipe') {
-      const pool = MUSIC_SEED_RECIPES.filter((recipe) => recipe.id !== item.refId);
+      const ranked = MUSIC_SEED_RECIPES
+        .filter((recipe) => recipe.id !== item.refId)
+        .sort((a, b) => recipeFreshness(b.id) - recipeFreshness(a.id));
+      const pool = ranked.slice(0, Math.max(3, Math.ceil(ranked.length * 0.6)));
       if (!pool.length) return;
       const next = pool[Math.floor(Math.random() * pool.length)];
       updateItem(item.instanceId, { refId: next.id });
       onControlsChange(blendRecipeControls(controls, next.defaultControls, false));
+      setStackNotice('Recipe reroll used success saturation: recent overexposed mechanism bundles were deprioritized, not banned.');
       return;
     }
 
@@ -301,8 +321,8 @@ export function MusicSeedLabPanel({
     const sameFamily = current
       ? MUSIC_MECHANISMS.filter((mechanism) => mechanism.family === current.family && mechanism.id !== current.id)
       : MUSIC_MECHANISMS.filter((mechanism) => mechanism.id !== item.refId);
-    const weighted = [...sameFamily].sort((a, b) => (preferenceWeights[b.id] || 0) - (preferenceWeights[a.id] || 0));
-    const pool = weighted.slice(0, Math.max(3, Math.ceil(weighted.length * 0.7)));
+    const weighted = [...sameFamily].sort((a, b) => selectionScore(b.id) - selectionScore(a.id));
+    const pool = weighted.slice(0, Math.max(3, Math.ceil(weighted.length * 0.65)));
     if (!pool.length) return;
     updateItem(item.instanceId, { refId: pool[Math.floor(Math.random() * pool.length)].id });
   };
@@ -313,10 +333,11 @@ export function MusicSeedLabPanel({
 
   const stemmySurprise = () => {
     const locked = stack.filter((item) => item.locked);
-    const candidates = MUSIC_MECHANISMS
+    const ranked = MUSIC_MECHANISMS
       .filter((mechanism) => mechanism.stemValue >= 4)
-      .sort((a, b) => (preferenceWeights[b.id] || 0) - (preferenceWeights[a.id] || 0));
-    const shuffled = [...candidates].sort(() => 0.5 - Math.random()).slice(0, 4);
+      .sort((a, b) => selectionScore(b.id) - selectionScore(a.id));
+    const candidatePool = ranked.slice(0, Math.max(6, Math.ceil(ranked.length * 0.6)));
+    const shuffled = [...candidatePool].sort(() => 0.5 - Math.random()).slice(0, 4);
     onChange([...locked, ...shuffled.map((mechanism) => makeItem('mechanism', mechanism.id, 82))]);
     onControlsChange(normalizeMusicControls({
       ...controls,
@@ -352,6 +373,24 @@ export function MusicSeedLabPanel({
 
       {expanded && (
         <div className="border-t border-[#2b2230] p-4 md:p-5 space-y-5">
+          {coolingMechanisms.length > 0 && (
+            <div className="rounded-lg border border-[#00f0ff]/30 bg-[#071a20] px-3 py-2.5 font-mono">
+              <div className="text-[10px] font-black tracking-[0.12em] text-[#7eeeff]">
+                SUCCESS SATURATION / COOLDOWN
+              </div>
+              <div className="mt-1 text-[10px] leading-relaxed text-[#76aab8]">
+                {coolingMechanisms.length} recently overexposed trait{coolingMechanisms.length === 1 ? '' : 's'} are temporarily deprioritized in automatic rerolls, surprise rolls, and inheritance. Manual selection still wins.
+              </div>
+              <div className="mt-2 flex flex-wrap gap-1.5">
+                {coolingMechanisms.slice(0, 6).map((mechanism) => (
+                  <span key={mechanism.id} className="rounded-full border border-[#214b57] bg-[#0b252d] px-2 py-1 text-[9px] text-[#9deeff]">
+                    {mechanism.name} {Math.round((noveltySaturation[mechanism.id] || 0) * 100)}%
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
           {(stackNotice || compiled.suppressedDuplicates.length > 0) && (
             <div className="rounded-lg border border-[#f59e0b]/35 bg-[#231706] px-3 py-2.5 font-mono">
               <div className="text-[10px] font-black tracking-[0.12em] text-[#fbbf24]">
@@ -441,7 +480,12 @@ export function MusicSeedLabPanel({
                     <div className="text-xs font-mono font-black text-white">{recipe.name}</div>
                     <div className="mt-1 text-[11px] leading-snug text-[#d1a9ca]">{recipe.startHere}</div>
                     <div className="mt-1.5 text-[10px] leading-snug text-[#748096]">{recipe.description}</div>
-                    <div className="mt-2 text-[9px] font-mono text-[#5f687a]">{recipe.mechanismIds.length} bundled mechanisms</div>
+                    <div className="mt-2 flex items-center justify-between gap-2 text-[9px] font-mono text-[#5f687a]">
+                      <span>{recipe.mechanismIds.length} bundled mechanisms</span>
+                      {recipeFreshness(recipe.id) < 0.35 && (
+                        <span className="rounded border border-[#285264] bg-[#0b2028] px-1.5 py-0.5 text-[#7eeeff]">COOLING</span>
+                      )}
+                    </div>
                   </button>
                 ))}
               </div>
@@ -634,6 +678,7 @@ export function MusicSeedLabPanel({
                       >
                         + {mechanism.name}
                         {preferenceWeights[mechanism.id] ? <span className="ml-1 text-[#ffd84d]">★</span> : null}
+                        {(noveltySaturation[mechanism.id] || 0) >= 0.72 ? <span className="ml-1 text-[#7eeeff]">↻</span> : null}
                       </button>
                     ))}
                   </div>
@@ -646,7 +691,7 @@ export function MusicSeedLabPanel({
             <div className="mb-2 flex items-center justify-between gap-2">
               <div>
                 <div className="text-[10px] font-mono font-black tracking-[0.18em] text-white">YOUR MUSICAL STACK</div>
-                <div className="text-[10px] font-mono text-[#69758a]">Order matters. Recipes expand into mechanisms; duplicate mechanisms reinforce instead of cloning text.</div>
+                <div className="text-[10px] font-mono text-[#69758a]">Order matters. Duplicates do not secretly vote. ↻ means recently overexposed: automatic selection cools it down, but manual choices remain sovereign.</div>
               </div>
               <button
                 type="button"
