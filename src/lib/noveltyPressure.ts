@@ -25,6 +25,37 @@ export interface FingerprintExposureStat {
   state: SaturationState;
 }
 
+export interface SemanticExposureStat {
+  term: string;
+  appearances: number;
+  weightedExposure: number;
+  saturation: number;
+  state: SaturationState;
+}
+
+const SEMANTIC_SELF_REFERENCE_WATCHLIST = [
+  'ontology',
+  'ontological',
+  'taxonomy',
+  'taxonomic',
+  'primitive',
+  'axiom',
+  'grammar',
+  'ledger',
+  'jurisdiction',
+  'constraint',
+  'invariant',
+  'mechanism',
+  'procedure',
+  'system',
+  'structure',
+  'absence',
+  'void',
+  'scar',
+  'feedback',
+  'protocol',
+];
+
 function clamp01(value: number): number {
   return Math.max(0, Math.min(1, value));
 }
@@ -205,4 +236,51 @@ export function buildMechanismNoveltySignals(runs: ArchivedRun[], limit = 8): st
         '. It remains legal when explicitly selected, but automatic selection/reinforcement should prefer fresher traits. If it stays, change its partners and at least two surrounding musical dimensions.'
       );
     });
+}
+
+
+function containsWholeTerm(text: string, term: string): boolean {
+  return new RegExp('\\b' + term + '\\b', 'i').test(text);
+}
+
+export function analyzeSemanticClicheExposure(
+  runs: ArchivedRun[],
+  limit = NOVELTY_WINDOW
+): SemanticExposureStat[] {
+  const recent = runs.slice(0, Math.max(1, Math.min(limit, NOVELTY_WINDOW)));
+  const denominator = exposureDenominator();
+
+  return SEMANTIC_SELF_REFERENCE_WATCHLIST
+    .map((term) => {
+      let appearances = 0;
+      let weighted = 0;
+      recent.forEach((run, index) => {
+        const text = [run.style, run.lyrics, run.caption].join('\n');
+        if (!containsWholeTerm(text, term)) return;
+        appearances += 1;
+        weighted += RECENCY_WEIGHTS[index] || 0;
+      });
+      const saturation = clamp01(denominator > 0 ? weighted / denominator : 0);
+      return {
+        term,
+        appearances,
+        weightedExposure: Math.round(weighted * 100) / 100,
+        saturation: Math.round(saturation * 100) / 100,
+        state: stateFor(saturation),
+      };
+    })
+    .filter((entry) => entry.appearances > 0)
+    .sort((a, b) => b.saturation - a.saturation || b.appearances - a.appearances);
+}
+
+export function buildSemanticNoveltySignals(runs: ArchivedRun[], limit = 8): string[] {
+  return analyzeSemanticClicheExposure(runs, limit)
+    .filter((entry) => entry.state === 'saturated' || entry.state === 'cooling')
+    .slice(0, 5)
+    .map((entry) =>
+      'SEMANTIC SELF-REFERENCE COOLDOWN — "' + entry.term + '" appeared in ' +
+      entry.appearances + ' of the last ' + Math.min(runs.length, limit, NOVELTY_WINDOW) +
+      ' runs (' + Math.round(entry.saturation * 100) + '% ' + entry.state.toUpperCase() +
+      '). Unless the sovereign seed explicitly needs this word, enact the underlying mechanism through concrete events instead of naming the architecture.'
+    );
 }
