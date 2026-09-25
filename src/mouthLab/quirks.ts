@@ -539,6 +539,7 @@ export function reidentifyMouthGenome(genome: MouthGenome): MouthGenome {
     quirks: canonicalQuirkInstances(genome.quirks).map(({ createdAt, ...item }) => item),
     mutationScars: genome.mutationScars.map(({ createdAt, ...item }) => item),
     linkedGeneBundles: genome.linkedGeneBundles.map(({ createdAt, ...item }) => item),
+    dynamics: genome.dynamics || undefined,
   });
 
   return {
