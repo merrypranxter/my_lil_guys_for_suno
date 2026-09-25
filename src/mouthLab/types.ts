@@ -39,6 +39,96 @@ export type MouthTraitRelationship =
 
 export type MouthResearchConfidence = 'high' | 'medium' | 'provisional';
 
+export type MouthCastRole =
+  | 'lead'
+  | 'narrator'
+  | 'crowd'
+  | 'smallGroup'
+  | 'freakVoice'
+  | 'response'
+  | 'whisper'
+  | 'choir';
+
+export type MouthExpressionState = 'dominant' | 'recessive' | 'latent' | 'triggered';
+
+export type MouthDynamicTargetType = 'trait' | 'quirk';
+
+export interface MouthCastProfile {
+  id: string;
+  role: MouthCastRole;
+  label: string;
+  sourceGenomeId?: string;
+  parentDonorIds: string[];
+  assignments: MouthJurisdictionAssignment[];
+  quirks: MouthQuirkInstance[];
+  intelligibility: number;
+  stability: number;
+  mutation: number;
+}
+
+export interface MouthExpressionRule {
+  id: string;
+  targetType: MouthDynamicTargetType;
+  targetId: string;
+  state: MouthExpressionState;
+  strength: number;
+  trigger?: string;
+  castRole?: MouthCastRole;
+}
+
+export type MouthMutationAction =
+  | 'activateTrait'
+  | 'suppressTrait'
+  | 'escalateTrait'
+  | 'activateQuirk'
+  | 'suppressQuirk'
+  | 'infectCast'
+  | 'swapCastMouth';
+
+export interface MouthMutationEvent {
+  id: string;
+  positionPercent: number;
+  sectionLabel?: string;
+  trigger?: string;
+  action: MouthMutationAction;
+  targetType?: MouthDynamicTargetType;
+  targetId?: string;
+  sourceCastRole?: MouthCastRole;
+  targetCastRole?: MouthCastRole;
+  amount: number;
+}
+
+export type MouthTransductionDirection = 'languageToMusic' | 'musicToLanguage';
+
+export type MouthMusicVariable =
+  | 'rhythm'
+  | 'melody'
+  | 'duration'
+  | 'timbre'
+  | 'dynamics'
+  | 'arrangement'
+  | 'harmony'
+  | 'density';
+
+export interface MouthTransductionRule {
+  id: string;
+  direction: MouthTransductionDirection;
+  source: string;
+  target: string;
+  mapping: string;
+  strength: number;
+  castRole?: MouthCastRole;
+  trigger?: string;
+}
+
+export interface MouthDynamics {
+  castProfiles: MouthCastProfile[];
+  expressionRules: MouthExpressionRule[];
+  timeline: MouthMutationEvent[];
+  transductions: MouthTransductionRule[];
+}
+
+
 export type MouthPromptMode = 'compact' | 'bracketed' | 'descriptive';
 
 export type MouthSemanticMode = 'inherit' | 'englishMeaningAlienMouth';
@@ -262,6 +352,7 @@ export interface MouthGenome {
   quirks: MouthQuirkInstance[];
   mutationScars: MouthMutationScar[];
   linkedGeneBundles: MouthLinkedGeneBundle[];
+  dynamics?: MouthDynamics;
   createdAt: number;
 }
 
