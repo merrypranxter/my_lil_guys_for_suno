@@ -3,6 +3,7 @@ import {
   MUSIC_SEED_RECIPES,
   compileMusicStack,
   getMusicMechanism,
+  musicGenomePhenotypeSignature,
   normalizeMusicStack,
 } from '../src/data/musicSeedSystem';
 import {
@@ -57,8 +58,17 @@ const compiled = compileMusicStack(normalizedStack, child1.controls);
 assert.equal(compiled.genomes.length, 1, 'Compiled stack should retain active genome metadata');
 assert.ok(compiled.mechanisms.length >= 3, 'Compiled genome should expand into its mechanisms');
 assert.ok(
-  compiled.interactions.some((line) => line.includes('GENOME LAW') && line.includes(child1.name)),
-  'Genome invariant/relationship law should reach interaction compiler'
+  compiled.interactions.some(
+    (line) =>
+      line.includes('GENOME PHENOTYPE LAW') &&
+      line.includes(musicGenomePhenotypeSignature(child1)) &&
+      line.includes(child1.lineage.relationshipLaw)
+  ),
+  'Genome phenotype invariant/relationship law should reach interaction compiler without relying on display name'
+);
+assert.ok(
+  !compiled.interactions.some((line) => line.includes(child1.name)),
+  'Genome display name should stay out of compiled generative interactions'
 );
 
 const secondGeneration = breedMusicGenome(parentFromGenome(child1), parentA, 'generation-two');

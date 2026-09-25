@@ -80,15 +80,21 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
 
 
   const compiledMusic = compileMusicStack(musicStack, musicControls);
-  const musicSeedBreakdown = compiledMusic.mechanisms.length || compiledMusic.recipes.length || compiledMusic.genomes.length
+  const suppressedDuplicateCount = compiledMusic.suppressedDuplicates.reduce((sum, item) => sum + item.count, 0);
+  const musicSeedBreakdown = compiledMusic.mechanisms.length || compiledMusic.recipes.length || compiledMusic.genomePhenotypes.length
     ? [
-        'ACTIVE RECIPE MACROS: ' + (compiledMusic.recipes.length ? compiledMusic.recipes.map((recipe) => recipe.name).join(' + ') : 'NONE — no built-in recipe macro active'),
-        'ACTIVE BRED GENOMES — MUSICAL PROVENANCE ONLY, NEVER LYRIC SUBJECT: ' + (compiledMusic.genomes.length
-          ? compiledMusic.genomes.map((genome) =>
-              genome.name + ' [G' + genome.generation + '] = ' +
-              genome.lineage.parentA.name + ' × ' + genome.lineage.parentB.name
+        'ACTIVE RECIPE MACROS: ' + (compiledMusic.recipes.length
+          ? compiledMusic.recipes.length + ' unique macro(s), expanded into mechanisms below. Display names withheld from generation to prevent semantic leakage.'
+          : 'NONE — no built-in recipe macro active'),
+        'ACTIVE BRED GENOME PHENOTYPES: ' + (compiledMusic.genomePhenotypes.length
+          ? compiledMusic.genomePhenotypes.map((phenotype, index) =>
+              'PHENOTYPE ' + (index + 1) + ' [' + phenotype.signature + '] — ' +
+              phenotype.mechanismIds.length + ' inherited musical genes'
             ).join(' | ')
           : 'NONE'),
+        'DUPLICATE SUPPRESSION: ' + (suppressedDuplicateCount
+          ? suppressedDuplicateCount + ' duplicate stack entr' + (suppressedDuplicateCount === 1 ? 'y was' : 'ies were') + ' suppressed. Duplicate copies NEVER increase strength; the strongest explicit copy wins.'
+          : 'No duplicate recipe, mechanism, or phenotype entries detected.'),
         'ACTIVE MUSICAL PHYSICS:',
         ...(compiledMusic.mechanisms.length
           ? compiledMusic.mechanisms.map((entry) =>
@@ -99,9 +105,9 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
           : ['NONE']),
         'GLOBAL MUSICAL PRESSURE:',
         ...musicControlsToDirectives(compiledMusic.controls).map((line) => '- ' + line),
-        'STACK INTERACTIONS:',
+        'STACK INTERACTIONS / PHENOTYPE LAWS:',
         ...(compiledMusic.interactions.length ? compiledMusic.interactions.map((line) => '- ' + line) : ['- No precomputed interaction; preserve every selected mechanism independently.']),
-        'COMPILER LAW: Recipes and bred genomes are starting musical physics, not genre or narrative presets. Do not paste their wording together. Expand them into mechanisms, preserve stack order and strength, and make overlapping mechanisms reinforce while incompatible mechanisms negotiate through separate jurisdictions. Genome relationship laws are inherited musical constraints and must create audible consequences. Genome names, parent names, ancestry labels, and lineage lore are provenance only and must never leak into subject matter, characters, setting, or lyrics.',
+        'COMPILER LAW: Recipe and genome display names are UI/genealogy metadata, not generative content. Only their compiled musical mechanisms, controls, invariant, and relationship law may reach generation. Duplicate macros/phenotypes are collapsed before compilation and may not secretly vote multiple times. To increase influence, use the explicit strength control instead of duplicate copies.',
       ].join('\n')
     : [
         'NO MUSIC SEED RECIPE OR MECHANISM STACK ACTIVE.',
@@ -316,7 +322,7 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
     '17. MUSICAL PHYSICS CHANGES THE COORDINATE SYSTEM. TUNING changes interval geometry; RHYTHM PHYSICS changes time organization; SPATIAL AUDIO changes physical placement and motion; ROLE EXCHANGE changes which musical system performs which job. These are causal laws, not vibe adjectives.\n' +
     '18. TIME / SCALE / KNOWLEDGE ARE SEPARATE JURISDICTIONS. TEMPORAL changes objective chronology; SCALE changes the level of causality and available operations; EPISTEMOLOGY changes information access/evidence. Do not confuse chronology with subjective altered-state time or knowledge access with attention/headspace.\n' +
     '19. STRUCTURE / CONTROL IS ENFORCEABLE. AUDIENCE FEEDBACK changes the piece through reaction; CONSTRAINTS define legality; ECONOMY defines scarcity and cost; FAILURE MODE defines breakage; CONTROL AUTHORITY defines who may decide; PROP carries state through a recurring physical object. These must create observable consequences.\n' +
-    '20. MUSIC SEED STACK IS PRECOMPILED MUSICAL PHYSICS, NOT A PRESET AND NOT A STORY GENERATOR. Recipe macros, bred genomes, and mechanism chips may stack. Preserve their separate jobs and strengths. If duplicate mechanisms arise through several ancestors, reinforce the underlying operation rather than repeating text. If mechanisms conflict, expose and negotiate the conflict instead of averaging them into mush. Bred genomes carry an invariant plus a relationship law; both must remain audible or structurally testable. Never turn lineage names or inherited mechanism labels into lyric content.\n' +
+    '20. MUSIC SEED STACK IS PRECOMPILED MUSICAL PHYSICS, NOT A PRESET AND NOT A STORY GENERATOR. Recipe macros, bred genomes, and mechanism chips may stack, but duplicate stack entries are collapsed before compilation and never receive hidden extra voting power. Genome display names, parent names, generations, and ancestry are UI-only provenance. Generation sees phenotype: mechanisms, controls, invariant, and relationship law. If mechanisms conflict, expose and negotiate the conflict instead of averaging them into mush.\n' +
     '21. STEMMINESS IS AN ARRANGEMENT VARIABLE, NOT A QUALITY SCORE. High stemminess requires register/role separation, local rather than universal wash, useful exposure windows, and parts that remain interesting when isolated. High kinetic density plus high stemminess means rapid events rotate through distinct actors instead of everybody playing constantly.\n' +
     '22. OUTPUT FORMAT: valid JSON with keys style, lyrics, caption, fingerprint. fingerprint must contain genreFamily, harmony, melody, rhythm, timbre, vocal, performance, production.\n\n' +
     'TARGET CHARACTER COUNTS INCLUDING SPACES AND LINE BREAKS:\n' +
