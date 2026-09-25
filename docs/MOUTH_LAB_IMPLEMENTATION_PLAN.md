@@ -1,6 +1,6 @@
 # Mouth Lab — implementation plan
 
-Status: JOB 2 BREEDER IMPLEMENTED
+Status: JOB 3 QUIRK ENGINE IMPLEMENTED
 
 Mouth Lab turns language profiles into transferable vocal machinery.
 
@@ -54,7 +54,7 @@ Acceptance:
 - no generic “Mayan”, “African”, “Asian”, or “Indigenous” donor;
 - source/caution metadata survives into the new layer.
 
-### Job 2 — BREEDER + CONFLICT MATRIX — IMPLEMENTED
+### Job 2 — BREEDER + CONFLICT MATRIX — COMPLETE
 
 Deliver:
 
@@ -66,7 +66,7 @@ Deliver:
 - trait-pressure system;
 - intelligibility and stability controls.
 
-### Job 3 — QUIRK ENGINE + SPECIMENS
+### Job 3 — QUIRK ENGINE + SPECIMENS — IMPLEMENTED
 
 Deliver:
 
