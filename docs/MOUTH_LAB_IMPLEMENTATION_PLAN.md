@@ -1,6 +1,6 @@
 # Mouth Lab — implementation plan
 
-Status: JOB 5 MOUTH LAB UI IMPLEMENTED
+Status: JOB 6 DYNAMIC MOUTHS IMPLEMENTED
 
 Mouth Lab turns language profiles into transferable vocal machinery.
 
@@ -94,7 +94,7 @@ Deliver:
 - English Meaning / Alien Mouth mode;
 - GenerationRequest integration while preserving old requests.
 
-### Job 5 — MOUTH LAB UI — IMPLEMENTED
+### Job 5 — MOUTH LAB UI — COMPLETE
 
 Deliver:
 
@@ -108,7 +108,7 @@ Deliver:
 - breeding-objective buttons;
 - genome/phenotype inspection.
 
-### Job 6 — DYNAMIC MOUTHS
+### Job 6 — DYNAMIC MOUTHS — IMPLEMENTED
 
 Deliver:
 
