@@ -5,6 +5,7 @@ import {
   MouthExpressionRule,
   MouthExpressionState,
   MouthGenome,
+  MouthJurisdictionAssignment,
   MouthMutationAction,
   MouthMutationCurve,
   MouthMutationCurveShape,
@@ -145,28 +146,29 @@ function normalizeCastProfile(value: unknown): MouthCastProfile | undefined {
       .filter((id: string) => Boolean(getMouthDonor(id))),
   ).slice(0, 6);
 
-  const assignments = (Array.isArray(raw.assignments) ? raw.assignments as unknown[] : [])
-    .map((value: unknown) => {
-      const assignment = value as any;
-      const traitIds = unique(
-        (Array.isArray(assignment?.traitIds) ? assignment.traitIds : [])
-          .map((id: unknown) => String(id))
-          .filter((id: string) => Boolean(getMouthTrait(id))),
-      ).sort();
-      if (!traitIds.length && assignment?.axis !== 'semantics') return undefined;
-      return {
-        axis: assignment.axis,
-        donorId: assignment.donorId && getMouthDonor(String(assignment.donorId))
-          ? String(assignment.donorId)
-          : undefined,
-        traitIds,
-        pressure: ['low', 'medium', 'high', 'obsessive'].includes(assignment?.pressure)
-          ? assignment.pressure
-          : 'medium',
-        locked: assignment?.locked === true,
-      };
-    })
-    .filter((item): item is MouthCastProfile['assignments'][number] => Boolean(item));
+  const assignments: MouthJurisdictionAssignment[] = [];
+  for (const value of (Array.isArray(raw.assignments) ? raw.assignments as unknown[] : [])) {
+    const assignment = value as any;
+    const traitIds = unique<string>(
+      (Array.isArray(assignment?.traitIds) ? assignment.traitIds as unknown[] : [])
+        .map((id: unknown) => String(id))
+        .filter((id: string) => Boolean(getMouthTrait(id))),
+    ).sort();
+
+    if (!traitIds.length && assignment?.axis !== 'semantics') continue;
+
+    assignments.push({
+      axis: assignment.axis,
+      ...(assignment.donorId && getMouthDonor(String(assignment.donorId))
+        ? { donorId: String(assignment.donorId) }
+        : {}),
+      traitIds,
+      pressure: ['low', 'medium', 'high', 'obsessive'].includes(assignment?.pressure)
+        ? assignment.pressure
+        : 'medium',
+      locked: assignment?.locked === true,
+    });
+  }
 
   if (!assignments.length) return undefined;
 
