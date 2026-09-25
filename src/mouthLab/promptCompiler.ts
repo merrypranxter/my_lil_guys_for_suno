@@ -241,8 +241,8 @@ export function normalizeMouthGenomeForGeneration(value: unknown): MouthGenome |
     mutation: clampMouthControl(raw.mutation, 35),
     breedingSeed: cleanText(raw.breedingSeed, 240) || 'normalized-mouth-seed',
     quirks,
-    mutationScars,
-    linkedGeneBundles,
+    mutationScars: mutationScars as MouthGenome['mutationScars'],
+    linkedGeneBundles: linkedGeneBundles as MouthGenome['linkedGeneBundles'],
     createdAt: Number.isFinite(raw.createdAt) ? Number(raw.createdAt) : Date.now(),
   };
 }
