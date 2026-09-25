@@ -526,7 +526,7 @@ function canonicalQuirkInstances(quirks: MouthQuirkInstance[]): MouthQuirkInstan
     );
 }
 
-function reidentifyGenome(genome: MouthGenome): MouthGenome {
+export function reidentifyMouthGenome(genome: MouthGenome): MouthGenome {
   const signature = stableStringify({
     parentDonorIds: genome.parentDonorIds,
     assignments: genome.assignments,
@@ -556,7 +556,7 @@ export function applyMouthQuirk(
   }
 
   const withoutSame = genome.quirks.filter((item) => item.quirkId !== quirk.quirkId);
-  return reidentifyGenome({
+  return reidentifyMouthGenome({
     ...genome,
     quirks: canonicalQuirkInstances([...withoutSame, quirk]),
     createdAt: Date.now(),
@@ -567,7 +567,7 @@ export function removeMouthQuirk(
   genome: MouthGenome,
   quirkId: string,
 ): MouthGenome {
-  return reidentifyGenome({
+  return reidentifyMouthGenome({
     ...genome,
     quirks: genome.quirks.filter((item) => item.quirkId !== quirkId),
     createdAt: Date.now(),
