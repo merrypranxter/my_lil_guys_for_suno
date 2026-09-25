@@ -1,26 +1,18 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  Atom,
-  Beaker,
   Biohazard,
-  BookOpen,
   BrainCircuit,
   Check,
-  ChevronDown,
   Dna,
-  FlaskConical,
   HeartPulse,
   Library,
   Microscope,
-  Plus,
   RotateCcw,
   Save,
   Search,
   Shuffle,
-  Sparkles,
   Trash2,
   X,
-  Zap,
 } from 'lucide-react';
 import type {
   MouthGenome,
