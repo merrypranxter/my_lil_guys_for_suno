@@ -1006,6 +1006,11 @@ export function runToMarkdown(run: ArchivedRun): string {
     '**Reality chaos:** ' + (run.realityChaos || 2),
     '**Composition engines:** ' + (run.compositionEngineIds.length ? run.compositionEngineIds.join(' → ') : '(none)'),
     '**Music seed stack:** ' + summarizeMusicStack(run.musicStack || [], run.musicControls),
+    '**Mouth Lab genome:** ' + (run.mouthGenome
+      ? run.mouthGenome.name + ' [' + run.mouthGenome.parentDonorIds.join(' × ') + ']'
+      : '(none)'),
+    '**Mouth compiler mode:** ' + (run.mouthPromptMode || 'bracketed'),
+    '**Mouth semantic mode:** ' + (run.mouthSemanticMode || 'inherit'),
     '**Seed:** ' + (run.seed || '(none)'),
     '**Energy:** ' + run.energy,
     '**Model:** ' + run.model,
