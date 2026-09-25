@@ -26,6 +26,7 @@ import {
   getMusicMechanism,
   getMusicSeedRecipe,
   mechanismFamilies,
+  musicGenomePhenotypeSignature,
   normalizeMusicControls,
 } from '../data/musicSeedSystem';
 import {
@@ -145,6 +146,7 @@ export function MusicSeedLabPanel({
   const [childName, setChildName] = useState('');
   const [breedingError, setBreedingError] = useState<string | null>(null);
   const [lastBredGenome, setLastBredGenome] = useState<MusicBredGenome | null>(null);
+  const [stackNotice, setStackNotice] = useState<string | null>(null);
   const compiled = useMemo(() => compileMusicStack(stack, controls), [stack, controls]);
 
   const updateItem = (instanceId: string, patch: Partial<MusicStackItem>) => {
@@ -167,24 +169,49 @@ export function MusicSeedLabPanel({
   const addRecipe = (recipeId: string) => {
     const recipe = getMusicSeedRecipe(recipeId);
     if (!recipe) return;
+    const existing = stack.find((item) => item.kind === 'recipe' && item.refId === recipeId);
+    if (existing) {
+      if (existing.muted) updateItem(existing.instanceId, { muted: false });
+      setStackNotice('Duplicate recipe blocked. One macro gets one vote; use its strength control if you want more influence.');
+      return;
+    }
     const fresh = stack.filter((item) => item.kind === 'recipe' && !item.muted).length === 0;
     onChange([...stack, makeItem('recipe', recipeId, 78)]);
     onControlsChange(blendRecipeControls(controls, recipe.defaultControls, fresh));
+    setStackNotice(null);
   };
 
   const addMechanism = (mechanismId: string) => {
+    const existing = stack.find((item) => item.kind === 'mechanism' && item.refId === mechanismId);
+    if (existing) {
+      if (existing.muted) updateItem(existing.instanceId, { muted: false });
+      setStackNotice('Duplicate mechanism blocked. Extra copies no longer create secret weighting; raise strength explicitly instead.');
+      return;
+    }
     const weight = preferenceWeights[mechanismId] || 0;
     onChange([...stack, makeItem('mechanism', mechanismId, Math.round(70 + Math.min(20, weight * 20)))]);
+    setStackNotice(null);
   };
 
 
   const addGenome = (genome: MusicBredGenome) => {
+    const signature = musicGenomePhenotypeSignature(genome);
+    const existing = stack.find(
+      (item) => item.kind === 'genome' && musicGenomePhenotypeSignature(item.genome) === signature
+    );
+    if (existing) {
+      if (existing.muted) updateItem(existing.instanceId, { muted: false });
+      setStackNotice('Duplicate phenotype blocked. Same musical genes + controls + invariant + relationship law only get one vote.');
+      return;
+    }
+
     onChange([...stack, genomeToStackItem(genome)]);
     const nextControls = { ...controls };
     (Object.keys(genome.controls) as Array<keyof MusicControls>).forEach((key) => {
       nextControls[key] = Math.round(controls[key] * 0.55 + genome.controls[key] * 0.45);
     });
     onControlsChange(normalizeMusicControls(nextControls));
+    setStackNotice(null);
   };
 
   const breedingParents = [
@@ -309,6 +336,30 @@ export function MusicSeedLabPanel({
 
       {expanded && (
         <div className="border-t border-[#2b2230] p-4 md:p-5 space-y-5">
+          {(stackNotice || compiled.suppressedDuplicates.length > 0) && (
+            <div className="rounded-lg border border-[#f59e0b]/35 bg-[#231706] px-3 py-2.5 font-mono">
+              <div className="text-[10px] font-black tracking-[0.12em] text-[#fbbf24]">
+                GENETIC INBREEDING FILTER
+              </div>
+              <div className="mt-1 text-[10px] leading-relaxed text-[#c8a86a]">
+                {stackNotice || (
+                  compiled.suppressedDuplicates.reduce((sum, item) => sum + item.count, 0) +
+                  ' pre-existing duplicate stack entr' +
+                  (compiled.suppressedDuplicates.reduce((sum, item) => sum + item.count, 0) === 1 ? 'y is' : 'ies are') +
+                  ' being ignored during generation. Highest explicit strength wins; duplicates add zero extra influence.'
+                )}
+              </div>
+              {stackNotice && (
+                <button
+                  type="button"
+                  onClick={() => setStackNotice(null)}
+                  className="mt-1.5 text-[9px] text-[#fbbf24] hover:text-white"
+                >
+                  dismiss
+                </button>
+              )}
+            </div>
+          )}
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
