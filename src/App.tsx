@@ -10,6 +10,7 @@ import { StackPanel } from './components/StackPanel';
 import { ControlsPanel } from './components/ControlsPanel';
 import { RealityEnginePanel } from './components/RealityEnginePanel';
 import { CompositionLabPanel } from './components/CompositionLabPanel';
+import { MouthLabPanel } from './components/MouthLabPanel';
 import { MusicSeedLabPanel } from './components/MusicSeedLabPanel';
 import { PetriDishPanel } from './components/PetriDishPanel';
 import { genomeToStackItem } from './lib/musicBreeding';
@@ -35,6 +36,12 @@ import {
   setSavedEnergy,
   getSavedSeed,
   setSavedSeed,
+  getLastMouthGenome,
+  setLastMouthGenome,
+  getSavedMouthPromptMode,
+  setSavedMouthPromptMode,
+  getSavedMouthSemanticMode,
+  setSavedMouthSemanticMode,
   getSavedStacks,
   saveStackToFavorites,
   deleteSavedStack,
@@ -55,6 +62,7 @@ import {
   archiveToMarkdown,
 } from './lib/localStorage';
 import { AlertCircle, Archive, Download, Layers, MessageSquare, Sparkles, Star, X } from 'lucide-react';
+import type { MouthGenome, MouthPromptMode, MouthSemanticMode } from './mouthLab/types';
 
 const UI_MODULES: ModuleNavItem[] = [
   { id: 'stack', label: 'STACK', tone: 'cyan' },
@@ -63,6 +71,7 @@ const UI_MODULES: ModuleNavItem[] = [
   { id: 'music', label: 'MUSIC SEEDS', tone: 'yellow' },
   { id: 'petri', label: 'PETRI DISH', tone: 'coral' },
   { id: 'composition', label: 'COMPOSITION', tone: 'violet' },
+  { id: 'mouth', label: 'MOUTH LAB', tone: 'red' },
   { id: 'output', label: 'OUTPUT', tone: 'blue' },
   { id: 'minds', label: 'MINDS', tone: 'red' },
 ];
@@ -100,6 +109,9 @@ export default function App() {
   const [savedStacks, setSavedStacks] = useState<SavedStack[]>(() => getSavedStacks());
   const [seed, setSeed] = useState<string>(() => getSavedSeed());
   const [energy, setEnergy] = useState<number>(() => getSavedEnergy());
+  const [mouthGenome, setMouthGenome] = useState<MouthGenome | undefined>(() => getLastMouthGenome());
+  const [mouthPromptMode, setMouthPromptMode] = useState<MouthPromptMode>(() => getSavedMouthPromptMode());
+  const [mouthSemanticMode, setMouthSemanticMode] = useState<MouthSemanticMode>(() => getSavedMouthSemanticMode());
 
   const [outputs, setOutputs] = useState({
     style: '',
@@ -167,6 +179,18 @@ export default function App() {
   useEffect(() => {
     setSavedRealityChaos(realityChaos);
   }, [realityChaos]);
+
+  useEffect(() => {
+    setLastMouthGenome(mouthGenome);
+  }, [mouthGenome]);
+
+  useEffect(() => {
+    setSavedMouthPromptMode(mouthPromptMode);
+  }, [mouthPromptMode]);
+
+  useEffect(() => {
+    setSavedMouthSemanticMode(mouthSemanticMode);
+  }, [mouthSemanticMode]);
 
   useEffect(() => {
     try {
@@ -269,7 +293,20 @@ export default function App() {
   };
 
   const handleSaveStack = (name: string) => {
-    setSavedStacks(saveStackToFavorites(name, stackGuyIds, realityEngineIds, realityChaos, compositionEngineIds, musicStack, musicControls));
+    setSavedStacks(
+      saveStackToFavorites(
+        name,
+        stackGuyIds,
+        realityEngineIds,
+        realityChaos,
+        compositionEngineIds,
+        musicStack,
+        musicControls,
+        mouthGenome,
+        mouthPromptMode,
+        mouthSemanticMode
+      )
+    );
   };
 
   const handleLoadSavedStack = (saved: SavedStack) => {
@@ -279,6 +316,9 @@ export default function App() {
     setMusicStack(saved.musicStack || []);
     if (saved.musicControls) setMusicControls(saved.musicControls);
     if (saved.realityChaos) setRealityChaos(saved.realityChaos);
+    setMouthGenome(saved.mouthGenome);
+    setMouthPromptMode(saved.mouthPromptMode || 'bracketed');
+    setMouthSemanticMode(saved.mouthSemanticMode || 'inherit');
   };
 
   const handleDeleteSavedStack = (id: string) => {
@@ -353,6 +393,9 @@ export default function App() {
       musicStack: [...musicStack],
       musicControls: { ...musicControls },
       realityChaos,
+      mouthGenome,
+      mouthPromptMode,
+      mouthSemanticMode,
       seed,
       energy,
       model: effectiveModel,
@@ -416,6 +459,9 @@ export default function App() {
           recentFingerprints,
           likedSignals,
           noveltySignals,
+          mouthGenome,
+          mouthPromptMode,
+          mouthSemanticMode,
         }),
         signal: controller.signal,
       });
@@ -473,6 +519,9 @@ export default function App() {
             seed,
             energy,
             recentFingerprints,
+            mouthGenome,
+            mouthPromptMode,
+            mouthSemanticMode,
           });
           const fallbackResponse: GenerationResponse = {
             style: fallback.style,
@@ -850,9 +899,37 @@ export default function App() {
         </ModuleSection>
 
         <ModuleSection
+          id="mouth"
+          title="MOUTH LAB"
+          eyebrow="07 • breed the vocal organism"
+          summary={
+            mouthGenome
+              ? mouthGenome.parentDonorIds.length + ' parents • ' +
+                mouthGenome.assignments.flatMap((assignment) => assignment.traitIds).length + ' traits • ' +
+                mouthGenome.quirks.length + ' quirks'
+              : 'No active mouth • breed 2–6 language parents'
+          }
+          tone="red"
+          open={moduleOpen.mouth}
+          active={activeModule === 'mouth'}
+          onToggle={() => toggleModule('mouth')}
+        >
+          <MouthLabPanel
+            genome={mouthGenome}
+            promptMode={mouthPromptMode}
+            semanticMode={mouthSemanticMode}
+            sourceRunId={currentRun?.id}
+            onGenomeChange={setMouthGenome}
+            onPromptModeChange={setMouthPromptMode}
+            onSemanticModeChange={setMouthSemanticMode}
+            onNotice={setNoticeMessage}
+          />
+        </ModuleSection>
+
+        <ModuleSection
           id="output"
           title="SUNO OUTPUT"
-          eyebrow="07 • the three boxes"
+          eyebrow="08 • the three boxes"
           summary={currentRun ? 'Current run archived • ready to copy / repair / star' : 'Generate a run and the three Suno boxes land here'}
           tone="blue"
           open={moduleOpen.output}
