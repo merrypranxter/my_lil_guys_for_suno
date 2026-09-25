@@ -243,7 +243,9 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
     musicSeedStyleClause + ' ' +
     '[TIMBRE / ATMOSPHERE: ' + fingerprint.timbre + '; produced as ' + fingerprint.production + '.] ' +
     '[VOCAL SYSTEM: ' + fingerprint.vocal + '.] ' +
-    (compiledMouth ? compiledMouth.styleDirectives + ' ' : '') +
+    (compiledMouth
+      ? '[MOUTH LAB VOCAL GENOME ACTIVE: enforce the compiled mouth traits and quirks as separate vocal jurisdictions; do not average them into a generic accent.] '
+      : '') +
     '[PERFORMANCE ATTITUDE: ' + fingerprint.performance + '.] ' +
     realityStyleClause + ' ' +
     compositionStyleClause + ' ' +
