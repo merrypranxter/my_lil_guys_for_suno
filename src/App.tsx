@@ -14,7 +14,7 @@ import { MusicSeedLabPanel } from './components/MusicSeedLabPanel';
 import { PetriDishPanel } from './components/PetriDishPanel';
 import { genomeToStackItem } from './lib/musicBreeding';
 import { blendSiblingControls, buildSiblingMusicStack } from './lib/petriDish';
-import { MUSIC_FEEDBACK_TAGS, musicGenomePhenotypeSignature } from './data/musicSeedSystem';
+import { MUSIC_FEEDBACK_TAGS, compileMusicStack, musicGenomePhenotypeSignature } from './data/musicSeedSystem';
 import { OutputBox } from './components/OutputBox';
 import { ModuleDock, ModuleSection } from './components/ModuleShell';
 import type { ModuleNavItem } from './components/ModuleShell';
@@ -48,6 +48,7 @@ import {
   getLikedMusicMechanismWeights,
   getLikedMindWeights,
   getLikedRealityWeights,
+  promoteGenomesFromRun,
   runToMarkdown,
   archiveToMarkdown,
 } from './lib/localStorage';
@@ -109,6 +110,8 @@ export default function App() {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedbackDraft, setFeedbackDraft] = useState('');
   const [feedbackTagsDraft, setFeedbackTagsDraft] = useState<string[]>([]);
+  const [likedMechanismIdsDraft, setLikedMechanismIdsDraft] = useState<string[]>([]);
+  const [dislikedMechanismIdsDraft, setDislikedMechanismIdsDraft] = useState<string[]>([]);
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [repairingBox, setRepairingBox] = useState<BoxType | null>(null);
@@ -582,6 +585,8 @@ export default function App() {
     if (!currentRun) return;
     setFeedbackDraft(currentRun.feedback || '');
     setFeedbackTagsDraft(currentRun.feedbackTags || []);
+    setLikedMechanismIdsDraft(currentRun.likedMechanismIds || []);
+    setDislikedMechanismIdsDraft(currentRun.dislikedMechanismIds || []);
     setFeedbackOpen(true);
   };
 
@@ -591,8 +596,23 @@ export default function App() {
       starred: true,
       feedback: feedbackDraft.trim(),
       feedbackTags: feedbackTagsDraft,
+      likedMechanismIds: likedMechanismIdsDraft,
+      dislikedMechanismIds: dislikedMechanismIdsDraft,
     });
-    if (updated) setCurrentRun(updated);
+    if (updated) {
+      setCurrentRun(updated);
+      const promoted = promoteGenomesFromRun(updated);
+      if (promoted > 0) {
+        setNoticeMessage(
+          'Fitness recorded. ' + promoted + ' genome phenotype' + (promoted === 1 ? '' : 's') +
+          ' from this liked run earned durable breeding status; trait-level inherit/suppress votes will bias future crossover.'
+        );
+      } else {
+        setNoticeMessage(
+          'Fitness recorded. Trait-level inherit/suppress votes will bias future crossover; no genome phenotype was present to promote.'
+        );
+      }
+    }
     setFeedbackOpen(false);
   };
 
@@ -618,6 +638,10 @@ export default function App() {
   const activeStackGuys: LittleGuy[] = stackGuyIds
     .map((id) => LITTLE_GUYS.find((g) => g.id === id))
     .filter((g): g is LittleGuy => Boolean(g));
+
+  const currentFeedbackMechanisms = currentRun
+    ? compileMusicStack(currentRun.musicStack || [], currentRun.musicControls).mechanisms.map((entry) => entry.mechanism)
+    : [];
 
   const filteredGuys = LITTLE_GUYS.filter((guy) => {
     if (!searchQuery.trim()) return true;
@@ -1015,7 +1039,7 @@ export default function App() {
                   TEACH THE LITTLE BASTARD
                 </h3>
                 <p className="mt-1 text-xs font-mono text-[#8d99aa]">
-                  Tell it what worked. Future runs receive this as a positive preference signal without simply cloning the song.
+                  Tell it what worked — and what should NOT inherit. A star is weak whole-run evidence; explicit trait votes control reproductive pressure.
                 </p>
               </div>
               <button
@@ -1054,9 +1078,68 @@ export default function App() {
                   })}
                 </div>
                 <p className="mt-2 text-[10px] font-mono text-[#657187]">
-                  Tags teach musical-mechanism preference separately from Little Guy preference.
+                  Tags describe the overall result. The gene controls below decide what should actually reproduce.
                 </p>
               </div>
+
+              {currentFeedbackMechanisms.length > 0 && (
+                <div className="rounded-xl border border-[#3f3546] bg-[#0a0b10] p-3">
+                  <div className="text-xs font-mono text-[#c7a7ff] mb-1">TRAIT FITNESS — WHAT GETS TO BREED?</div>
+                  <div className="text-[10px] font-mono text-[#69758a] mb-3">
+                    A whole-song star is only weak evidence. Mark specific mechanisms to give them positive or negative inheritance pressure.
+                  </div>
+                  <div className="space-y-2">
+                    {currentFeedbackMechanisms.map((mechanism) => {
+                      const liked = likedMechanismIdsDraft.includes(mechanism.id);
+                      const disliked = dislikedMechanismIdsDraft.includes(mechanism.id);
+                      return (
+                        <div key={mechanism.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-lg border border-[#242b38] bg-[#0d1017] px-3 py-2">
+                          <div className="min-w-0">
+                            <div className="text-[10px] font-mono font-black text-white">{mechanism.name}</div>
+                            <div className="text-[9px] text-[#68758a] line-clamp-1">{mechanism.shortExplanation}</div>
+                          </div>
+                          <div className="flex shrink-0 gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setLikedMechanismIdsDraft((current) =>
+                                  liked ? current.filter((id) => id !== mechanism.id) : [...current.filter((id) => id !== mechanism.id), mechanism.id]
+                                );
+                                setDislikedMechanismIdsDraft((current) => current.filter((id) => id !== mechanism.id));
+                              }}
+                              className={
+                                'rounded border px-2 py-1 text-[9px] font-mono font-black ' +
+                                (liked
+                                  ? 'border-[#39ff14] bg-[#102417] text-[#a7ff9f]'
+                                  : 'border-[#334155] bg-[#111827] text-[#7d8ba1] hover:text-white')
+                              }
+                            >
+                              ★ INHERIT
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setDislikedMechanismIdsDraft((current) =>
+                                  disliked ? current.filter((id) => id !== mechanism.id) : [...current.filter((id) => id !== mechanism.id), mechanism.id]
+                                );
+                                setLikedMechanismIdsDraft((current) => current.filter((id) => id !== mechanism.id));
+                              }}
+                              className={
+                                'rounded border px-2 py-1 text-[9px] font-mono font-black ' +
+                                (disliked
+                                  ? 'border-[#ef4444] bg-[#2b1216] text-[#fca5a5]'
+                                  : 'border-[#334155] bg-[#111827] text-[#7d8ba1] hover:text-white')
+                              }
+                            >
+                              ✕ SUPPRESS
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               <label className="block">
                 <span className="text-xs font-mono text-[#ff9dea] flex items-center gap-2 mb-2">
