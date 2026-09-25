@@ -20,6 +20,7 @@ import type {
   MouthGenome,
   MouthLabArchive,
   MouthMutationAction,
+  MouthMutationCurveShape,
   MouthPromptMode,
   MouthQuirkInstance,
   MouthSemanticMode,
@@ -31,6 +32,7 @@ import {
   MOUTH_DONORS,
   MOUTH_EXPRESSION_STATES,
   MOUTH_MUTATION_ACTIONS,
+  MOUTH_MUTATION_CURVE_SHAPES,
   MOUTH_QUIRKS,
   MOUTH_TRANSDUCTION_PRESETS,
   applyMouthQuirk,
@@ -40,6 +42,7 @@ import {
   compileMouthPrompt,
   createExpressionRule,
   createMouthCastProfile,
+  createMutationCurve,
   createMutationEvent,
   createPresetTransduction,
   emptyMouthDynamics,
@@ -142,6 +145,12 @@ export function MouthLabPanel({
   const [expressionState, setExpressionState] = useState<MouthExpressionState>('dominant');
   const [expressionStrength, setExpressionStrength] = useState(80);
   const [expressionTrigger, setExpressionTrigger] = useState('');
+  const [curveTarget, setCurveTarget] = useState('');
+  const [curveShape, setCurveShape] = useState<MouthMutationCurveShape>('linear');
+  const [curveStartPercent, setCurveStartPercent] = useState(0);
+  const [curveEndPercent, setCurveEndPercent] = useState(100);
+  const [curveStartStrength, setCurveStartStrength] = useState(10);
+  const [curveEndStrength, setCurveEndStrength] = useState(100);
   const [timelineAction, setTimelineAction] = useState<MouthMutationAction>('escalateTrait');
   const [timelinePosition, setTimelinePosition] = useState(50);
   const [timelineTarget, setTimelineTarget] = useState('');
@@ -490,6 +499,31 @@ export function MouthLabPanel({
     });
     announce('Expression rule added: ' + expressionState.toUpperCase() + ' ' + (targetType === 'trait' ? getMouthTrait(targetId)?.name : getMouthQuirkDefinition(targetId)?.name) + '.');
     setExpressionTrigger('');
+  };
+
+
+  const addMutationCurve = () => {
+    if (!genome || !curveTarget) return;
+    const [targetType, targetId] = curveTarget.split(':', 2) as ['trait' | 'quirk', string];
+    const curve = createMutationCurve({
+      targetType,
+      targetId,
+      startPercent: Math.min(curveStartPercent, curveEndPercent),
+      endPercent: Math.max(curveStartPercent, curveEndPercent),
+      startStrength: curveStartStrength,
+      endStrength: curveEndStrength,
+      shape: curveShape,
+    });
+    setDynamics({
+      ...dynamics,
+      mutationCurves: [
+        ...dynamics.mutationCurves.filter(
+          (item) => !(item.targetType === curve.targetType && item.targetId === curve.targetId)
+        ),
+        curve,
+      ],
+    });
+    announce('Mutation curve added for ' + (targetType === 'trait' ? getMouthTrait(targetId)?.name : getMouthQuirkDefinition(targetId)?.name) + '.');
   };
 
   const addTimelineEvent = () => {
@@ -1217,6 +1251,52 @@ export function MouthLabPanel({
                       </div>
                     ))}
                   </div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-[#293246] bg-[#090d14] p-3">
+                <div className="text-xs font-mono font-black text-white">MUTATION CURVES</div>
+                <div className="mt-1 text-[10px] font-mono text-[#657187]">
+                  Gradually turn one gene or quirk up, down, stepwise, exponentially, or in oscillation across a defined span of the song.
+                </div>
+                <div className="mt-3 grid gap-2 lg:grid-cols-4">
+                  <select value={curveTarget} onChange={(event) => setCurveTarget(event.target.value)} className="rounded-lg border border-[#303b50] bg-[#0d121b] px-2.5 py-2 text-[10px] font-mono text-white">
+                    <option value="">SELECT TARGET...</option>
+                    {dynamicTargets.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+                  </select>
+                  <select value={curveShape} onChange={(event) => setCurveShape(event.target.value as MouthMutationCurveShape)} className="rounded-lg border border-[#303b50] bg-[#0d121b] px-2.5 py-2 text-[10px] font-mono text-white">
+                    {MOUTH_MUTATION_CURVE_SHAPES.map((shape) => <option key={shape} value={shape}>{shape.toUpperCase()}</option>)}
+                  </select>
+                  <button type="button" onClick={addMutationCurve} disabled={!curveTarget} className="rounded-lg border border-[#00f0ff]/50 bg-[#0b1d22] px-3 py-2 text-[10px] font-mono font-black text-[#9bf8ff] disabled:opacity-35">
+                    ADD CURVE
+                  </button>
+                  <div className="rounded-lg border border-[#303b50] bg-[#0d121b] px-2 py-2 text-center text-[9px] font-mono text-[#657187]">
+                    {curveStartStrength}@{Math.min(curveStartPercent, curveEndPercent)}% → {curveEndStrength}@{Math.max(curveStartPercent, curveEndPercent)}%
+                  </div>
+                </div>
+                <div className="mt-2 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+                  {[
+                    ['START %', curveStartPercent, setCurveStartPercent],
+                    ['END %', curveEndPercent, setCurveEndPercent],
+                    ['START STRENGTH', curveStartStrength, setCurveStartStrength],
+                    ['END STRENGTH', curveEndStrength, setCurveEndStrength],
+                  ].map(([label, value, setter]) => (
+                    <label key={String(label)} className="rounded-lg border border-[#303b50] bg-[#0d121b] px-2 py-2">
+                      <div className="flex justify-between text-[8px] font-mono text-[#6f7d92]"><span>{String(label)}</span><span>{String(value)}</span></div>
+                      <input type="range" min="0" max="100" value={Number(value)} onChange={(event) => (setter as React.Dispatch<React.SetStateAction<number>>)(Number(event.target.value))} className="w-full accent-[#00f0ff]" />
+                    </label>
+                  ))}
+                </div>
+                <div className="mt-3 space-y-1.5">
+                  {dynamics.mutationCurves.map((curve) => (
+                    <div key={curve.id} className="flex items-center justify-between gap-3 rounded-lg border border-[#203943] bg-[#0a1418] px-2.5 py-2 text-[9px] font-mono">
+                      <span className="text-[#9bf8ff]">{curve.shape.toUpperCase()}</span>
+                      <span className="min-w-0 flex-1 truncate text-[#8595ab]">
+                        {curve.targetType === 'trait' ? getMouthTrait(curve.targetId)?.name : getMouthQuirkDefinition(curve.targetId)?.name} • {curve.startStrength}@{curve.startPercent}% → {curve.endStrength}@{curve.endPercent}%
+                      </span>
+                      <button type="button" onClick={() => setDynamics({ ...dynamics, mutationCurves: dynamics.mutationCurves.filter((item) => item.id !== curve.id) })} className="text-[#657187] hover:text-white"><X className="h-3 w-3" /></button>
+                    </div>
+                  ))}
                 </div>
               </div>
 
