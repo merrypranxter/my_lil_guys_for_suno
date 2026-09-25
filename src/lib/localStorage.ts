@@ -205,14 +205,14 @@ function normalizeGenomeFitnessRecord(value: unknown): GenomeFitnessRecord | und
   return {
     phenotypeSignature,
     genomeIds: Array.isArray(raw.genomeIds)
-      ? Array.from(new Set(raw.genomeIds.filter((id: unknown): id is string => typeof id === 'string' && Boolean(id.trim())))).slice(0, 40)
+      ? Array.from(new Set<string>(raw.genomeIds.filter((id: unknown): id is string => typeof id === 'string' && Boolean(id.trim())))).slice(0, 40)
       : [],
     approved: raw.approved !== false,
     approvalCount: Math.max(1, Math.min(999, Number.isFinite(Number(raw.approvalCount)) ? Math.round(Number(raw.approvalCount)) : 1)),
     likedMechanismIds: validMechanismIds(raw.likedMechanismIds),
     dislikedMechanismIds: validMechanismIds(raw.dislikedMechanismIds),
     sourceRunIds: Array.isArray(raw.sourceRunIds)
-      ? Array.from(new Set(raw.sourceRunIds.filter((id: unknown): id is string => typeof id === 'string' && Boolean(id.trim())))).slice(0, 80)
+      ? Array.from(new Set<string>(raw.sourceRunIds.filter((id: unknown): id is string => typeof id === 'string' && Boolean(id.trim())))).slice(0, 80)
       : [],
     note: typeof raw.note === 'string' ? raw.note.slice(0, 1600) : '',
     reason,
