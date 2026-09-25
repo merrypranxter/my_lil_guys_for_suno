@@ -16,6 +16,8 @@ import { genomeToStackItem } from './lib/musicBreeding';
 import { blendSiblingControls, buildSiblingMusicStack } from './lib/petriDish';
 import { MUSIC_FEEDBACK_TAGS } from './data/musicSeedSystem';
 import { OutputBox } from './components/OutputBox';
+import { ModuleDock, ModuleSection } from './components/ModuleShell';
+import type { ModuleNavItem } from './components/ModuleShell';
 import {
   getLastStack,
   setLastStack,
@@ -50,6 +52,19 @@ import {
   archiveToMarkdown,
 } from './lib/localStorage';
 import { AlertCircle, Archive, Download, Layers, MessageSquare, Sparkles, Star, X } from 'lucide-react';
+
+const UI_MODULES: ModuleNavItem[] = [
+  { id: 'stack', label: 'STACK', tone: 'cyan' },
+  { id: 'controls', label: 'CONTROLS', tone: 'lime' },
+  { id: 'reality', label: 'REALITY', tone: 'pink' },
+  { id: 'music', label: 'MUSIC SEEDS', tone: 'yellow' },
+  { id: 'petri', label: 'PETRI DISH', tone: 'coral' },
+  { id: 'composition', label: 'COMPOSITION', tone: 'violet' },
+  { id: 'output', label: 'OUTPUT', tone: 'blue' },
+  { id: 'minds', label: 'MINDS', tone: 'red' },
+];
+
+const DEFAULT_MODULE_OPEN = Object.fromEntries(UI_MODULES.map((item) => [item.id, true])) as Record<string, boolean>;
 
 function downloadText(filename: string, text: string) {
   const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
@@ -99,6 +114,15 @@ export default function App() {
   const [repairingBox, setRepairingBox] = useState<BoxType | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeModule, setActiveModule] = useState('stack');
+  const [moduleOpen, setModuleOpen] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = window.localStorage.getItem('little-guys-ui-modules-v1');
+      return saved ? { ...DEFAULT_MODULE_OPEN, ...JSON.parse(saved) } : DEFAULT_MODULE_OPEN;
+    } catch {
+      return DEFAULT_MODULE_OPEN;
+    }
+  });
 
   useEffect(() => {
     fetch('/api/info')
@@ -138,6 +162,49 @@ export default function App() {
   useEffect(() => {
     setSavedRealityChaos(realityChaos);
   }, [realityChaos]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem('little-guys-ui-modules-v1', JSON.stringify(moduleOpen));
+    } catch {
+      // Storage can be unavailable in private/restricted browser contexts.
+    }
+  }, [moduleOpen]);
+
+  useEffect(() => {
+    const nodes = Array.from(document.querySelectorAll<HTMLElement>('[data-ui-module="true"]'));
+    if (nodes.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio);
+        const id = visible[0]?.target.getAttribute('data-module-id');
+        if (id) setActiveModule(id);
+      },
+      { rootMargin: '-15% 0px -68% 0px', threshold: [0, 0.05, 0.2, 0.5] }
+    );
+
+    nodes.forEach((node) => observer.observe(node));
+    return () => observer.disconnect();
+  }, [moduleOpen]);
+
+  const setAllModules = (open: boolean) => {
+    setModuleOpen(Object.fromEntries(UI_MODULES.map((item) => [item.id, open])) as Record<string, boolean>);
+  };
+
+  const toggleModule = (id: string) => {
+    setModuleOpen((current) => ({ ...current, [id]: !current[id] }));
+  };
+
+  const jumpToModule = (id: string) => {
+    setModuleOpen((current) => ({ ...current, [id]: true }));
+    setActiveModule(id);
+    window.setTimeout(() => {
+      document.getElementById('module-' + id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 30);
+  };
 
   const handleSeedChange = (newSeed: string) => {
     setSeed(newSeed);
@@ -241,6 +308,10 @@ export default function App() {
       );
     }
     setErrorMessage(null);
+    setModuleOpen((current) => ({ ...current, output: true }));
+    window.setTimeout(() => {
+      document.getElementById('output-section')?.scrollIntoView({ behavior: 'smooth' });
+    }, 80);
   };
 
   const handleStackPetriGenome = (genome: MusicBredGenome) => {
@@ -339,6 +410,7 @@ export default function App() {
 
       if (data.notice) setNoticeMessage(data.notice);
 
+      setModuleOpen((current) => ({ ...current, output: true }));
       setTimeout(() => {
         document.getElementById('output-section')?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
@@ -387,6 +459,10 @@ export default function App() {
           });
           archiveGeneration(fallbackResponse, 'procedural-synthesizer');
           setNoticeMessage('Generated track using the diverse procedural engine while AI models recalibrate.');
+          setModuleOpen((current) => ({ ...current, output: true }));
+          window.setTimeout(() => {
+            document.getElementById('output-section')?.scrollIntoView({ behavior: 'smooth' });
+          }, 100);
           return;
         } catch (localErr) {
           console.error('Local fallback failed:', localErr);
@@ -575,227 +651,323 @@ export default function App() {
           </div>
         )}
 
+        <ModuleDock
+          items={UI_MODULES}
+          activeId={activeModule}
+          onJump={jumpToModule}
+          onOpenAll={() => setAllModules(true)}
+          onCloseAll={() => setAllModules(false)}
+        />
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div className="lg:col-span-7">
-            <StackPanel
-              stackGuys={activeStackGuys}
-              onReorder={handleReorder}
-              onRemove={handleRemove}
-              onClear={handleClear}
-              onRollOne={handleRollOne}
-              onRollStack={handleRollStack}
-              onFuckMeUp={handleFuckMeUp}
-              onLoadRecipe={handleLoadRecipe}
-              savedStacks={savedStacks}
-              onSaveStack={handleSaveStack}
-              onLoadSavedStack={handleLoadSavedStack}
-              onDeleteSavedStack={handleDeleteSavedStack}
-            />
+            <ModuleSection
+              id="stack"
+              title="CURRENT STACK"
+              eyebrow="01 • choose who is thinking"
+              summary={activeStackGuys.length + ' Little Guy' + (activeStackGuys.length === 1 ? '' : 's') + ' currently installed'}
+              tone="cyan"
+              open={moduleOpen.stack}
+              active={activeModule === 'stack'}
+              onToggle={() => toggleModule('stack')}
+            >
+              <StackPanel
+                stackGuys={activeStackGuys}
+                onReorder={handleReorder}
+                onRemove={handleRemove}
+                onClear={handleClear}
+                onRollOne={handleRollOne}
+                onRollStack={handleRollStack}
+                onFuckMeUp={handleFuckMeUp}
+                onLoadRecipe={handleLoadRecipe}
+                savedStacks={savedStacks}
+                onSaveStack={handleSaveStack}
+                onLoadSavedStack={handleLoadSavedStack}
+                onDeleteSavedStack={handleDeleteSavedStack}
+              />
+            </ModuleSection>
           </div>
 
           <div className="lg:col-span-5">
-            <ControlsPanel
-              seed={seed}
-              onSeedChange={handleSeedChange}
-              energy={energy}
-              onEnergyChange={handleEnergyChange}
-              onGenerate={handleGenerate}
-              isGenerating={isGenerating}
-              canGenerate={stackGuyIds.length > 0}
-            />
+            <ModuleSection
+              id="controls"
+              title="GLOBAL CONTROLS"
+              eyebrow="02 • seed / energy / generate"
+              summary={'Seed: ' + (seed || 'random') + ' • Energy: ' + energy}
+              tone="lime"
+              open={moduleOpen.controls}
+              active={activeModule === 'controls'}
+              onToggle={() => toggleModule('controls')}
+            >
+              <ControlsPanel
+                seed={seed}
+                onSeedChange={handleSeedChange}
+                energy={energy}
+                onEnergyChange={handleEnergyChange}
+                onGenerate={handleGenerate}
+                isGenerating={isGenerating}
+                canGenerate={stackGuyIds.length > 0}
+              />
+            </ModuleSection>
           </div>
         </div>
 
-        <RealityEnginePanel
-          selectedIds={realityEngineIds}
-          onChange={setRealityEngineIds}
-          chaosLevel={realityChaos}
-          onChaosChange={setRealityChaos}
-          preferenceWeights={getLikedRealityWeights()}
-        />
+        <ModuleSection
+          id="reality"
+          title="REALITY ENGINE"
+          eyebrow="03 • destabilize the world"
+          summary={realityEngineIds.length + ' engine' + (realityEngineIds.length === 1 ? '' : 's') + ' selected • chaos ' + realityChaos}
+          tone="pink"
+          open={moduleOpen.reality}
+          active={activeModule === 'reality'}
+          onToggle={() => toggleModule('reality')}
+        >
+          <RealityEnginePanel
+            selectedIds={realityEngineIds}
+            onChange={setRealityEngineIds}
+            chaosLevel={realityChaos}
+            onChaosChange={setRealityChaos}
+            preferenceWeights={getLikedRealityWeights()}
+          />
+        </ModuleSection>
 
-        <MusicSeedLabPanel
-          stack={musicStack}
-          onChange={setMusicStack}
-          controls={musicControls}
-          onControlsChange={setMusicControls}
-          preferenceWeights={getLikedMusicMechanismWeights()}
-        />
+        <ModuleSection
+          id="music"
+          title="MUSIC SEED LAB"
+          eyebrow="04 • behavior recipes / genes"
+          summary={musicStack.length + ' music seed' + (musicStack.length === 1 ? '' : 's') + ' in the stack'}
+          tone="yellow"
+          open={moduleOpen.music}
+          active={activeModule === 'music'}
+          onToggle={() => toggleModule('music')}
+        >
+          <MusicSeedLabPanel
+            stack={musicStack}
+            onChange={setMusicStack}
+            controls={musicControls}
+            onControlsChange={setMusicControls}
+            preferenceWeights={getLikedMusicMechanismWeights()}
+          />
+        </ModuleSection>
 
-        <PetriDishPanel
-          guyIds={stackGuyIds}
-          realityEngineIds={realityEngineIds}
-          compositionEngineIds={compositionEngineIds}
-          realityChaos={realityChaos}
-          seed={seed}
-          energy={energy}
-          musicStack={musicStack}
-          musicControls={musicControls}
-          onOpenSibling={handleOpenPetriSibling}
-          onStackSibling={handleStackPetriGenome}
-        />
+        <ModuleSection
+          id="petri"
+          title="PETRI DISH"
+          eyebrow="05 • breed / compare siblings"
+          summary="Frozen challenge experiments and bred music genomes"
+          tone="coral"
+          open={moduleOpen.petri}
+          active={activeModule === 'petri'}
+          onToggle={() => toggleModule('petri')}
+        >
+          <PetriDishPanel
+            guyIds={stackGuyIds}
+            realityEngineIds={realityEngineIds}
+            compositionEngineIds={compositionEngineIds}
+            realityChaos={realityChaos}
+            seed={seed}
+            energy={energy}
+            musicStack={musicStack}
+            musicControls={musicControls}
+            onOpenSibling={handleOpenPetriSibling}
+            onStackSibling={handleStackPetriGenome}
+          />
+        </ModuleSection>
 
-        <CompositionLabPanel
-          selectedIds={compositionEngineIds}
-          onChange={setCompositionEngineIds}
-        />
+        <ModuleSection
+          id="composition"
+          title="COMPOSITION LAB"
+          eyebrow="06 • structural music engines"
+          summary={compositionEngineIds.length + ' composition engine' + (compositionEngineIds.length === 1 ? '' : 's') + ' selected'}
+          tone="violet"
+          open={moduleOpen.composition}
+          active={activeModule === 'composition'}
+          onToggle={() => toggleModule('composition')}
+        >
+          <CompositionLabPanel
+            selectedIds={compositionEngineIds}
+            onChange={setCompositionEngineIds}
+          />
+        </ModuleSection>
 
-        <div id="output-section" className="space-y-4 pt-4 border-t border-[#1a202c]">
-          <div className="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-3">
-            <div>
-              <h2 className="text-base md:text-lg font-bold font-mono tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-[#00f0ff] to-[#39ff14] flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-[#00f0ff]" />
-                <span>THREE SUNO GENERATION BOXES</span>
-              </h2>
-              <p className="text-xs font-mono text-[#7d8ba1]">
-                Every completed run is archived locally. Recent musical territory is used to fight accidental genre monoculture.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap gap-2 text-xs font-mono">
-              <button
-                type="button"
-                onClick={exportAll}
-                disabled={archiveCount === 0}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#334155] bg-[#111827] text-[#cbd5e1] hover:border-[#00f0ff] hover:text-white disabled:opacity-40"
-              >
-                <Archive className="w-3.5 h-3.5" />
-                EXPORT ALL .MD ({archiveCount})
-              </button>
-
-              {currentRun && (
-                <>
-                  <button
-                    type="button"
-                    onClick={exportCurrent}
-                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#334155] bg-[#111827] text-[#cbd5e1] hover:border-[#39ff14] hover:text-white"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    EXPORT CURRENT .MD
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={openFeedback}
-                    className={
-                      'inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border font-bold transition-colors ' +
-                      (currentRun.starred
-                        ? 'border-[#ffd84d] bg-[#2d2508] text-[#ffe680] hover:bg-[#3a3009]'
-                        : 'border-[#ff4fd8] bg-[#251020] text-[#ff9dea] hover:bg-[#35152d]')
-                    }
-                  >
-                    <Star className="w-3.5 h-3.5" fill={currentRun.starred ? 'currentColor' : 'none'} />
-                    {currentRun.starred ? 'LIKED — EDIT FEEDBACK' : 'STAR THIS'}
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-
-          {currentRun?.fingerprint && (
-            <div className="rounded-xl border border-[#252d3b] bg-[#0d1017] px-4 py-3">
-              <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#7d8ba1] mb-2">
-                musical fingerprint saved with this run
+        <ModuleSection
+          id="output"
+          title="SUNO OUTPUT"
+          eyebrow="07 • the three boxes"
+          summary={currentRun ? 'Current run archived • ready to copy / repair / star' : 'Generate a run and the three Suno boxes land here'}
+          tone="blue"
+          open={moduleOpen.output}
+          active={activeModule === 'output'}
+          onToggle={() => toggleModule('output')}
+        >
+          <div id="output-section" className="space-y-4">
+            <div className="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-3">
+              <div>
+                <h2 className="text-base md:text-lg font-bold font-mono tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-[#00f0ff] to-[#39ff14] flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-[#00f0ff]" />
+                  <span>THREE SUNO GENERATION BOXES</span>
+                </h2>
+                <p className="text-xs font-mono text-[#7d8ba1]">
+                  Every completed run is archived locally. Recent musical territory is used to fight accidental genre monoculture.
+                </p>
               </div>
-              <div className="flex flex-wrap gap-2 text-[11px] font-mono">
-                {[
-                  currentRun.fingerprint.genreFamily,
-                  currentRun.fingerprint.rhythm,
-                  currentRun.fingerprint.vocal,
-                  currentRun.fingerprint.production,
-                ].map((item) => (
-                  <span key={item} className="px-2 py-1 rounded border border-[#273248] bg-[#111827] text-[#a8d8ff]">
-                    {item}
-                  </span>
-                ))}
+
+              <div className="flex flex-wrap gap-2 text-xs font-mono">
+                <button
+                  type="button"
+                  onClick={exportAll}
+                  disabled={archiveCount === 0}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#334155] bg-[#111827] text-[#cbd5e1] hover:border-[#00f0ff] hover:text-white disabled:opacity-40"
+                >
+                  <Archive className="w-3.5 h-3.5" />
+                  EXPORT ALL .MD ({archiveCount})
+                </button>
+
+                {currentRun && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={exportCurrent}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#334155] bg-[#111827] text-[#cbd5e1] hover:border-[#39ff14] hover:text-white"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      EXPORT CURRENT .MD
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={openFeedback}
+                      className={
+                        'inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border font-bold transition-colors ' +
+                        (currentRun.starred
+                          ? 'border-[#ffd84d] bg-[#2d2508] text-[#ffe680] hover:bg-[#3a3009]'
+                          : 'border-[#ff4fd8] bg-[#251020] text-[#ff9dea] hover:bg-[#35152d]')
+                      }
+                    >
+                      <Star className="w-3.5 h-3.5" fill={currentRun.starred ? 'currentColor' : 'none'} />
+                      {currentRun.starred ? 'LIKED — EDIT FEEDBACK' : 'STAR THIS'}
+                    </button>
+                  </>
+                )}
               </div>
             </div>
-          )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-            <div className="lg:col-span-12">
-              <OutputBox
-                type="style"
-                title="BOX 1 — STYLE"
-                subtitle="Productive Contradiction Under Constraint (Harmony, Melody, Rhythm, Timbre, Attitude, Anchor, Operators)"
-                targetRange={{ min: 975, max: 999, yellowTolerance: 50 }}
-                content={outputs.style}
-                onRepair={handleRepairBox}
-                isRepairing={repairingBox === 'style'}
-              />
-            </div>
+            {currentRun?.fingerprint && (
+              <div className="rounded-xl border border-[#252d3b] bg-[#0d1017] px-4 py-3">
+                <div className="text-[10px] font-mono uppercase tracking-[0.2em] text-[#7d8ba1] mb-2">
+                  musical fingerprint saved with this run
+                </div>
+                <div className="flex flex-wrap gap-2 text-[11px] font-mono">
+                  {[
+                    currentRun.fingerprint.genreFamily,
+                    currentRun.fingerprint.rhythm,
+                    currentRun.fingerprint.vocal,
+                    currentRun.fingerprint.production,
+                  ].map((item) => (
+                    <span key={item} className="px-2 py-1 rounded border border-[#273248] bg-[#111827] text-[#a8d8ff]">
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
 
-            <div className="lg:col-span-12">
-              <OutputBox
-                type="lyrics"
-                title="BOX 2 — LYRICS / CONTROL"
-                subtitle="Mutation Cycle: Form → Destabilize → Fracture → Collapse → Anchor Returns → Reform Stranger. Bracketed directives."
-                targetRange={{ min: 4900, max: 4999, yellowTolerance: 200 }}
-                content={outputs.lyrics}
-                onRepair={handleRepairBox}
-                isRepairing={repairingBox === 'lyrics'}
-              />
-            </div>
-
-            <div className="lg:col-span-12">
-              <OutputBox
-                type="caption"
-                title="BOX 3 — CAPTION"
-                subtitle="Compact publishable explanation of structural mechanisms and sonic trajectory"
-                targetRange={{ min: 490, max: 499, yellowTolerance: 35 }}
-                content={outputs.caption}
-                onRepair={handleRepairBox}
-                isRepairing={repairingBox === 'caption'}
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="space-y-4 pt-6 border-t border-[#1a202c]">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div>
-              <h2 className="text-base md:text-lg font-bold font-mono tracking-wider text-white flex items-center gap-2">
-                <Layers className="w-4 h-4 text-[#ff0055]" />
-                <span>LITTLE GUY MENAGERIE ({LITTLE_GUYS.length})</span>
-              </h2>
-              <p className="text-xs font-mono text-[#7d8ba1]">
-                Click any specimen to add or remove from current stack. Selected cards glow with individual neon signatures.
-              </p>
-            </div>
-
-            <div className="w-full sm:w-64">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Filter guys or rules..."
-                className="w-full bg-[#0a0c12] border border-[#232b3d] rounded-lg px-3 py-1.5 text-xs font-mono text-white placeholder-[#556177] focus:outline-none focus:border-[#00f0ff]"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
-            {filteredGuys.map((guy) => {
-              const stackIndex = stackGuyIds.indexOf(guy.id);
-              const isSelected = stackIndex !== -1;
-              return (
-                <GuyCard
-                  key={guy.id}
-                  guy={guy}
-                  isSelected={isSelected}
-                  stackPosition={isSelected ? stackIndex + 1 : null}
-                  onToggle={handleToggleGuy}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+              <div className="lg:col-span-12">
+                <OutputBox
+                  type="style"
+                  title="BOX 1 — STYLE"
+                  subtitle="Productive Contradiction Under Constraint (Harmony, Melody, Rhythm, Timbre, Attitude, Anchor, Operators)"
+                  targetRange={{ min: 975, max: 999, yellowTolerance: 50 }}
+                  content={outputs.style}
+                  onRepair={handleRepairBox}
+                  isRepairing={repairingBox === 'style'}
                 />
-              );
-            })}
-          </div>
+              </div>
 
-          {filteredGuys.length === 0 && (
-            <div className="py-12 text-center text-xs font-mono text-[#64748b]">
-              No Little Guy matched "{searchQuery}".
+              <div className="lg:col-span-12">
+                <OutputBox
+                  type="lyrics"
+                  title="BOX 2 — LYRICS / CONTROL"
+                  subtitle="Mutation Cycle: Form → Destabilize → Fracture → Collapse → Anchor Returns → Reform Stranger. Bracketed directives."
+                  targetRange={{ min: 4900, max: 4999, yellowTolerance: 200 }}
+                  content={outputs.lyrics}
+                  onRepair={handleRepairBox}
+                  isRepairing={repairingBox === 'lyrics'}
+                />
+              </div>
+
+              <div className="lg:col-span-12">
+                <OutputBox
+                  type="caption"
+                  title="BOX 3 — CAPTION"
+                  subtitle="Compact publishable explanation of structural mechanisms and sonic trajectory"
+                  targetRange={{ min: 490, max: 499, yellowTolerance: 35 }}
+                  content={outputs.caption}
+                  onRepair={handleRepairBox}
+                  isRepairing={repairingBox === 'caption'}
+                />
+              </div>
             </div>
-          )}
-        </div>
+          </div>
+        </ModuleSection>
+
+        <ModuleSection
+          id="minds"
+          title={'LITTLE GUY MENAGERIE (' + LITTLE_GUYS.length + ')'}
+          eyebrow="08 • the minds"
+          summary={searchQuery ? 'Filtering minds for: ' + searchQuery : 'Browse, search, add, remove — collapse this whole bastard when you are done'}
+          tone="red"
+          open={moduleOpen.minds}
+          active={activeModule === 'minds'}
+          onToggle={() => toggleModule('minds')}
+        >
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <h2 className="text-base md:text-lg font-bold font-mono tracking-wider text-white flex items-center gap-2">
+                  <Layers className="w-4 h-4 text-[#ff0055]" />
+                  <span>LITTLE GUY MENAGERIE ({LITTLE_GUYS.length})</span>
+                </h2>
+                <p className="text-xs font-mono text-[#7d8ba1]">
+                  Click any specimen to add or remove from current stack. Selected cards glow with individual neon signatures.
+                </p>
+              </div>
+
+              <div className="w-full sm:w-64">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Filter guys or rules..."
+                  className="w-full bg-[#0a0c12] border border-[#232b3d] rounded-lg px-3 py-1.5 text-xs font-mono text-white placeholder-[#556177] focus:outline-none focus:border-[#00f0ff]"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5">
+              {filteredGuys.map((guy) => {
+                const stackIndex = stackGuyIds.indexOf(guy.id);
+                const isSelected = stackIndex !== -1;
+                return (
+                  <GuyCard
+                    key={guy.id}
+                    guy={guy}
+                    isSelected={isSelected}
+                    stackPosition={isSelected ? stackIndex + 1 : null}
+                    onToggle={handleToggleGuy}
+                  />
+                );
+              })}
+            </div>
+
+            {filteredGuys.length === 0 && (
+              <div className="py-12 text-center text-xs font-mono text-[#64748b]">
+                No Little Guy matched "{searchQuery}".
+              </div>
+            )}
+          </div>
+        </ModuleSection>
       </main>
 
       <footer className="border-t border-[#161a24] bg-[#090b0e] py-6 px-4 text-center font-mono text-xs text-[#526077]">
