@@ -37,7 +37,10 @@ export function normalizeMouthLabArchive(value: Partial<MouthLabArchive> | null 
     linkedGeneBundles: uniqueById(
       Array.isArray(value?.linkedGeneBundles) ? value!.linkedGeneBundles! : [],
     ),
-    updatedAt: Number.isFinite(value?.updatedAt) ? Number(value!.updatedAt) : Date.now(),
+    updatedAt:
+      typeof value?.updatedAt === 'number' && Number.isFinite(value.updatedAt)
+        ? value.updatedAt
+        : Date.now(),
   };
 }
 
