@@ -1,4 +1,4 @@
-import type { MouthGenome, MouthPromptMode, MouthSemanticMode } from './mouthLab/types';
+import type { MouthFitnessRecord, MouthGenome, MouthPromptMode, MouthSemanticMode } from './mouthLab/types';
 
 export interface LittleGuy {
   id: string;
@@ -294,6 +294,9 @@ export interface PetriDishChallenge {
   recentFingerprints: MusicFingerprint[];
   forcedFingerprint: MusicFingerprint;
   likedSignals: string[];
+  mouthGenome?: MouthGenome;
+  mouthPromptMode?: MouthPromptMode;
+  mouthSemanticMode?: MouthSemanticMode;
 }
 
 export interface PetriDishResult {
@@ -436,4 +439,8 @@ export interface ArchivedRun {
   feedbackTags?: string[];
   likedMechanismIds?: string[];
   dislikedMechanismIds?: string[];
+  likedMouthTraitIds?: string[];
+  dislikedMouthTraitIds?: string[];
+  likedMouthQuirkIds?: string[];
+  dislikedMouthQuirkIds?: string[];
 }
