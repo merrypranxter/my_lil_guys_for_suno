@@ -35,6 +35,7 @@ import {
   getMouthQuirkDefinition,
   getMouthTrait,
   instantiateMouthQuirk,
+  knockoutMouthGenes,
   loadMouthLabArchive,
   projectMouthPhenotype,
   reidentifyMouthGenome,
@@ -120,8 +121,27 @@ export function MouthLabPanel({
   const [specimenWhy, setSpecimenWhy] = useState('');
   const [specimenName, setSpecimenName] = useState('');
   const [quirkQuery, setQuirkQuery] = useState('');
+  const [geneToAdd, setGeneToAdd] = useState('');
 
   const phenotype = useMemo(() => (genome ? projectMouthPhenotype(genome) : undefined), [genome]);
+  const activeTraitIds = useMemo(
+    () => new Set(genome?.assignments.flatMap((assignment) => assignment.traitIds) || []),
+    [genome]
+  );
+  const availableParentGenes = useMemo(() => {
+    if (!genome) return [];
+    const rows: Array<{ traitId: string; donorId: string }> = [];
+    for (const donorId of genome.parentDonorIds) {
+      const donor = getMouthDonor(donorId);
+      if (!donor) continue;
+      for (const traitId of donor.traitIds) {
+        if (!activeTraitIds.has(traitId) && !rows.some((row) => row.traitId === traitId)) {
+          rows.push({ traitId, donorId });
+        }
+      }
+    }
+    return rows;
+  }, [genome, activeTraitIds]);
   const compiledPreview = useMemo(() => {
     if (!genome) return '';
     try {
@@ -253,6 +273,47 @@ export function MouthLabPanel({
       assignmentIndex === index ? { ...assignment, pressure } : assignment
     );
     onGenomeChange(reidentifyMouthGenome({ ...genome, assignments, createdAt: Date.now() }));
+  };
+
+  const knockOutTrait = (traitId: string) => {
+    if (!genome) return;
+    const trait = getMouthTrait(traitId);
+    const next = knockoutMouthGenes(genome, {
+      traitIds: [traitId],
+      residualRule:
+        'The full ' + (trait?.name || traitId) +
+        ' gene was knocked out in DESIGN A MOUTH. A faint historical bias may remain without owning an active jurisdiction.',
+      scarStrength: 18,
+    });
+    onGenomeChange(next);
+    announce('Knocked out gene: ' + (trait?.name || traitId) + '.');
+  };
+
+  const addParentGene = () => {
+    if (!genome || !geneToAdd) return;
+    const candidate = availableParentGenes.find((row) => row.traitId === geneToAdd);
+    const trait = getMouthTrait(geneToAdd);
+    if (!candidate || !trait) return;
+    const axis = trait.axes[0];
+    const assignments = [
+      ...genome.assignments,
+      {
+        axis,
+        donorId: candidate.donorId,
+        traitIds: [trait.id],
+        pressure: trait.defaultPressure,
+        locked: true,
+      },
+    ];
+    onGenomeChange(
+      reidentifyMouthGenome({
+        ...genome,
+        assignments,
+        createdAt: Date.now(),
+      })
+    );
+    announce('Added locked gene: ' + trait.name + ' from ' + (getMouthDonor(candidate.donorId)?.name || candidate.donorId) + '.');
+    setGeneToAdd('');
   };
 
   const addQuirk = (quirkId: string) => {
@@ -772,6 +833,35 @@ export function MouthLabPanel({
 
               <div className="grid gap-4 xl:grid-cols-[1fr_0.9fr]">
                 <div className="space-y-2">
+                  <div className="rounded-xl border border-[#39ff14]/25 bg-[#0b1510] p-3">
+                    <div className="text-[9px] font-mono font-bold tracking-[0.14em] text-[#91d87e]">MANUAL GENE EDITOR</div>
+                    <div className="mt-2 flex gap-2">
+                      <select
+                        value={geneToAdd}
+                        onChange={(event) => setGeneToAdd(event.target.value)}
+                        className="min-w-0 flex-1 rounded-lg border border-[#2d3c34] bg-[#0d121b] px-2.5 py-2 text-[10px] font-mono text-white"
+                      >
+                        <option value="">ADD AN UNUSED PARENT GENE...</option>
+                        {availableParentGenes.map((row) => (
+                          <option key={row.traitId} value={row.traitId}>
+                            {(getMouthTrait(row.traitId)?.name || row.traitId) + ' ← ' + (getMouthDonor(row.donorId)?.name || row.donorId)}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={addParentGene}
+                        disabled={!geneToAdd}
+                        className="rounded-lg border border-[#39ff14]/50 bg-[#102016] px-3 py-2 text-[9px] font-mono font-black text-[#b8ff9f] disabled:opacity-35"
+                      >
+                        ADD GENE
+                      </button>
+                    </div>
+                    <div className="mt-1.5 text-[9px] leading-relaxed text-[#61736a]">
+                      Only genes actually carried by the selected parents are offered here. Manual additions are locked to their donor instead of becoming fake free-floating language traits.
+                    </div>
+                  </div>
+
                   {genome.assignments.map((assignment, index) => (
                     <div key={assignment.axis + ':' + index} className="rounded-xl border border-[#293246] bg-[#0c1119] p-3">
                       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -786,7 +876,7 @@ export function MouthLabPanel({
                             donor: {assignment.donorId ? getMouthDonor(assignment.donorId)?.name || assignment.donorId : 'anchor'}
                           </div>
                         </div>
-                        <div className="flex flex-wrap gap-1">
+                        <div className="flex flex-wrap items-center gap-1">
                           {PRESSURES.map((pressure) => (
                             <button
                               key={pressure}
@@ -803,6 +893,16 @@ export function MouthLabPanel({
                               {pressure.toUpperCase()}
                             </button>
                           ))}
+                          {assignment.traitIds.length === 1 && (
+                            <button
+                              type="button"
+                              onClick={() => knockOutTrait(assignment.traitIds[0])}
+                              className="ml-1 rounded-md border border-[#51303a] bg-[#160d11] p-1 text-[#ff9daf] hover:border-[#ff3f68]"
+                              title="Knock this gene out and leave a mutation scar"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>
