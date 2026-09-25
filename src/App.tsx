@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { LITTLE_GUYS } from './data/littleGuys';
 import { ArchivedRun, LittleGuy, BoxType, SavedStack, GenerationResponse, MusicBredGenome, MusicControls, MusicStackItem, PetriDishExperiment, PetriDishSibling, RealityChaosLevel } from './types';
 import { generateProceduralTrack, clampAndPad, TARGETS } from './lib/proceduralGenerator';
-import { buildSmartStack, resolveRecipe } from './lib/mindStacking';
+import { ACTIVE_GUY_MAX, buildSmartStack, planGuyActivation, resolveRecipe } from './lib/mindStacking';
 import { getMindMetadata } from './data/mindMetadata';
 import { Header } from './components/Header';
 import { GuyCard } from './components/GuyCard';
@@ -321,12 +321,12 @@ export default function App() {
     setErrorMessage(null);
   };
 
-  const archiveGeneration = (data: GenerationResponse, effectiveModel: string) => {
+  const archiveGeneration = (data: GenerationResponse, effectiveModel: string, usedGuyIds: string[] = stackGuyIds) => {
     const style = data.style || '';
     const lyrics = data.lyrics || '';
     const caption = data.caption || '';
     const run = saveGeneratedRun({
-      guyIds: [...stackGuyIds],
+      guyIds: [...usedGuyIds],
       realityEngineIds: [...realityEngineIds],
       compositionEngineIds: [...compositionEngineIds],
       musicStack: [...musicStack],
@@ -352,6 +352,18 @@ export default function App() {
   const handleGenerate = async () => {
     if (stackGuyIds.length === 0 || isGenerating) return;
 
+    const activationPlan = planGuyActivation(
+      stackGuyIds,
+      energy >= 5 ? 'feral' : 'balanced',
+      getLikedMindWeights()
+    );
+    const activeGuyIds = activationPlan.activeIds;
+    if (activeGuyIds.length === 0) return;
+    const activationNotice = activationPlan.capped
+      ? 'Activation budget engaged: ' + activeGuyIds.length + ' of ' + activationPlan.requestedIds.length +
+        ' selected minds are active this run. Lead preserved; the rest were chosen for family/jurisdiction distance.'
+      : null;
+
     setIsGenerating(true);
     setErrorMessage(null);
     setNoticeMessage(null);
@@ -371,7 +383,7 @@ export default function App() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          guyIds: stackGuyIds,
+          guyIds: activeGuyIds,
           realityEngineIds,
           compositionEngineIds,
           musicStack,
@@ -406,9 +418,9 @@ export default function App() {
         lyrics: data.lyrics || '',
         caption: data.caption || '',
       });
-      archiveGeneration(data, effectiveModel);
+      archiveGeneration(data, effectiveModel, activeGuyIds);
 
-      if (data.notice) setNoticeMessage(data.notice);
+      if (data.notice || activationNotice) setNoticeMessage([activationNotice, data.notice].filter(Boolean).join(' '));
 
       setModuleOpen((current) => ({ ...current, output: true }));
       setTimeout(() => {
@@ -429,7 +441,7 @@ export default function App() {
       if (isNetworkOrPattern || isAbort || err.message?.includes('high demand') || err.message?.includes('quota')) {
         try {
           const fallback = generateProceduralTrack({
-            guyIds: stackGuyIds,
+            guyIds: activeGuyIds,
             realityEngineIds,
             compositionEngineIds,
             musicStack,
@@ -457,8 +469,8 @@ export default function App() {
             lyrics: fallback.lyrics,
             caption: fallback.caption,
           });
-          archiveGeneration(fallbackResponse, 'procedural-synthesizer');
-          setNoticeMessage('Generated track using the diverse procedural engine while AI models recalibrate.');
+          archiveGeneration(fallbackResponse, 'procedural-synthesizer', activeGuyIds);
+          setNoticeMessage([activationNotice, 'Generated track using the diverse procedural engine while AI models recalibrate.'].filter(Boolean).join(' '));
           setModuleOpen((current) => ({ ...current, output: true }));
           window.setTimeout(() => {
             document.getElementById('output-section')?.scrollIntoView({ behavior: 'smooth' });
@@ -665,7 +677,7 @@ export default function App() {
               id="stack"
               title="CURRENT STACK"
               eyebrow="01 • choose who is thinking"
-              summary={activeStackGuys.length + ' Little Guy' + (activeStackGuys.length === 1 ? '' : 's') + ' currently installed'}
+              summary={activeStackGuys.length + ' selected • max ' + ACTIVE_GUY_MAX + ' active per generation'}
               tone="cyan"
               open={moduleOpen.stack}
               active={activeModule === 'stack'}
@@ -930,7 +942,7 @@ export default function App() {
                   <span>LITTLE GUY MENAGERIE ({LITTLE_GUYS.length})</span>
                 </h2>
                 <p className="text-xs font-mono text-[#7d8ba1]">
-                  Click any specimen to add or remove from current stack. Selected cards glow with individual neon signatures.
+                  Click any specimen to add or remove from the selected pool. Pick as many as you want; each generation activates at most {ACTIVE_GUY_MAX} minds, preserving the first as lead when the pool is over budget.
                 </p>
               </div>
 
