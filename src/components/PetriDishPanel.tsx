@@ -27,6 +27,7 @@ import {
   RealityChaosLevel,
 } from '../types';
 import { MUSIC_SEED_RECIPES, normalizeMusicControls } from '../data/musicSeedSystem';
+import { chooseDiverseFingerprint } from '../data/musicTaxonomy';
 import {
   breedMusicGenome,
   genomeToStackItem,
@@ -196,6 +197,8 @@ export function PetriDishPanel({
       ...getMusicPreferenceSignals(4),
       ...getLikedPreferenceSignals(5),
     ].slice(0, 10);
+    const frozenRecentFingerprints = getRecentFingerprints(12);
+    const frozenFingerprint = chooseDiverseFingerprint(frozenRecentFingerprints);
 
     const experiment = createPetriDishExperiment({
       name: dishName,
@@ -212,7 +215,8 @@ export function PetriDishPanel({
         energy,
         baseMusicStack: baseMechanismEnvironment(musicStack),
         baseMusicControls: normalizeMusicControls(musicControls),
-        recentFingerprints: getRecentFingerprints(12),
+        recentFingerprints: frozenRecentFingerprints,
+        forcedFingerprint: frozenFingerprint,
         likedSignals: challengeLikedSignals,
       },
     });
@@ -276,6 +280,7 @@ export function PetriDishPanel({
           seed: activeDish.challenge.seed,
           energy: activeDish.challenge.energy,
           recentFingerprints: activeDish.challenge.recentFingerprints,
+          forcedFingerprint: activeDish.challenge.forcedFingerprint,
         });
         next = updateDishSiblingResult(next, sibling.id, resultFromProcedural(output));
         commitDish(next);
@@ -335,6 +340,7 @@ export function PetriDishPanel({
               seed: activeDish.challenge.seed,
               energy: activeDish.challenge.energy,
               recentFingerprints: activeDish.challenge.recentFingerprints,
+              forcedFingerprint: activeDish.challenge.forcedFingerprint,
               likedSignals: activeDish.challenge.likedSignals,
             }),
           });
@@ -634,6 +640,9 @@ export function PetriDishPanel({
                     </div>
                     <div className="mt-1 text-[10px] font-mono text-[#687b70]">
                       Challenge: {activeDish.challenge.guyIds.length} Minds • {activeDish.challenge.realityEngineIds.length} Reality • {activeDish.challenge.compositionEngineIds.length} Composition • {activeDish.challenge.baseMusicStack.length} manual music mechanisms • energy {activeDish.challenge.energy} • seed “{activeDish.challenge.seed || '(blank)'}”
+                    </div>
+                    <div className="mt-1 text-[10px] font-mono text-[#7d9185]">
+                      Frozen musical fingerprint: {activeDish.challenge.forcedFingerprint.genreFamily} • {activeDish.challenge.forcedFingerprint.rhythm} • {activeDish.challenge.forcedFingerprint.vocal}
                     </div>
                   </div>
 
