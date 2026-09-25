@@ -10,6 +10,7 @@ import {
   applyMouthQuirk,
   getMouthQuirkDefinition,
   instantiateMouthQuirk,
+  reidentifyMouthGenome,
 } from './quirks';
 import { getMouthTrait } from './traits';
 import { hashMouthString, stableStringify } from './determinism';
@@ -297,7 +298,7 @@ export function applyMouthSpecimen(
   );
 
   const bundle = createLinkedGeneBundleFromSpecimen(specimen);
-  next = {
+  next = reidentifyMouthGenome({
     ...next,
     linkedGeneBundles: [
       ...next.linkedGeneBundles.filter((item) => item.id !== bundle.id),
@@ -328,7 +329,7 @@ export function applyMouthSpecimen(
       },
     ],
     createdAt: Date.now(),
-  };
+  });
 
   return {
     genome: next,
