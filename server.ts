@@ -7,6 +7,7 @@ import { generateProceduralTrack } from './src/lib/proceduralGenerator';
 import { MusicFingerprint, RealityChaosLevel } from './src/types';
 import { normalizeCompositionEngineIds } from './src/data/compositionEngines';
 import { normalizeMusicControls, normalizeMusicStack } from './src/data/musicSeedSystem';
+import { planGuyActivation } from './src/lib/mindStacking';
 
 const app = express();
 const PORT = 3000;
@@ -153,14 +154,19 @@ app.get('/api/info', (_req, res) => {
 });
 
 app.post('/api/generate', async (req, res) => {
-  const guyIds = Array.isArray(req.body?.guyIds) ? req.body.guyIds : [];
+  const requestedGuyIds = sanitizeIdList(req.body?.guyIds, 64);
+  const energy = typeof req.body?.energy === 'number' ? req.body.energy : 4;
+  const activationPlan = planGuyActivation(requestedGuyIds, energy >= 5 ? 'feral' : 'balanced');
+  const guyIds = activationPlan.activeIds;
+  const activationNotice = activationPlan.capped
+    ? 'Server activation budget engaged: ' + guyIds.length + ' of ' + activationPlan.requestedIds.length + ' selected minds were activated.'
+    : undefined;
   const realityEngineIds = sanitizeIdList(req.body?.realityEngineIds);
   const compositionEngineIds = normalizeCompositionEngineIds(sanitizeIdList(req.body?.compositionEngineIds, 64));
   const musicStack = normalizeMusicStack(req.body?.musicStack);
   const musicControls = normalizeMusicControls(req.body?.musicControls);
   const realityChaos = sanitizeRealityChaos(req.body?.realityChaos);
   const seed = typeof req.body?.seed === 'string' ? req.body.seed : '';
-  const energy = typeof req.body?.energy === 'number' ? req.body.energy : 4;
   const recentFingerprints = sanitizeFingerprints(req.body?.recentFingerprints);
   const forcedFingerprint = sanitizeFingerprints([req.body?.forcedFingerprint])[0];
   const likedSignals = sanitizeLikedSignals(req.body?.likedSignals);
@@ -256,6 +262,7 @@ app.post('/api/generate', async (req, res) => {
         lyrics: lyrics.length,
         caption: caption.length,
       },
+      notice: activationNotice,
     });
   } catch (error: any) {
     console.warn('AI generation unavailable, engaging diverse procedural engine:', error?.message);
@@ -285,7 +292,7 @@ app.post('/api/generate', async (req, res) => {
           lyrics: fallback.lyrics.length,
           caption: fallback.caption.length,
         },
-        notice: 'Synthesized via diverse procedural engine due to high AI API demand',
+        notice: [activationNotice, 'Synthesized via diverse procedural engine due to high AI API demand'].filter(Boolean).join(' '),
       });
     } catch (fallbackErr: any) {
       console.error('Generation failed:', error, fallbackErr);
