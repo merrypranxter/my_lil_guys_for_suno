@@ -51,6 +51,9 @@ jobs:
       - name: Success saturation and cooldown regression smoke
         run: npm run verify:saturation
 
+      - name: Mouth Lab foundation regression smoke
+        run: npm run verify:mouth-lab
+
       - name: Build
         run: npm run build
 
