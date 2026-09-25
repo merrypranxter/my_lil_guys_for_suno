@@ -369,8 +369,12 @@ export function normalizeMusicGenome(value: unknown): MusicBredGenome | undefine
   const raw = value as any;
   const id = typeof raw.id === 'string' ? raw.id.trim().slice(0, 120) : '';
   const name = typeof raw.name === 'string' ? raw.name.trim().slice(0, 120) : '';
-  const mechanismIds = Array.isArray(raw.mechanismIds)
-    ? Array.from(new Set(raw.mechanismIds.filter((item: unknown): item is string => typeof item === 'string' && Boolean(getMusicMechanism(item))))).slice(0, 8)
+  const mechanismIds: string[] = Array.isArray(raw.mechanismIds)
+    ? Array.from(new Set<string>(
+        raw.mechanismIds.filter(
+          (item: unknown): item is string => typeof item === 'string' && Boolean(getMusicMechanism(item))
+        )
+      )).slice(0, 8)
     : [];
   if (!id || !name || mechanismIds.length === 0) return undefined;
 
@@ -381,9 +385,13 @@ export function normalizeMusicGenome(value: unknown): MusicBredGenome | undefine
     kind: candidate?.kind === 'genome' ? 'genome' as const : 'recipe' as const,
     generation: Math.max(0, Math.min(99, Number.isFinite(Number(candidate?.generation)) ? Math.round(Number(candidate.generation)) : 0)),
   });
-  const sanitizeMechanismIds = (items: unknown) =>
+  const sanitizeMechanismIds = (items: unknown): string[] =>
     Array.isArray(items)
-      ? Array.from(new Set(items.filter((item: unknown): item is string => typeof item === 'string' && Boolean(getMusicMechanism(item))))).slice(0, 8)
+      ? Array.from(new Set<string>(
+          items.filter(
+            (item: unknown): item is string => typeof item === 'string' && Boolean(getMusicMechanism(item))
+          )
+        )).slice(0, 8)
       : [];
 
   return {
