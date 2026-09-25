@@ -15,8 +15,11 @@ import {
   X,
 } from 'lucide-react';
 import type {
+  MouthCastRole,
+  MouthExpressionState,
   MouthGenome,
   MouthLabArchive,
+  MouthMutationAction,
   MouthPromptMode,
   MouthQuirkInstance,
   MouthSemanticMode,
@@ -24,13 +27,22 @@ import type {
 } from '../mouthLab/types';
 import {
   MOUTH_BREEDING_OBJECTIVES,
+  MOUTH_CAST_ROLES,
   MOUTH_DONORS,
+  MOUTH_EXPRESSION_STATES,
+  MOUTH_MUTATION_ACTIONS,
   MOUTH_QUIRKS,
+  MOUTH_TRANSDUCTION_PRESETS,
   applyMouthQuirk,
   applyMouthSpecimen,
   breedMouthGenome,
   captureMouthSpecimen,
   compileMouthPrompt,
+  createExpressionRule,
+  createMouthCastProfile,
+  createMutationEvent,
+  createPresetTransduction,
+  emptyMouthDynamics,
   getMouthDonor,
   getMouthQuirkDefinition,
   getMouthTrait,
@@ -45,6 +57,7 @@ import {
   saveMouthLabArchive,
   searchMouthDonors,
   upsertMouthGeneBundle,
+  withMouthDynamics,
   upsertMouthSpecimen,
   upsertMouthSpecies,
 } from '../mouthLab';
@@ -60,7 +73,7 @@ interface MouthLabPanelProps {
   onNotice?: (message: string) => void;
 }
 
-type MouthTab = 'breed' | 'quirks' | 'inspect' | 'specimens';
+type MouthTab = 'breed' | 'quirks' | 'inspect' | 'dynamics' | 'specimens';
 
 const PRESSURES: MouthTraitPressure[] = ['low', 'medium', 'high', 'obsessive'];
 
@@ -68,6 +81,7 @@ const TAB_META: Record<MouthTab, { label: string; subtitle: string }> = {
   breed: { label: 'BREED LANGUAGES', subtitle: '2–6 parents • assign jurisdictions' },
   quirks: { label: 'QUIRK MONSTER', subtitle: 'tiny mutations become laws' },
   inspect: { label: 'DESIGN A MOUTH', subtitle: 'inspect / pressure / compiler' },
+  dynamics: { label: 'DYNAMIC MOUTHS', subtitle: 'cast / infection / timeline / transduction' },
   specimens: { label: 'SPECIMEN ARCHIVE', subtitle: 'save the accidents worth keeping' },
 };
 
@@ -122,6 +136,19 @@ export function MouthLabPanel({
   const [specimenName, setSpecimenName] = useState('');
   const [quirkQuery, setQuirkQuery] = useState('');
   const [geneToAdd, setGeneToAdd] = useState('');
+  const [castRole, setCastRole] = useState<MouthCastRole>('lead');
+  const [castSourceGenomeId, setCastSourceGenomeId] = useState('active');
+  const [expressionTarget, setExpressionTarget] = useState('');
+  const [expressionState, setExpressionState] = useState<MouthExpressionState>('dominant');
+  const [expressionStrength, setExpressionStrength] = useState(80);
+  const [expressionTrigger, setExpressionTrigger] = useState('');
+  const [timelineAction, setTimelineAction] = useState<MouthMutationAction>('escalateTrait');
+  const [timelinePosition, setTimelinePosition] = useState(50);
+  const [timelineTarget, setTimelineTarget] = useState('');
+  const [timelineSourceRole, setTimelineSourceRole] = useState<MouthCastRole>('lead');
+  const [timelineTargetRole, setTimelineTargetRole] = useState<MouthCastRole>('crowd');
+  const [timelineAmount, setTimelineAmount] = useState(80);
+  const [timelineTrigger, setTimelineTrigger] = useState('');
 
   const phenotype = useMemo(() => (genome ? projectMouthPhenotype(genome) : undefined), [genome]);
   const activeTraitIds = useMemo(
@@ -142,6 +169,22 @@ export function MouthLabPanel({
     }
     return rows;
   }, [genome, activeTraitIds]);
+
+  const dynamicTargets = useMemo(() => {
+    if (!genome) return [];
+    const traits = genome.assignments.flatMap((assignment) =>
+      assignment.traitIds.map((id) => ({ value: 'trait:' + id, label: getMouthTrait(id)?.name || id }))
+    );
+    const quirks = genome.quirks.map((instance) => ({
+      value: 'quirk:' + instance.quirkId,
+      label: getMouthQuirkDefinition(instance.quirkId)?.name || instance.quirkId,
+    }));
+    return [...traits, ...quirks].filter(
+      (item, index, all) => all.findIndex((candidate) => candidate.value === item.value) === index
+    );
+  }, [genome]);
+
+  const dynamics = genome?.dynamics || emptyMouthDynamics();
   const compiledPreview = useMemo(() => {
     if (!genome) return '';
     try {
@@ -392,6 +435,101 @@ export function MouthLabPanel({
     setSpecimenWhy('');
     setSpecimenOpen(false);
     setTab('specimens');
+  };
+
+
+  const setDynamics = (nextDynamics: ReturnType<typeof emptyMouthDynamics>) => {
+    if (!genome) return;
+    onGenomeChange(withMouthDynamics(genome, nextDynamics));
+  };
+
+  const assignCastMouth = () => {
+    if (!genome) return;
+    const source =
+      castSourceGenomeId === 'active'
+        ? genome
+        : archive.species.find((item) => item.id === castSourceGenomeId);
+    if (!source) {
+      announce('Pick a valid source genome for that cast role.');
+      return;
+    }
+    const profile = createMouthCastProfile(castRole, source);
+    setDynamics({
+      ...dynamics,
+      castProfiles: [
+        ...dynamics.castProfiles.filter((item) => item.role !== castRole),
+        profile,
+      ],
+    });
+    announce('Assigned ' + profile.label + ' mouth to ' + castRole + '.');
+  };
+
+  const removeCastMouth = (role: MouthCastRole) => {
+    if (!genome) return;
+    setDynamics({
+      ...dynamics,
+      castProfiles: dynamics.castProfiles.filter((item) => item.role !== role),
+    });
+  };
+
+  const addExpressionRule = () => {
+    if (!genome || !expressionTarget) return;
+    const [targetType, targetId] = expressionTarget.split(':', 2) as ['trait' | 'quirk', string];
+    const rule = createExpressionRule(targetType, targetId, expressionState, {
+      strength: expressionStrength,
+      trigger: expressionTrigger || undefined,
+    });
+    setDynamics({
+      ...dynamics,
+      expressionRules: [
+        ...dynamics.expressionRules.filter(
+          (item) => !(item.targetType === rule.targetType && item.targetId === rule.targetId)
+        ),
+        rule,
+      ],
+    });
+    announce('Expression rule added: ' + expressionState.toUpperCase() + ' ' + (targetType === 'trait' ? getMouthTrait(targetId)?.name : getMouthQuirkDefinition(targetId)?.name) + '.');
+    setExpressionTrigger('');
+  };
+
+  const addTimelineEvent = () => {
+    if (!genome) return;
+    let targetType: 'trait' | 'quirk' | undefined;
+    let targetId: string | undefined;
+    if (timelineTarget) {
+      [targetType, targetId] = timelineTarget.split(':', 2) as ['trait' | 'quirk', string];
+    }
+    const event = createMutationEvent({
+      positionPercent: timelinePosition,
+      trigger: timelineTrigger || undefined,
+      action: timelineAction,
+      targetType,
+      targetId,
+      sourceCastRole: timelineAction === 'infectCast' || timelineAction === 'swapCastMouth' ? timelineSourceRole : undefined,
+      targetCastRole: timelineAction === 'infectCast' || timelineAction === 'swapCastMouth' ? timelineTargetRole : undefined,
+      amount: timelineAmount,
+    });
+    setDynamics({
+      ...dynamics,
+      timeline: [...dynamics.timeline, event],
+    });
+    announce('Mutation event scheduled at ' + timelinePosition + '%.');
+    setTimelineTrigger('');
+  };
+
+  const addTransductionPreset = (presetId: string) => {
+    if (!genome) return;
+    const rule = createPresetTransduction(presetId);
+    setDynamics({
+      ...dynamics,
+      transductions: [
+        ...dynamics.transductions.filter(
+          (item) => !(item.source === rule.source && item.target === rule.target && item.direction === rule.direction)
+        ),
+        rule,
+      ],
+    });
+    announce('Transduction installed: ' + (MOUTH_TRANSDUCTION_PRESETS.find((item) => item.id === presetId)?.name || presetId) + '.');
   };
 
   const applySpecimen = (specimenId: string) => {
@@ -958,6 +1096,223 @@ export function MouthLabPanel({
                 <pre className="max-h-72 overflow-auto whitespace-pre-wrap rounded-xl border border-[#163643] bg-[#071016] p-3 text-[10px] leading-relaxed text-[#b7dfe5] [scrollbar-width:thin]">
                   {compiledPreview || 'Nothing compiled yet.'}
                 </pre>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+
+      {tab === 'dynamics' && (
+        <div className="space-y-4">
+          {!genome ? (
+            <div className="rounded-2xl border border-dashed border-[#39445a] p-8 text-center text-xs font-mono text-[#718096]">
+              Breed or load a mouth before assigning cast genetics or mutation dynamics.
+            </div>
+          ) : (
+            <>
+              <div className="grid gap-4 xl:grid-cols-2">
+                <div className="rounded-2xl border border-[#293246] bg-[#090d14] p-3">
+                  <div className="text-xs font-mono font-black text-white">CAST-SPECIFIC MOUTHS</div>
+                  <div className="mt-1 text-[10px] font-mono text-[#657187]">
+                    Give lead, crowd, narrator, freak voice, choir, etc. genuinely different mouth genomes.
+                  </div>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    <select
+                      value={castRole}
+                      onChange={(event) => setCastRole(event.target.value as MouthCastRole)}
+                      className="rounded-lg border border-[#303b50] bg-[#0d121b] px-2.5 py-2 text-[10px] font-mono text-white"
+                    >
+                      {MOUTH_CAST_ROLES.map((role) => <option key={role} value={role}>{role}</option>)}
+                    </select>
+                    <select
+                      value={castSourceGenomeId}
+                      onChange={(event) => setCastSourceGenomeId(event.target.value)}
+                      className="rounded-lg border border-[#303b50] bg-[#0d121b] px-2.5 py-2 text-[10px] font-mono text-white"
+                    >
+                      <option value="active">ACTIVE MOUTH — {genome.name}</option>
+                      {archive.species.filter((item) => item.id !== genome.id).map((species) => (
+                        <option key={species.id} value={species.id}>{species.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={assignCastMouth}
+                    className="mt-2 w-full rounded-lg border border-[#00f0ff]/50 bg-[#0a1b21] px-3 py-2 text-[10px] font-mono font-black text-[#9bf8ff]"
+                  >
+                    ASSIGN MOUTH TO CAST ROLE
+                  </button>
+                  <div className="mt-3 space-y-2">
+                    {dynamics.castProfiles.length ? dynamics.castProfiles.map((profile) => (
+                      <div key={profile.role} className="flex items-center justify-between gap-3 rounded-lg border border-[#273248] bg-[#0d121b] p-2.5">
+                        <div>
+                          <div className="text-[10px] font-mono font-black text-[#9bf8ff]">{profile.role.toUpperCase()} — {profile.label}</div>
+                          <div className="mt-0.5 text-[9px] font-mono text-[#66758c]">
+                            {profile.assignments.flatMap((assignment) => assignment.traitIds).length} traits • {profile.quirks.length} quirks
+                          </div>
+                        </div>
+                        <button type="button" onClick={() => removeCastMouth(profile.role)} className="text-[#66758c] hover:text-[#ff9daf]">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    )) : (
+                      <div className="rounded-lg border border-dashed border-[#334155] p-3 text-[10px] font-mono text-[#657187]">
+                        No cast-specific mouths yet. Unassigned voices use the active genome.
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-[#293246] bg-[#090d14] p-3">
+                  <div className="text-xs font-mono font-black text-white">GENE EXPRESSION / CONDITIONAL PHONETICS</div>
+                  <div className="mt-1 text-[10px] font-mono text-[#657187]">
+                    Mark traits or quirks dominant, recessive, latent, or triggered. Triggered rules can depend on pitch, section, repetition, crowd entry, or another audible event.
+                  </div>
+                  <div className="mt-3 space-y-2">
+                    <select
+                      value={expressionTarget}
+                      onChange={(event) => setExpressionTarget(event.target.value)}
+                      className="w-full rounded-lg border border-[#303b50] bg-[#0d121b] px-2.5 py-2 text-[10px] font-mono text-white"
+                    >
+                      <option value="">SELECT TRAIT OR QUIRK...</option>
+                      {dynamicTargets.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+                    </select>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <select
+                        value={expressionState}
+                        onChange={(event) => setExpressionState(event.target.value as MouthExpressionState)}
+                        className="rounded-lg border border-[#303b50] bg-[#0d121b] px-2.5 py-2 text-[10px] font-mono text-white"
+                      >
+                        {MOUTH_EXPRESSION_STATES.map((state) => <option key={state} value={state}>{state.toUpperCase()}</option>)}
+                      </select>
+                      <label className="rounded-lg border border-[#303b50] bg-[#0d121b] px-2.5 py-2">
+                        <div className="flex justify-between text-[8px] font-mono text-[#6f7d92]"><span>STRENGTH</span><span>{expressionStrength}</span></div>
+                        <input type="range" min="0" max="100" value={expressionStrength} onChange={(event) => setExpressionStrength(Number(event.target.value))} className="w-full accent-[#a855f7]" />
+                      </label>
+                    </div>
+                    <input
+                      value={expressionTrigger}
+                      onChange={(event) => setExpressionTrigger(event.target.value)}
+                      placeholder="optional trigger: on high notes / after crowd enters / every 3rd repetition..."
+                      className="w-full rounded-lg border border-[#303b50] bg-[#0d121b] px-2.5 py-2 text-[10px] font-mono text-white outline-none"
+                    />
+                    <button type="button" onClick={addExpressionRule} disabled={!expressionTarget} className="w-full rounded-lg border border-[#a855f7]/50 bg-[#190e24] px-3 py-2 text-[10px] font-mono font-black text-[#d7a7ff] disabled:opacity-35">
+                      ADD EXPRESSION LAW
+                    </button>
+                  </div>
+                  <div className="mt-3 space-y-2">
+                    {dynamics.expressionRules.map((rule) => (
+                      <div key={rule.id} className="flex items-start justify-between gap-2 rounded-lg border border-[#30283d] bg-[#100d17] p-2.5">
+                        <div>
+                          <div className="text-[9px] font-mono font-black text-[#d7a7ff]">{rule.state.toUpperCase()} • {rule.strength}/100</div>
+                          <div className="mt-0.5 text-[10px] text-[#9aa9bf]">
+                            {rule.targetType === 'trait' ? getMouthTrait(rule.targetId)?.name : getMouthQuirkDefinition(rule.targetId)?.name}
+                          </div>
+                          {rule.trigger && <div className="mt-1 text-[9px] text-[#657187]">trigger: {rule.trigger}</div>}
+                        </div>
+                        <button type="button" onClick={() => setDynamics({ ...dynamics, expressionRules: dynamics.expressionRules.filter((item) => item.id !== rule.id) })} className="text-[#66758c] hover:text-[#ff9daf]">
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-[#293246] bg-[#090d14] p-3">
+                <div className="text-xs font-mono font-black text-white">MUTATION TIMELINE</div>
+                <div className="mt-1 text-[10px] font-mono text-[#657187]">
+                  Schedule state changes through the song or attach them to audible conditions. Infections and mouth swaps can move behavior between cast roles.
+                </div>
+                <div className="mt-3 grid gap-2 lg:grid-cols-4">
+                  <select value={timelineAction} onChange={(event) => setTimelineAction(event.target.value as MouthMutationAction)} className="rounded-lg border border-[#303b50] bg-[#0d121b] px-2 py-2 text-[10px] font-mono text-white">
+                    {MOUTH_MUTATION_ACTIONS.map((action) => <option key={action} value={action}>{action}</option>)}
+                  </select>
+                  <select value={timelineTarget} onChange={(event) => setTimelineTarget(event.target.value)} className="rounded-lg border border-[#303b50] bg-[#0d121b] px-2 py-2 text-[10px] font-mono text-white">
+                    <option value="">NO TRAIT TARGET</option>
+                    {dynamicTargets.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+                  </select>
+                  <select value={timelineSourceRole} onChange={(event) => setTimelineSourceRole(event.target.value as MouthCastRole)} className="rounded-lg border border-[#303b50] bg-[#0d121b] px-2 py-2 text-[10px] font-mono text-white">
+                    {MOUTH_CAST_ROLES.map((role) => <option key={role} value={role}>FROM {role}</option>)}
+                  </select>
+                  <select value={timelineTargetRole} onChange={(event) => setTimelineTargetRole(event.target.value as MouthCastRole)} className="rounded-lg border border-[#303b50] bg-[#0d121b] px-2 py-2 text-[10px] font-mono text-white">
+                    {MOUTH_CAST_ROLES.map((role) => <option key={role} value={role}>TO {role}</option>)}
+                  </select>
+                </div>
+                <div className="mt-2 grid gap-2 lg:grid-cols-[1fr_1fr_2fr_auto]">
+                  <label className="rounded-lg border border-[#303b50] bg-[#0d121b] px-2 py-2">
+                    <div className="flex justify-between text-[8px] font-mono text-[#6f7d92]"><span>POSITION</span><span>{timelinePosition}%</span></div>
+                    <input type="range" min="0" max="100" value={timelinePosition} onChange={(event) => setTimelinePosition(Number(event.target.value))} className="w-full accent-[#ff3f68]" />
+                  </label>
+                  <label className="rounded-lg border border-[#303b50] bg-[#0d121b] px-2 py-2">
+                    <div className="flex justify-between text-[8px] font-mono text-[#6f7d92]"><span>AMOUNT</span><span>{timelineAmount}</span></div>
+                    <input type="range" min="0" max="100" value={timelineAmount} onChange={(event) => setTimelineAmount(Number(event.target.value))} className="w-full accent-[#ff3f68]" />
+                  </label>
+                  <input value={timelineTrigger} onChange={(event) => setTimelineTrigger(event.target.value)} placeholder="optional condition: after second chorus / when pitch exceeds C5 / crowd repeats anchor 3x..." className="rounded-lg border border-[#303b50] bg-[#0d121b] px-2.5 py-2 text-[10px] font-mono text-white outline-none" />
+                  <button type="button" onClick={addTimelineEvent} className="rounded-lg border border-[#ff3f68]/50 bg-[#241015] px-3 py-2 text-[10px] font-mono font-black text-[#ff9daf]">SCHEDULE</button>
+                </div>
+
+                <div className="relative mt-4 h-8 rounded-full border border-[#30384a] bg-[#0b1018]">
+                  {[0,25,50,75,100].map((tick) => (
+                    <span key={tick} className="absolute top-0 h-full border-l border-[#263044]" style={{ left: tick + '%' }}>
+                      <span className="absolute top-8 -translate-x-1/2 text-[8px] font-mono text-[#536176]">{tick}%</span>
+                    </span>
+                  ))}
+                  {dynamics.timeline.map((event) => (
+                    <button
+                      key={event.id}
+                      type="button"
+                      title={event.action + (event.targetId ? ' ' + event.targetId : '')}
+                      onClick={() => setDynamics({ ...dynamics, timeline: dynamics.timeline.filter((item) => item.id !== event.id) })}
+                      className="absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border border-[#ff3f68] bg-[#ff3f68] shadow-[0_0_10px_rgba(255,63,104,0.45)]"
+                      style={{ left: event.positionPercent + '%' }}
+                    />
+                  ))}
+                </div>
+                <div className="mt-6 space-y-1.5">
+                  {dynamics.timeline.map((event) => (
+                    <div key={event.id} className="flex items-center justify-between gap-3 rounded-lg border border-[#2c3342] bg-[#0d121b] px-2.5 py-2 text-[9px] font-mono">
+                      <span className="text-[#ff9daf]">{event.positionPercent}% • {event.action}</span>
+                      <span className="min-w-0 flex-1 truncate text-[#77869d]">{event.targetId || event.trigger || event.targetCastRole || 'state change'}</span>
+                      <button type="button" onClick={() => setDynamics({ ...dynamics, timeline: dynamics.timeline.filter((item) => item.id !== event.id) })} className="text-[#657187] hover:text-white"><X className="h-3 w-3" /></button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-[#293246] bg-[#090d14] p-3">
+                <div className="text-xs font-mono font-black text-white">LANGUAGE ↔ MUSIC TRANSDUCTION</div>
+                <div className="mt-1 text-[10px] font-mono text-[#657187]">
+                  Make mouth events drive music, or make music physically mutate the mouth. These are explicit causal mappings, not descriptive vibes.
+                </div>
+                <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
+                  {MOUTH_TRANSDUCTION_PRESETS.map((preset) => {
+                    const active = dynamics.transductions.some((rule) => rule.source === preset.rule.source && rule.target === preset.rule.target && rule.direction === preset.rule.direction);
+                    return (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => active
+                          ? setDynamics({ ...dynamics, transductions: dynamics.transductions.filter((rule) => !(rule.source === preset.rule.source && rule.target === preset.rule.target && rule.direction === preset.rule.direction)) })
+                          : addTransductionPreset(preset.id)
+                        }
+                        className={
+                          'rounded-xl border p-3 text-left ' +
+                          (active ? 'border-[#ffd84d] bg-[#211b0d]' : 'border-[#2b3548] bg-[#0d121b] hover:border-[#ffd84d]/45')
+                        }
+                      >
+                        <div className="text-[9px] font-mono font-black text-[#ffe995]">{active ? '✓ ' : ''}{preset.name}</div>
+                        <div className="mt-1 text-[9px] leading-relaxed text-[#68758a]">{preset.description}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+                {dynamics.transductions.length > 0 && (
+                  <div className="mt-3 rounded-xl border border-[#3a331c] bg-[#121008] p-2.5 text-[9px] font-mono text-[#c9bd85]">
+                    {dynamics.transductions.length} active causal mapping{dynamics.transductions.length === 1 ? '' : 's'} • compiler will put the full mapping laws into LYRICS / CONTROL.
+                  </div>
+                )}
               </div>
             </>
           )}
