@@ -105,7 +105,7 @@ function sanitizeQuirk(instance: any): MouthQuirkInstance | undefined {
     },
     trigger: cleanText(instance.trigger || instance.takeover?.trigger, 220) || undefined,
     linkedTraitIds: Array.from(
-      new Set(
+      new Set<string>(
         (Array.isArray(instance.linkedTraitIds) ? instance.linkedTraitIds : [])
           .map((id: unknown) => String(id))
           .filter((id: string) => Boolean(getMouthTrait(id))),
@@ -120,7 +120,7 @@ export function normalizeMouthGenomeForGeneration(value: unknown): MouthGenome |
   const raw = value as any;
 
   const parentDonorIds = Array.from(
-    new Set(
+    new Set<string>(
       (Array.isArray(raw.parentDonorIds) ? raw.parentDonorIds : [])
         .map((id: unknown) => String(id))
         .filter((id: string) => Boolean(getMouthDonor(id))),
