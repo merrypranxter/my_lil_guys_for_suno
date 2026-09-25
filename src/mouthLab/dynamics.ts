@@ -6,6 +6,8 @@ import {
   MouthExpressionState,
   MouthGenome,
   MouthMutationAction,
+  MouthMutationCurve,
+  MouthMutationCurveShape,
   MouthMutationEvent,
   MouthQuirkInstance,
   MouthTransductionDirection,
@@ -32,6 +34,13 @@ export const MOUTH_EXPRESSION_STATES: MouthExpressionState[] = [
   'recessive',
   'latent',
   'triggered',
+];
+
+export const MOUTH_MUTATION_CURVE_SHAPES: MouthMutationCurveShape[] = [
+  'linear',
+  'step',
+  'exponential',
+  'oscillating',
 ];
 
 export const MOUTH_MUTATION_ACTIONS: MouthMutationAction[] = [
@@ -221,6 +230,47 @@ function normalizeExpressionRule(value: unknown): MouthExpressionRule | undefine
   };
 }
 
+
+function normalizeMutationCurve(value: unknown): MouthMutationCurve | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const raw = value as any;
+  const targetType = raw.targetType === 'quirk' ? 'quirk' : raw.targetType === 'trait' ? 'trait' : undefined;
+  const targetId = clean(raw.targetId, 180);
+  if (!targetType || !targetId || !targetExists(targetType, targetId)) return undefined;
+
+  const shape = MOUTH_MUTATION_CURVE_SHAPES.includes(raw.shape)
+    ? raw.shape as MouthMutationCurveShape
+    : 'linear';
+  const startPercent = clampMouthControl(raw.startPercent, 0);
+  const endPercent = Math.max(startPercent, clampMouthControl(raw.endPercent, 100));
+  const castRole = MOUTH_CAST_ROLES.includes(raw.castRole)
+    ? raw.castRole as MouthCastRole
+    : undefined;
+
+  const signature = stableStringify({
+    targetType,
+    targetId,
+    startPercent,
+    endPercent,
+    startStrength: clampMouthControl(raw.startStrength, 0),
+    endStrength: clampMouthControl(raw.endStrength, 100),
+    shape,
+    castRole,
+  });
+
+  return {
+    id: clean(raw.id, 180) || 'mouth_curve_' + hashMouthString(signature).toString(36),
+    targetType,
+    targetId,
+    startPercent,
+    endPercent,
+    startStrength: clampMouthControl(raw.startStrength, 0),
+    endStrength: clampMouthControl(raw.endStrength, 100),
+    shape,
+    castRole,
+  };
+}
+
 function normalizeMutationEvent(value: unknown): MouthMutationEvent | undefined {
   if (!value || typeof value !== 'object') return undefined;
   const raw = value as any;
@@ -308,6 +358,7 @@ export function emptyMouthDynamics(): MouthDynamics {
   return {
     castProfiles: [],
     expressionRules: [],
+    mutationCurves: [],
     timeline: [],
     transductions: [],
   };
@@ -326,6 +377,10 @@ export function normalizeMouthDynamics(value: unknown): MouthDynamics {
     .map(normalizeExpressionRule)
     .filter((item): item is MouthExpressionRule => Boolean(item));
 
+  const mutationCurves = (Array.isArray(raw.mutationCurves) ? raw.mutationCurves : [])
+    .map(normalizeMutationCurve)
+    .filter((item): item is MouthMutationCurve => Boolean(item));
+
   const timeline = (Array.isArray(raw.timeline) ? raw.timeline : [])
     .map(normalizeMutationEvent)
     .filter((item): item is MouthMutationEvent => Boolean(item))
@@ -338,6 +393,7 @@ export function normalizeMouthDynamics(value: unknown): MouthDynamics {
   return {
     castProfiles,
     expressionRules,
+    mutationCurves,
     timeline,
     transductions,
   };
@@ -370,6 +426,15 @@ export function createExpressionRule(
     castRole: options.castRole,
   });
   if (!normalized) throw new Error('Invalid Mouth Lab expression rule.');
+  return normalized;
+}
+
+
+export function createMutationCurve(
+  input: Omit<MouthMutationCurve, 'id'> & { id?: string },
+): MouthMutationCurve {
+  const normalized = normalizeMutationCurve(input);
+  if (!normalized) throw new Error('Invalid Mouth Lab mutation curve.');
   return normalized;
 }
 
