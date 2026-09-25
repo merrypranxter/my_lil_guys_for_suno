@@ -3,7 +3,7 @@ import { fingerprintToLine } from '../data/musicTaxonomy';
 import { getCompositionEngine, normalizeCompositionEngineIds } from '../data/compositionEngines';
 import { DEFAULT_MUSIC_CONTROLS, compileMusicStack, getMusicMechanism, musicGenomePhenotypeSignature, normalizeMusicControls, normalizeMusicGenome, normalizeMusicStack, summarizeMusicStack } from '../data/musicSeedSystem';
 import { normalizePetriDishExperiment } from './petriDish';
-import { applySuccessSaturation, buildMechanismNoveltySignals, mechanismSaturationMap } from './noveltyPressure';
+import { applySuccessSaturation, buildMechanismNoveltySignals, buildSemanticNoveltySignals, mechanismSaturationMap } from './noveltyPressure';
 
 const STORAGE_KEYS = {
   SAVED_STACKS: 'lgm_saved_stacks_v1',
@@ -816,7 +816,11 @@ export function getRecentMechanismSaturation(limit = 8): Record<string, number> 
 }
 
 export function getNoveltyPressureSignals(limit = 8): string[] {
-  return buildMechanismNoveltySignals(getRunArchive(), limit);
+  const runs = getRunArchive();
+  return [
+    ...buildMechanismNoveltySignals(runs, limit),
+    ...buildSemanticNoveltySignals(runs, limit),
+  ].slice(0, 10);
 }
 
 export function getGenomeMechanismFitness(genome: MusicBredGenome): Record<string, number> {
