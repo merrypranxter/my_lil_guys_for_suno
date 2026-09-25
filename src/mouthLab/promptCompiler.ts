@@ -37,15 +37,6 @@ function cleanText(value: unknown, max = 500): string {
   return value.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
 }
 
-function pressureWeight(pressure: MouthTraitPressure): number {
-  return {
-    low: 1,
-    medium: 2,
-    high: 3,
-    obsessive: 4,
-  }[pressure];
-}
-
 function pressureLabel(pressure: MouthTraitPressure): string {
   return pressure === 'obsessive'
     ? 'OBSESSIVE — global law; reinforce repeatedly and do not let it fade into occasional flavor'
@@ -74,16 +65,19 @@ function sanitizeQuirk(instance: any): MouthQuirkInstance | undefined {
   const definition = getMouthQuirkDefinition(String(instance.quirkId || ''));
   if (!definition) return undefined;
 
-  const takeoverMode = [
-    'constant',
-    'instant',
-    'gradual',
-    'stepwise',
-    'eventTriggered',
-    'oscillating',
-    'oneWay',
-  ].includes(instance.takeover?.mode)
-    ? instance.takeover.mode
+  const requestedTakeoverMode = String(instance.takeover?.mode || '');
+  const takeoverMode: MouthQuirkInstance['takeover']['mode'] = (
+    [
+      'constant',
+      'instant',
+      'gradual',
+      'stepwise',
+      'eventTriggered',
+      'oscillating',
+      'oneWay',
+    ] as MouthQuirkInstance['takeover']['mode'][]
+  ).includes(requestedTakeoverMode as MouthQuirkInstance['takeover']['mode'])
+    ? (requestedTakeoverMode as MouthQuirkInstance['takeover']['mode'])
     : definition.defaultTakeover.mode;
 
   return {
