@@ -139,14 +139,15 @@ function normalizeCastProfile(value: unknown): MouthCastProfile | undefined {
   const role = MOUTH_CAST_ROLES.includes(raw.role) ? raw.role as MouthCastRole : undefined;
   if (!role) return undefined;
 
-  const parentDonorIds = unique(
-    (Array.isArray(raw.parentDonorIds) ? raw.parentDonorIds : [])
+  const parentDonorIds = unique<string>(
+    (Array.isArray(raw.parentDonorIds) ? raw.parentDonorIds as unknown[] : [])
       .map((id: unknown) => String(id))
       .filter((id: string) => Boolean(getMouthDonor(id))),
   ).slice(0, 6);
 
-  const assignments = (Array.isArray(raw.assignments) ? raw.assignments : [])
-    .map((assignment: any) => {
+  const assignments = (Array.isArray(raw.assignments) ? raw.assignments as unknown[] : [])
+    .map((value: unknown) => {
+      const assignment = value as any;
       const traitIds = unique(
         (Array.isArray(assignment?.traitIds) ? assignment.traitIds : [])
           .map((id: unknown) => String(id))
@@ -165,12 +166,12 @@ function normalizeCastProfile(value: unknown): MouthCastProfile | undefined {
         locked: assignment?.locked === true,
       };
     })
-    .filter(Boolean);
+    .filter((item): item is MouthCastProfile['assignments'][number] => Boolean(item));
 
   if (!assignments.length) return undefined;
 
-  const quirks = (Array.isArray(raw.quirks) ? raw.quirks : [])
-    .map((item: MouthQuirkInstance) => staticQuirk(item))
+  const quirks = (Array.isArray(raw.quirks) ? raw.quirks as unknown[] : [])
+    .map((item: unknown) => staticQuirk(item as MouthQuirkInstance))
     .filter((item): item is MouthQuirkInstance => Boolean(item));
 
   const signature = stableStringify({
@@ -187,7 +188,7 @@ function normalizeCastProfile(value: unknown): MouthCastProfile | undefined {
     label: clean(raw.label, 100) || mouthCastLabel(role),
     sourceGenomeId: clean(raw.sourceGenomeId, 180) || undefined,
     parentDonorIds,
-    assignments: assignments as MouthCastProfile['assignments'],
+    assignments,
     quirks,
     intelligibility: clampMouthControl(raw.intelligibility, 82),
     stability: clampMouthControl(raw.stability, 72),
@@ -368,27 +369,31 @@ export function normalizeMouthDynamics(value: unknown): MouthDynamics {
   if (!value || typeof value !== 'object') return emptyMouthDynamics();
   const raw = value as any;
 
-  const castProfiles = (Array.isArray(raw.castProfiles) ? raw.castProfiles : [])
-    .map(normalizeCastProfile)
-    .filter((item): item is MouthCastProfile => Boolean(item))
-    .filter((item, index, all) => all.findIndex((candidate) => candidate.role === item.role) === index);
+  const castProfiles = (Array.isArray(raw.castProfiles) ? raw.castProfiles as unknown[] : [])
+    .map((item: unknown) => normalizeCastProfile(item))
+    .filter((item: MouthCastProfile | undefined): item is MouthCastProfile => Boolean(item))
+    .filter((item: MouthCastProfile, index: number, all: MouthCastProfile[]) =>
+      all.findIndex((candidate: MouthCastProfile) => candidate.role === item.role) === index
+    );
 
-  const expressionRules = (Array.isArray(raw.expressionRules) ? raw.expressionRules : [])
-    .map(normalizeExpressionRule)
-    .filter((item): item is MouthExpressionRule => Boolean(item));
+  const expressionRules = (Array.isArray(raw.expressionRules) ? raw.expressionRules as unknown[] : [])
+    .map((item: unknown) => normalizeExpressionRule(item))
+    .filter((item: MouthExpressionRule | undefined): item is MouthExpressionRule => Boolean(item));
 
-  const mutationCurves = (Array.isArray(raw.mutationCurves) ? raw.mutationCurves : [])
-    .map(normalizeMutationCurve)
-    .filter((item): item is MouthMutationCurve => Boolean(item));
+  const mutationCurves = (Array.isArray(raw.mutationCurves) ? raw.mutationCurves as unknown[] : [])
+    .map((item: unknown) => normalizeMutationCurve(item))
+    .filter((item: MouthMutationCurve | undefined): item is MouthMutationCurve => Boolean(item));
 
-  const timeline = (Array.isArray(raw.timeline) ? raw.timeline : [])
-    .map(normalizeMutationEvent)
-    .filter((item): item is MouthMutationEvent => Boolean(item))
-    .sort((a, b) => a.positionPercent - b.positionPercent || a.id.localeCompare(b.id));
+  const timeline = (Array.isArray(raw.timeline) ? raw.timeline as unknown[] : [])
+    .map((item: unknown) => normalizeMutationEvent(item))
+    .filter((item: MouthMutationEvent | undefined): item is MouthMutationEvent => Boolean(item))
+    .sort((a: MouthMutationEvent, b: MouthMutationEvent) =>
+      a.positionPercent - b.positionPercent || a.id.localeCompare(b.id)
+    );
 
-  const transductions = (Array.isArray(raw.transductions) ? raw.transductions : [])
-    .map(normalizeTransduction)
-    .filter((item): item is MouthTransductionRule => Boolean(item));
+  const transductions = (Array.isArray(raw.transductions) ? raw.transductions as unknown[] : [])
+    .map((item: unknown) => normalizeTransduction(item))
+    .filter((item: MouthTransductionRule | undefined): item is MouthTransductionRule => Boolean(item));
 
   return {
     castProfiles,
