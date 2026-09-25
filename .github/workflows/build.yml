@@ -39,6 +39,9 @@ jobs:
       - name: Mind activation budget regression smoke
         run: npm run verify:minds
 
+      - name: Generation jurisdiction regression smoke
+        run: npm run verify:jurisdictions
+
       - name: Build
         run: npm run build
 

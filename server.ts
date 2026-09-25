@@ -8,6 +8,7 @@ import { MusicFingerprint, RealityChaosLevel } from './src/types';
 import { normalizeCompositionEngineIds } from './src/data/compositionEngines';
 import { normalizeMusicControls, normalizeMusicStack } from './src/data/musicSeedSystem';
 import { planGuyActivation } from './src/lib/mindStacking';
+import { evaluateLiteralSeedCoverage } from './src/lib/generationJurisdictions';
 
 const app = express();
 const PORT = 3000;
@@ -251,6 +252,12 @@ app.post('/api/generate', async (req, res) => {
         : undefined
     );
 
+    const seedCoverage = evaluateLiteralSeedCoverage(seed, [style, lyrics, caption]);
+    const seedNotice =
+      seedCoverage.anchors.length > 0 && seedCoverage.coverage === 0
+        ? 'Seed sovereignty warning: none of the protected literal seed anchors survived into the generated boxes. Review for semantic drift.'
+        : undefined;
+
     res.json({
       style,
       lyrics,
@@ -262,7 +269,7 @@ app.post('/api/generate', async (req, res) => {
         lyrics: lyrics.length,
         caption: caption.length,
       },
-      notice: activationNotice,
+      notice: [activationNotice, seedNotice].filter(Boolean).join(' ') || undefined,
     });
   } catch (error: any) {
     console.warn('AI generation unavailable, engaging diverse procedural engine:', error?.message);
@@ -280,6 +287,11 @@ app.post('/api/generate', async (req, res) => {
         recentFingerprints,
         forcedFingerprint,
       });
+      const fallbackSeedCoverage = evaluateLiteralSeedCoverage(seed, [fallback.style, fallback.lyrics, fallback.caption]);
+      const fallbackSeedNotice =
+        fallbackSeedCoverage.anchors.length > 0 && fallbackSeedCoverage.coverage === 0
+          ? 'Seed sovereignty warning: none of the protected literal seed anchors survived into the generated boxes. Review for semantic drift.'
+          : undefined;
 
       res.json({
         style: fallback.style,
@@ -292,7 +304,7 @@ app.post('/api/generate', async (req, res) => {
           lyrics: fallback.lyrics.length,
           caption: fallback.caption.length,
         },
-        notice: [activationNotice, 'Synthesized via diverse procedural engine due to high AI API demand'].filter(Boolean).join(' '),
+        notice: [activationNotice, fallbackSeedNotice, 'Synthesized via diverse procedural engine due to high AI API demand'].filter(Boolean).join(' '),
       });
     } catch (fallbackErr: any) {
       console.error('Generation failed:', error, fallbackErr);

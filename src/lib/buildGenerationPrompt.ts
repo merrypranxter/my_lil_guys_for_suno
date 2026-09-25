@@ -7,6 +7,7 @@ import { compileMusicStack, musicControlsToDirectives } from '../data/musicSeedS
 import { BoxType, CompositionEngine, LittleGuy, MusicControls, MusicFingerprint, MusicStackItem, RealityChaosLevel, RealityEngine } from '../types';
 import { REALITY_CHAOS_LABELS, analyzeRealityChemistry } from './realityChemistry';
 import { assignActivationRoles } from './mindStacking';
+import { renderLayerJurisdictionMatrix, renderSeedSovereigntyContract } from './generationJurisdictions';
 
 export interface GenerationPromptParams {
   guyIds: string[];
@@ -35,6 +36,8 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
   const primaryGuy: LittleGuy = guys[0] || fallbackGuy;
   const secondaryGuys: LittleGuy[] = guys.slice(1);
   const activationSlots = assignActivationRoles(guys);
+  const seedSovereigntyBlock = renderSeedSovereigntyContract(seed);
+  const layerJurisdictionMatrix = renderLayerJurisdictionMatrix();
 
   const realityEngines: RealityEngine[] = getRealityEngines(realityEngineIds);
   const realityChemistry = analyzeRealityChemistry(realityEngineIds);
@@ -57,7 +60,7 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
           '[' + REALITY_DIMENSION_LABELS[engine.dimension] + ']: ' + engine.name + ' (' + engine.subtitle + ')\n' +
           'Jurisdiction contract: ' + REALITY_DIMENSION_JURISDICTIONS[engine.dimension] + '\n' +
           'Operational Rule: ' + engine.rule + '\n' +
-          'Anti-decoration test: this engine must change structure, selection, behavior, assumptions, or procedure; themed vocabulary alone does not count.'
+          'Anti-decoration test: this engine must change structure, selection, behavior, assumptions, or procedure; themed vocabulary alone does not count. Reality owns scenario/perception only and must preserve the sovereign seed subject.'
         )
         .join('\n\n')
     : 'NONE SELECTED — do not invent a Reality Engine unless the user seed explicitly supplies one.';
@@ -70,7 +73,7 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
           '[' + COMPOSITION_DIMENSION_LABELS[engine.dimension] + ']: ' + engine.name + ' (' + engine.subtitle + ')\n' +
           'Jurisdiction contract: ' + COMPOSITION_DIMENSION_JURISDICTIONS[engine.dimension] + '\n' +
           'Operational Rule: ' + engine.rule + '\n' +
-          'Anti-decoration test: this engine must create an audible, structural, informational, physical, or procedural consequence; naming the source or concept alone does not count.'
+          'Anti-decoration test: this engine must create an audible, structural, informational, physical, or procedural consequence; naming the source or concept alone does not count. Composition owns musical mechanics, not lyric subject matter or narrative replacement.'
         )
         .join('\n\n')
     : 'NONE SELECTED — do not invent Composition Lab engines unless the user seed explicitly asks for a mechanism.';
@@ -80,7 +83,7 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
   const musicSeedBreakdown = compiledMusic.mechanisms.length || compiledMusic.recipes.length || compiledMusic.genomes.length
     ? [
         'ACTIVE RECIPE MACROS: ' + (compiledMusic.recipes.length ? compiledMusic.recipes.map((recipe) => recipe.name).join(' + ') : 'NONE — no built-in recipe macro active'),
-        'ACTIVE BRED GENOMES: ' + (compiledMusic.genomes.length
+        'ACTIVE BRED GENOMES — MUSICAL PROVENANCE ONLY, NEVER LYRIC SUBJECT: ' + (compiledMusic.genomes.length
           ? compiledMusic.genomes.map((genome) =>
               genome.name + ' [G' + genome.generation + '] = ' +
               genome.lineage.parentA.name + ' × ' + genome.lineage.parentB.name
@@ -98,7 +101,7 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
         ...musicControlsToDirectives(compiledMusic.controls).map((line) => '- ' + line),
         'STACK INTERACTIONS:',
         ...(compiledMusic.interactions.length ? compiledMusic.interactions.map((line) => '- ' + line) : ['- No precomputed interaction; preserve every selected mechanism independently.']),
-        'COMPILER LAW: Recipes and bred genomes are starting physics, not genre presets. Do not paste their wording together. Expand them into mechanisms, preserve stack order and strength, and make overlapping mechanisms reinforce while incompatible mechanisms negotiate through separate jurisdictions. Genome relationship laws are inherited constraints and must create audible consequences rather than lineage-themed vocabulary.',
+        'COMPILER LAW: Recipes and bred genomes are starting musical physics, not genre or narrative presets. Do not paste their wording together. Expand them into mechanisms, preserve stack order and strength, and make overlapping mechanisms reinforce while incompatible mechanisms negotiate through separate jurisdictions. Genome relationship laws are inherited musical constraints and must create audible consequences. Genome names, parent names, ancestry labels, and lineage lore are provenance only and must never leak into subject matter, characters, setting, or lyrics.',
       ].join('\n')
     : [
         'NO MUSIC SEED RECIPE OR MECHANISM STACK ACTIVE.',
@@ -295,7 +298,7 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
     'Your purpose is to produce three precisely engineered creative outputs for SUNO music generation using cognitive/generative rules called Little Guys, plus compact metadata describing the musical territory selected.\n\n' +
     'CRITICAL ARCHITECTURAL DIRECTIVES:\n' +
     '1. NEVER produce generic weirdness salad or superficial surrealism. Cognitive rules are operational constraints and physical laws.\n' +
-    '2. STACK NEGOTIATION IS MANDATORY. The LEAD establishes the governing premise; SUPPORT minds propagate it, the COUNTERFORCE stresses it from a distinct jurisdiction, and the WILDCARD may create one bounded discontinuity. No role may silently take over every dimension.\n' +
+    '2. STACK NEGOTIATION IS MANDATORY. The LEAD establishes the governing cognitive premise around the sovereign seed; SUPPORT minds propagate it, the COUNTERFORCE stresses it from a distinct jurisdiction, and the WILDCARD may create one bounded discontinuity. Minds own cognitive transformation, not subject replacement, scenario ownership, or musical ancestry.\n' +
     '3. STACK CHEMISTRY IS OPERATIONAL. Mind family and chaos ratings are not decoration: low-chaos minds should stabilize, measure, narrate, or regulate; high-chaos minds should create real structural discontinuity. Active minds have an explicit job budget. Do not make every mind perform the same mutation or give each one a cameo line. Preserve distinct causal jobs and productive friction.\n' +
     '4. MUSICAL TRADITIONS ARE RULE SYSTEMS, NOT LABELS. Harmony, melody, rhythm, timbre, vocal behavior, performance attitude, and production must receive separate jurisdiction. Do not simply write genre A + genre B + genre C.\n' +
     '5. ANTI-MONOCULTURE: recent musical fingerprints are evidence of territory already explored. Unless a CONTROLLED-EXPERIMENT FINGERPRINT is explicitly frozen, move to genuinely different musical ancestry rather than swapping synonyms. If a frozen fingerprint is present, DO NOT diversify away from it: keep every fingerprint field fixed so the Music Seed genome remains the principal experimental variable.\n' +
@@ -313,7 +316,7 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
     '17. MUSICAL PHYSICS CHANGES THE COORDINATE SYSTEM. TUNING changes interval geometry; RHYTHM PHYSICS changes time organization; SPATIAL AUDIO changes physical placement and motion; ROLE EXCHANGE changes which musical system performs which job. These are causal laws, not vibe adjectives.\n' +
     '18. TIME / SCALE / KNOWLEDGE ARE SEPARATE JURISDICTIONS. TEMPORAL changes objective chronology; SCALE changes the level of causality and available operations; EPISTEMOLOGY changes information access/evidence. Do not confuse chronology with subjective altered-state time or knowledge access with attention/headspace.\n' +
     '19. STRUCTURE / CONTROL IS ENFORCEABLE. AUDIENCE FEEDBACK changes the piece through reaction; CONSTRAINTS define legality; ECONOMY defines scarcity and cost; FAILURE MODE defines breakage; CONTROL AUTHORITY defines who may decide; PROP carries state through a recurring physical object. These must create observable consequences.\n' +
-    '20. MUSIC SEED STACK IS PRECOMPILED MUSICAL PHYSICS, NOT A PRESET. Recipe macros, bred genomes, and mechanism chips may stack. Preserve their separate jobs and strengths. If duplicate mechanisms arise through several ancestors, reinforce the underlying operation rather than repeating text. If mechanisms conflict, expose and negotiate the conflict instead of averaging them into mush. Bred genomes carry an invariant plus a relationship law; both must remain audible or structurally testable.\n' +
+    '20. MUSIC SEED STACK IS PRECOMPILED MUSICAL PHYSICS, NOT A PRESET AND NOT A STORY GENERATOR. Recipe macros, bred genomes, and mechanism chips may stack. Preserve their separate jobs and strengths. If duplicate mechanisms arise through several ancestors, reinforce the underlying operation rather than repeating text. If mechanisms conflict, expose and negotiate the conflict instead of averaging them into mush. Bred genomes carry an invariant plus a relationship law; both must remain audible or structurally testable. Never turn lineage names or inherited mechanism labels into lyric content.\n' +
     '21. STEMMINESS IS AN ARRANGEMENT VARIABLE, NOT A QUALITY SCORE. High stemminess requires register/role separation, local rather than universal wash, useful exposure windows, and parts that remain interesting when isolated. High kinetic density plus high stemminess means rapid events rotate through distinct actors instead of everybody playing constantly.\n' +
     '22. OUTPUT FORMAT: valid JSON with keys style, lyrics, caption, fingerprint. fingerprint must contain genreFamily, harmony, melody, rhythm, timbre, vocal, performance, production.\n\n' +
     'TARGET CHARACTER COUNTS INCLUDING SPACES AND LINE BREAKS:\n' +
@@ -322,6 +325,8 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
     'caption: 490 to 499 characters.';
 
   const userPrompt = 'EXECUTE SUNO GENERATION REQUEST.\n\n' +
+    'SEED SOVEREIGNTY CONTRACT:\n' + seedSovereigntyBlock + '\n\n' +
+    'GENERATION JURISDICTION / AUTHORITY MATRIX:\n' + layerJurisdictionMatrix + '\n\n' +
     'ACTIVE LITTLE GUY STACK:\n' + stackBreakdown + '\n\n' +
     'ACTIVE REALITY ENGINES:\n' + realityBreakdown + '\n\n' +
     'REALITY CHEMISTRY / COLLISION MAP:\n' + realityChemistryBlock + '\n\n' +
@@ -340,8 +345,8 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
     'Treat each selected engine as an operational law in its own jurisdiction. Do not merely name it or decorate lyrics with its vocabulary. If the format is a game show, the lyric architecture must actually behave like one. If the headspace is overloaded, attention and thread management must actually change. If an altered-state engine is active, use its defined phenomenological mechanism rather than generic drug imagery. Preserve productive incompatibility between layers. Use the collision map above to decide WHERE the song generates events: the high-friction seam should repeatedly force one jurisdiction to solve a problem created by another.\n\n' +
     'ENERGY PARAMETER:\n' + (energyLabels[energy] || energyLabels[3]) + '\n\n' +
     'CONTROLLED-EXPERIMENT / FROZEN MUSICAL FINGERPRINT:\n' + frozenFingerprintBlock + '\n\n' +
-    'OPTIONAL SEED / SUBJECT / EXPERIMENT:\n' +
-    (seed && seed.trim() ? '"' + seed.trim() + '"' : 'NONE PROVIDED — derive subject organically from the primary Little Guy ontology') + '\n\n' +
+    'SOVEREIGN SEED / SUBJECT / EXPERIMENT:\n' +
+    (seed && seed.trim() ? '"' + seed.trim() + '"' : 'NONE PROVIDED — derive subject organically from the LEAD mind, while keeping lower layers inside their jurisdictions') + '\n\n' +
     'RECENT TERRITORY — AVOID ACCIDENTAL REPETITION:\n' + recentBlock + '\n\n' +
     'POSITIVE PREFERENCE SIGNALS — PRESERVE THE LIKED PRINCIPLE, NOT THE SURFACE COPY:\n' + likedBlock + '\n\n' +
     'MUSICAL POSSIBILITY SPACE — THIS IS A LIBRARY, NOT A REQUIRED CHECKLIST:\n' + MUSICAL_VOCABULARY_PROMPT + '\n\n' +
@@ -362,7 +367,7 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
     'BOX 2 — LYRICS / CONTROL\n' +
     'TARGET: 4900–4999 characters. Every non-sung cue, instrumental instruction, section name, sound effect, and tempo change goes in [SQUARE BRACKETS]. Lyrics may be dry explanation, procedural narration, factual description of what the song is doing, absurdly serious administrative language, phonetic nonsense, or combinations. Avoid neat default pop rhyme. Follow FORM → DESTABILIZE → FRACTURE → COLLAPSE → ANCHOR RETURNS → REFORM STRANGER.\n' +
     'VOCALS ARE A MUSICAL SYSTEM. Choose among many possibilities: scat, nonsense vocables, yodeling, melisma, hocketing, call-and-response, polyphony, dry speech-song, patter, recitative, falsetto flips, whistle register, nasal drones, overtone-rich sustain, ululation, choral writing, rhythmic consonants. If phonetic nonsense is used, hard consonants act as percussion, nasals as resonance, open vowels as sustained melody, rolled consonants as acceleration, dense syllables as compression, long vowels as stretched time, heavy syllables as bass weight.\n' +
-    'The Little Guy stack must control lyric logic rather than merely being named. Reality Engines, when active, must visibly control scenario mechanics, speaker behavior, temporal/sensory logic, or delivery according to their jurisdictions. Composition Lab engines, when active, must visibly control vocal mechanics, signal behavior, sonic materials, musical physics, chronology, information, constraints, resources, failure, authority, or other assigned jurisdictions. Music Seed mechanisms, when active, must create audible structure: recruited voices must enter because of triggers, coupling layers must retain distinct accent maps, dropouts must expose real parts, and high stemminess must resist wall-of-sound collapse.\n\n' +
+    'The sovereign seed must remain recognizably the semantic subject of the lyrics. The Little Guy stack controls cognitive/causal lyric logic around that subject rather than merely being named. Reality Engines, when active, must visibly control scenario mechanics, speaker behavior, temporal/sensory logic, or delivery according to their jurisdictions without replacing the seed. Composition Lab engines, when active, must visibly control vocal mechanics, signal behavior, sonic materials, musical physics, chronology, information, constraints, resources, failure, authority, or other assigned jurisdictions without colonizing subject matter. Music Seed mechanisms, when active, must create audible structure only: recruited voices must enter because of triggers, coupling layers must retain distinct accent maps, dropouts must expose real parts, and high stemminess must resist wall-of-sound collapse.\n\n' +
     'BOX 3 — CAPTION\n' +
     'TARGET: 490–499 characters. Compact publishable explanation of what the song does, which mechanisms govern it, and why the structure is strange. Take the mechanism seriously. Do not mention prompts or system instructions.\n\n' +
     'FINGERPRINT METADATA\n' +

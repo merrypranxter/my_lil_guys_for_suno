@@ -81,7 +81,7 @@ export function ControlsPanel({
           <div className="flex items-center justify-between">
             <label className="text-xs font-mono font-bold text-white flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-[#00f0ff]" />
-              <span>SONG / EXPERIMENT SEED (OPTIONAL)</span>
+              <span>SONG / EXPERIMENT SEED — SOVEREIGN SUBJECT</span>
             </label>
             <button
               type="button"
@@ -92,6 +92,10 @@ export function ControlsPanel({
               <Dices className="w-3 h-3" />
               <span>Surprise Me</span>
             </button>
+          </div>
+
+          <div className="rounded-md border border-[#143540] bg-[#09171c] px-2.5 py-2 text-[10px] font-mono leading-relaxed text-[#78cddd]">
+            Seed owns WHAT the song is about. Reality may stage it, minds may mutate its logic, and music systems may transform its sound — none of them may quietly replace it.
           </div>
 
           <div className="relative">
