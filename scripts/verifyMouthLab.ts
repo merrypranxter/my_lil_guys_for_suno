@@ -53,6 +53,13 @@ for (const traitItem of MOUTH_TRAITS) {
   assert(traitItem.donorProfileIds.length > 0, 'Trait ' + traitItem.id + ' has no donor profiles');
   assert(traitItem.sourceNotes.length > 0, 'Trait ' + traitItem.id + ' needs source notes');
 
+  if (traitItem.category === 'morphology') {
+    assert(
+      traitItem.sourceNotes.some((note) => /^https?:\/\//.test(note)),
+      'Morphology trait ' + traitItem.id + ' needs a direct research URL',
+    );
+  }
+
   for (const profileId of traitItem.donorProfileIds) {
     assert(
       languageProfileIds.has(profileId),
