@@ -11,3 +11,4 @@ export * from './specimens';
 export * from './surgery';
 export * from './persistence';
 export * from './promptCompiler';
+export * from './dynamics';
