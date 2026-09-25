@@ -39,7 +39,8 @@ import {
 import {
   deleteBredMusicGenome,
   getBredMusicGenomes,
-  saveBredMusicGenome,
+  getGenomeMechanismFitness,
+  promoteBredMusicGenome,
 } from '../lib/localStorage';
 
 interface MusicSeedLabPanelProps {
@@ -223,7 +224,7 @@ export function MusicSeedLabPanel({
     ...genomes.map((genome) => ({
       key: 'genome:' + genome.id,
       label: genome.name + ' • G' + genome.generation,
-      parent: parentFromGenome(genome),
+      parent: parentFromGenome(genome, getGenomeMechanismFitness(genome)),
     })),
   ];
 
@@ -245,13 +246,28 @@ export function MusicSeedLabPanel({
 
     try {
       const child = breedMusicGenome(parentA, parentB, breedingSeed, childName);
-      setGenomes(saveBredMusicGenome(child));
       setLastBredGenome(child);
       addGenome(child);
       setChildName('');
+      setStackNotice(
+        'New offspring is TEMPORARY. It can live in the current stack, but it cannot become a future parent until you explicitly promote it to breeding stock.'
+      );
     } catch (error: any) {
       setBreedingError(error?.message || 'Breeding failed.');
     }
+  };
+
+  const promoteLastBredGenome = () => {
+    if (!lastBredGenome) return;
+    setGenomes(
+      promoteBredMusicGenome(lastBredGenome, {
+        reason: 'manual-promotion',
+        note: 'Explicitly promoted from Music Seed Lab.',
+      })
+    );
+    setStackNotice(
+      lastBredGenome.name + ' promoted to durable breeding stock. It may now appear as a parent in future crosses.'
+    );
   };
 
   const useFirstTwoActiveMacros = () => {
@@ -441,7 +457,7 @@ export function MusicSeedLabPanel({
                     <span className="text-xs font-mono font-black tracking-[0.16em]">MUSIC GENETICS — BREED THE BASTARDS</span>
                   </div>
                   <p className="mt-1 text-[10px] leading-relaxed font-mono text-[#8d7ca8]">
-                    Two-parent deterministic crossover. Child size stays near the parental average; each parent contributes real mechanisms; one invariant survives; 0–1 bounded mutation may occur; a new relationship law resolves parental friction.
+                    Two-parent deterministic crossover. Child size stays near the parental average; each parent contributes real mechanisms; one invariant survives; 0–1 bounded mutation may occur. New children are temporary until YOU promote them to breeding stock. Trait feedback biases which parental genes reproduce.
                   </p>
                 </div>
                 <button
@@ -540,6 +556,19 @@ export function MusicSeedLabPanel({
                   <pre className="mt-2 whitespace-pre-wrap text-[10px] leading-relaxed font-mono text-[#9ba7ba]">
                     {describeGenomeInheritance(lastBredGenome)}
                   </pre>
+                  <div className="mt-3 rounded-lg border border-[#604d20] bg-[#1b1608] px-3 py-2">
+                    <div className="text-[9px] font-mono font-black text-[#ffe680]">TEMPORARY OFFSPRING — ZERO REPRODUCTIVE PRIVILEGE YET</div>
+                    <div className="mt-1 text-[9px] font-mono text-[#9e9368]">
+                      Being born does not put this genome in the durable parent library.
+                    </div>
+                    <button
+                      type="button"
+                      onClick={promoteLastBredGenome}
+                      className="mt-2 w-full rounded-lg border border-[#ffd84d] bg-[#2d2508] px-3 py-2 text-[10px] font-mono font-black text-[#ffe680] hover:bg-[#3a3009]"
+                    >
+                      ★ PROMOTE TO BREEDING STOCK
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -547,7 +576,7 @@ export function MusicSeedLabPanel({
                 <div>
                   <div className="mb-2 flex items-center gap-2 text-[9px] font-mono font-black tracking-[0.16em] text-[#9d8bb5]">
                     <GitBranch className="w-3.5 h-3.5" />
-                    YOUR BREEDING LINEAGES ({genomes.length})
+                    DURABLE BREEDING STOCK ({genomes.length})
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-72 overflow-y-auto pr-1">
                     {genomes.map((genome) => (
@@ -560,7 +589,7 @@ export function MusicSeedLabPanel({
                           >
                             <div className="font-mono font-black text-xs text-white truncate">{genome.name}</div>
                             <div className="mt-0.5 text-[9px] font-mono text-[#a879ff]">
-                              G{genome.generation} • {genome.mechanismIds.length} genes
+                              G{genome.generation} • {genome.mechanismIds.length} genes • FITNESS-APPROVED
                             </div>
                             <div className="mt-1 text-[10px] leading-snug text-[#7f899a] line-clamp-2">{genome.description}</div>
                           </button>
