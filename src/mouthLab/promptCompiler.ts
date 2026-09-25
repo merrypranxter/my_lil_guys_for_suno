@@ -476,6 +476,30 @@ function expressionLines(genome: MouthGenome): string[] {
   });
 }
 
+
+function mutationCurveLines(genome: MouthGenome): string[] {
+  return (genome.dynamics?.mutationCurves || []).map((curve) => {
+    const role = curve.castRole ? ' in ' + mouthCastLabel(curve.castRole) : '';
+    return (
+      'MUTATION CURVE' +
+      role +
+      ': ' +
+      dynamicTargetName(curve.targetType, curve.targetId) +
+      ' changes from ' +
+      curve.startStrength +
+      '/100 at ' +
+      curve.startPercent +
+      '% to ' +
+      curve.endStrength +
+      '/100 at ' +
+      curve.endPercent +
+      '% using a ' +
+      curve.shape +
+      ' curve. Treat intermediate values as real graded expression, not random toggles.'
+    );
+  });
+}
+
 function mutationTimelineLines(genome: MouthGenome): string[] {
   return (genome.dynamics?.timeline || []).map((event) => {
     const target = dynamicTargetName(event.targetType, event.targetId);
@@ -538,6 +562,7 @@ function dynamicLines(genome: MouthGenome): string[] {
   return [
     ...castProfileLine(genome),
     ...expressionLines(genome),
+    ...mutationCurveLines(genome),
     ...mutationTimelineLines(genome),
     ...transductionLines(genome),
   ];
@@ -583,6 +608,7 @@ function compactText(genome: MouthGenome, mode: MouthSemanticMode): string {
     dynamicLines(genome).length
       ? 'DYNAMICS: cast=' + (genome.dynamics?.castProfiles.length || 0) +
         '; expression=' + (genome.dynamics?.expressionRules.length || 0) +
+        '; curves=' + (genome.dynamics?.mutationCurves.length || 0) +
         '; timeline=' + (genome.dynamics?.timeline.length || 0) +
         '; transduction=' + (genome.dynamics?.transductions.length || 0) + '.'
       : '',
@@ -658,6 +684,10 @@ function bracketedText(genome: MouthGenome, mode: MouthSemanticMode): string {
 
   for (const line of expressionLines(genome)) {
     lines.push('[CONDITIONAL PHONETICS: ' + line + ']');
+  }
+
+  for (const line of mutationCurveLines(genome)) {
+    lines.push('[MUTATION CURVE: ' + line + ']');
   }
 
   for (const line of mutationTimelineLines(genome)) {
@@ -761,6 +791,7 @@ function lyricsDirectives(genome: MouthGenome, mode: MouthSemanticMode): string 
     ...scarLines(genome).map((line) => '[' + line + ']'),
     ...castProfileLine(genome).map((line) => '[CAST GENETICS: ' + line + ']'),
     ...expressionLines(genome).map((line) => '[CONDITIONAL PHONETICS: ' + line + ']'),
+    ...mutationCurveLines(genome).map((line) => '[MUTATION CURVE: ' + line + ']'),
     ...mutationTimelineLines(genome).map((line) => '[MUTATION TIMELINE: ' + line + ']'),
     ...transductionLines(genome).map((line) => '[TRANSDUCTION: ' + line + ']'),
   ];
@@ -802,6 +833,8 @@ export function compileMouthPrompt(
       semanticMode +
       '; cast mouths=' +
       (genome.dynamics?.castProfiles.length || 0) +
+      '; mutation curves=' +
+      (genome.dynamics?.mutationCurves.length || 0) +
       '; timeline events=' +
       (genome.dynamics?.timeline.length || 0) +
       '; transductions=' +
