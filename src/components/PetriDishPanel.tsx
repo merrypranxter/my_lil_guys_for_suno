@@ -48,12 +48,13 @@ import { generateProceduralTrack } from '../lib/proceduralGenerator';
 import {
   deletePetriDish,
   getBredMusicGenomes,
+  getGenomeMechanismFitness,
   getCompositionFavoriteSignals,
   getLikedPreferenceSignals,
   getMusicPreferenceSignals,
   getPetriDishes,
   getRecentFingerprints,
-  saveBredMusicGenome,
+  promoteBredMusicGenome,
   savePetriDish,
 } from '../lib/localStorage';
 
@@ -162,7 +163,7 @@ export function PetriDishPanel({
     ...bredLibrary.map((genome) => ({
       key: 'genome:' + genome.id,
       label: genome.name + ' • G' + genome.generation,
-      parent: parentFromGenome(genome),
+      parent: parentFromGenome(genome, getGenomeMechanismFitness(genome)),
     })),
   ];
 
@@ -407,15 +408,27 @@ export function PetriDishPanel({
 
   const openSibling = (sibling: PetriDishSibling) => {
     if (!activeDish) return;
-    saveBredMusicGenome(sibling.genome);
     onOpenSibling(activeDish, sibling);
-    setMessage('Opened ' + sibling.genome.name + ' in the main lab with its frozen challenge restored.');
+    setMessage(
+      'Opened ' + sibling.genome.name + ' in the main lab. It remains temporary breeding material until you explicitly promote or breed it.'
+    );
   };
 
   const stackSibling = (sibling: PetriDishSibling) => {
-    saveBredMusicGenome(sibling.genome);
     onStackSibling(sibling.genome);
-    setMessage('Stacked ' + sibling.genome.name + ' into the current main experiment.');
+    setMessage(
+      'Stacked ' + sibling.genome.name + ' into the current experiment. Stacking alone does not grant reproductive privilege.'
+    );
+  };
+
+  const promoteSibling = (sibling: PetriDishSibling) => {
+    promoteBredMusicGenome(sibling.genome, {
+      reason: 'petri-survivor',
+      note: 'Explicitly promoted from Petri Dish.',
+    });
+    setMessage(
+      'Promoted ' + sibling.genome.name + ' to durable breeding stock. It can now appear in future parent menus.'
+    );
   };
 
   const breedSelectedSurvivors = () => {
@@ -431,17 +444,24 @@ export function PetriDishPanel({
         activeDish.familySeed +
         ':survivor:' +
         [selected[0].genome.id, selected[1].genome.id].sort().join(':');
+      // Reproduction itself is an explicit human fitness event for the two chosen parents.
+      selected.forEach((sibling) => {
+        promoteBredMusicGenome(sibling.genome, {
+          reason: 'petri-survivor',
+          note: 'Chosen as a Petri Dish survivor and explicitly bred.',
+        });
+      });
+
       const child = breedMusicGenome(
-        parentFromGenome(selected[0].genome),
-        parentFromGenome(selected[1].genome),
+        parentFromGenome(selected[0].genome, getGenomeMechanismFitness(selected[0].genome)),
+        parentFromGenome(selected[1].genome, getGenomeMechanismFitness(selected[1].genome)),
         survivorSeed
       );
-      saveBredMusicGenome(child);
       setSurvivorChild(child);
       setMessage(
-        'Survivors bred. New G' +
+        'Survivors bred. The two chosen parents earned durable breeding status. New G' +
           child.generation +
-          ' genome saved to the breeding library. Nothing was auto-selected.'
+          ' descendant is TEMPORARY until you evaluate and promote it.'
       );
     } catch (error: any) {
       setMessage('Survivor breeding failed: ' + (error?.message || String(error)));
@@ -451,7 +471,18 @@ export function PetriDishPanel({
   const stackSurvivorChild = () => {
     if (!survivorChild) return;
     onStackSibling(survivorChild);
-    setMessage('Stacked new descendant ' + survivorChild.name + '.');
+    setMessage('Stacked new descendant ' + survivorChild.name + '. It remains temporary.');
+  };
+
+  const promoteSurvivorChild = () => {
+    if (!survivorChild) return;
+    promoteBredMusicGenome(survivorChild, {
+      reason: 'manual-promotion',
+      note: 'Explicitly promoted after survivor breeding.',
+    });
+    setMessage(
+      'Promoted descendant ' + survivorChild.name + ' to durable breeding stock.'
+    );
   };
 
   const removeDish = (id: string) => {
@@ -478,7 +509,7 @@ export function PetriDishPanel({
             <h2 className="font-mono font-black tracking-wider text-white">PETRI DISH — SIBLING EXPERIMENT BENCH</h2>
           </div>
           <p className="mt-1 text-[11px] font-mono text-[#86a696]">
-            Breed siblings, freeze one challenge around all of them, compare without a hidden winner, then OPEN / STACK / BREED the freaks you choose.
+            Breed siblings, freeze one challenge around all of them, compare without a hidden winner. OPEN / STACK stays temporary; explicit PROMOTE or BREED grants reproductive privilege.
           </p>
         </div>
         <span className="text-[10px] font-mono text-[#86efac]">
@@ -833,14 +864,14 @@ export function PetriDishPanel({
                         </div>
                       )}
 
-                      <div className="mt-4 grid grid-cols-2 gap-2">
+                      <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-2">
                         <button
                           type="button"
                           onClick={() => openSibling(sibling)}
                           className="rounded-lg border border-[#00f0ff]/35 bg-[#0b2027] px-3 py-2 text-[10px] font-mono font-black text-[#7eeeff] hover:border-[#00f0ff]"
                         >
                           <Play className="inline-block w-3 h-3 mr-1" />
-                          OPEN IN MAIN LAB
+                          OPEN
                         </button>
                         <button
                           type="button"
@@ -848,7 +879,16 @@ export function PetriDishPanel({
                           className="rounded-lg border border-[#a879ff]/35 bg-[#1b1230] px-3 py-2 text-[10px] font-mono font-black text-[#c7a7ff] hover:border-[#a879ff]"
                         >
                           <Layers3 className="inline-block w-3 h-3 mr-1" />
-                          STACK GENOME
+                          STACK
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => promoteSibling(sibling)}
+                          className="rounded-lg border border-[#ffd84d]/45 bg-[#2d2508] px-3 py-2 text-[10px] font-mono font-black text-[#ffe680] hover:border-[#ffd84d]"
+                          title="Explicitly admit this phenotype to the durable breeding library."
+                        >
+                          <Save className="inline-block w-3 h-3 mr-1" />
+                          PROMOTE
                         </button>
                       </div>
                     </article>
@@ -894,13 +934,22 @@ export function PetriDishPanel({
                           {survivorChild.lineage.relationshipLaw}
                         </div>
                       </div>
-                      <button
-                        type="button"
-                        onClick={stackSurvivorChild}
-                        className="shrink-0 rounded-lg border border-[#a879ff] bg-[#1b1230] px-3 py-2 text-[10px] font-mono font-black text-[#c7a7ff]"
-                      >
-                        + STACK NEW DESCENDANT
-                      </button>
+                      <div className="shrink-0 flex flex-col gap-2">
+                        <button
+                          type="button"
+                          onClick={stackSurvivorChild}
+                          className="rounded-lg border border-[#a879ff] bg-[#1b1230] px-3 py-2 text-[10px] font-mono font-black text-[#c7a7ff]"
+                        >
+                          + STACK TEMPORARY DESCENDANT
+                        </button>
+                        <button
+                          type="button"
+                          onClick={promoteSurvivorChild}
+                          className="rounded-lg border border-[#ffd84d] bg-[#2d2508] px-3 py-2 text-[10px] font-mono font-black text-[#ffe680]"
+                        >
+                          ★ PROMOTE DESCENDANT
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
