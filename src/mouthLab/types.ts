@@ -39,6 +39,28 @@ export type MouthTraitRelationship =
 
 export type MouthResearchConfidence = 'high' | 'medium' | 'provisional';
 
+export type MouthPromptMode = 'compact' | 'bracketed' | 'descriptive';
+
+export type MouthSemanticMode = 'inherit' | 'englishMeaningAlienMouth';
+
+export interface MouthPromptCompileOptions {
+  mode?: MouthPromptMode;
+  semanticMode?: MouthSemanticMode;
+  includePhenotype?: boolean;
+}
+
+export interface MouthCompiledPrompt {
+  mode: MouthPromptMode;
+  semanticMode: MouthSemanticMode;
+  text: string;
+  styleDirectives: string;
+  lyricsDirectives: string;
+  summary: string;
+  activeTraitIds: string[];
+  activeQuirkIds: string[];
+  warnings: string[];
+}
+
 export type MouthQuirkOrigin = 'trait-derived' | 'invented' | 'captured';
 
 export type MouthQuirkCategory =
