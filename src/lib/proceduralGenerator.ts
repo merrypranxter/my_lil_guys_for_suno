@@ -4,6 +4,8 @@ import { getRealityEngines, REALITY_DIMENSION_JURISDICTIONS, REALITY_DIMENSION_L
 import { COMPOSITION_DIMENSION_JURISDICTIONS, COMPOSITION_DIMENSION_LABELS, getCompositionEngines } from '../data/compositionEngines';
 import { compileMusicStack, musicControlsToDirectives } from '../data/musicSeedSystem';
 import { BoxType, CompositionEngine, LittleGuy, MusicControls, MusicFingerprint, MusicStackItem, RealityChaosLevel, RealityEngine } from '../types';
+import type { MouthGenome, MouthPromptMode, MouthSemanticMode } from '../mouthLab/types';
+import { compileMouthPrompt, normalizeMouthGenomeForGeneration } from '../mouthLab/promptCompiler';
 import { REALITY_CHAOS_LABELS, analyzeRealityChemistry } from './realityChemistry';
 
 export interface ProceduralTrackParams {
@@ -17,6 +19,9 @@ export interface ProceduralTrackParams {
   energy: number;
   recentFingerprints?: MusicFingerprint[];
   forcedFingerprint?: MusicFingerprint;
+  mouthGenome?: MouthGenome;
+  mouthPromptMode?: MouthPromptMode;
+  mouthSemanticMode?: MouthSemanticMode;
 }
 
 export interface ProceduralTrackResult {
@@ -104,6 +109,9 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
     energy = 3,
     recentFingerprints = [],
     forcedFingerprint,
+    mouthGenome,
+    mouthPromptMode = 'bracketed',
+    mouthSemanticMode = 'inherit',
   } = params;
 
   const selectedGuys = guyIds
@@ -143,6 +151,13 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
   const activeFailureMode = compositionEngines.find((engine) => engine.dimension === 'failureMode');
   const activeControlAuthority = compositionEngines.find((engine) => engine.dimension === 'controlAuthority');
   const activeProp = compositionEngines.find((engine) => engine.dimension === 'prop');
+  const normalizedMouthGenome = normalizeMouthGenomeForGeneration(mouthGenome);
+  const compiledMouth = normalizedMouthGenome
+    ? compileMouthPrompt(normalizedMouthGenome, {
+        mode: mouthPromptMode,
+        semanticMode: mouthSemanticMode,
+      })
+    : undefined;
   const chemistry = analyzeRealityChemistry(realityEngineIds);
   const chaosMeta = REALITY_CHAOS_LABELS[realityChaos];
 
@@ -228,6 +243,7 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
     musicSeedStyleClause + ' ' +
     '[TIMBRE / ATMOSPHERE: ' + fingerprint.timbre + '; produced as ' + fingerprint.production + '.] ' +
     '[VOCAL SYSTEM: ' + fingerprint.vocal + '.] ' +
+    (compiledMouth ? compiledMouth.styleDirectives + ' ' : '') +
     '[PERFORMANCE ATTITUDE: ' + fingerprint.performance + '.] ' +
     realityStyleClause + ' ' +
     compositionStyleClause + ' ' +
@@ -329,6 +345,7 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
 
     '[VOCAL ENGINE — use the mouth as part of the arrangement]\n' +
       '[Primary vocal technique: ' + fingerprint.vocal + ']\n' +
+      (compiledMouth ? compiledMouth.lyricsDirectives + '\n' : '') +
       (activeLanguage ? '[LANGUAGE FIDELITY: ' + activeLanguage.name + ' with ' + (activeLanguageMode?.name || 'phonology/prosody guidance only') + '; preserve phonological mechanics without stereotype.]\n' : '') +
       '[Hard consonants become transient attacks: tk, kk, pt, dr.]\n' +
       '[Nasals become resonance: mm, nn, ng.]\n' +
@@ -408,7 +425,9 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
   const baseCaption =
     'This run treats ' + primary.name + ' as a musical law' + mutationPhrase + '. ' +
     'Its sound world uses ' + fingerprint.genreFamily + ', with ' + fingerprint.rhythm + ' controlling pulse and ' +
-    fingerprint.vocal + ' controlling the mouth as an instrument.' + realityCaption + compositionCaption + ' ' +
+    fingerprint.vocal + ' controlling the mouth as an instrument.' +
+    (compiledMouth ? ' Mouth Lab adds a bred vocal genome with explicit trait and quirk jurisdictions.' : '') +
+    realityCaption + compositionCaption + ' ' +
     'The anchor survives each fracture and returns carrying one useful scar.';
 
   const captionPad = ' The final form preserves negotiated mutation instead of resetting.';
