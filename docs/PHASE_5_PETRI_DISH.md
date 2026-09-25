@@ -43,6 +43,7 @@ Creating a dish snapshots:
 - energy
 - normal generation seed
 - recent musical fingerprints
+- one explicitly frozen musical fingerprint used by every sibling
 - liked/preference signals
 - current global Music Seed controls
 - manually stacked Music Mechanism chips
@@ -255,15 +256,16 @@ The implementation intentionally avoids several confounds:
 1. Existing recipe/genome macros are removed from the frozen environment.
 2. Recent fingerprints and liked signals are snapshotted once when the dish is created.
 3. The normal generation seed is frozen across siblings.
-4. Manual mechanism pressure is frozen.
-5. Parent identity and family seed deterministically reproduce sibling genetics.
-6. Human survivor selection never changes automatically.
+4. One musical fingerprint is selected once when the dish is created and is frozen across every sibling: genre family, harmony, melody, rhythm, timbre, vocal architecture, performance attitude, and production ancestry.
+5. Manual mechanism pressure is frozen.
+6. Parent identity and family seed deterministically reproduce sibling genetics.
+7. Human survivor selection never changes automatically.
 
-AI generation itself may still be stochastic because model sampling is not a deterministic physics engine.
+AI generation itself may still be stochastic because model sampling is not a deterministic physics engine. The request nevertheless receives the exact same frozen fingerprint and frozen outer challenge for each sibling, and returned fingerprint metadata is pinned to that experimental fingerprint so comparison labels do not drift.
 
-That stochasticity is visible rather than falsely described as controlled.
+That residual sampling stochasticity is visible rather than falsely described as controlled.
 
-For stricter structural comparison, use FREE LOCAL PREVIEW first.
+For the cheapest structural comparison, use FREE LOCAL PREVIEW first.
 
 ---
 
