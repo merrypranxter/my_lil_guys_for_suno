@@ -18,6 +18,28 @@ export interface StackChemistry {
   label: 'controlled' | 'volatile' | 'feral' | 'critical';
 }
 
+export const ACTIVE_GUY_MIN = 3;
+export const ACTIVE_GUY_MAX = 7;
+
+export type ActivationRole = 'lead' | 'support' | 'counterforce' | 'wildcard';
+
+export interface ActivationSlot {
+  guy: LittleGuy;
+  role: ActivationRole;
+}
+
+export interface ActivationPlan {
+  requestedIds: string[];
+  activeIds: string[];
+  inactiveIds: string[];
+  slots: ActivationSlot[];
+  capped: boolean;
+  budget: {
+    min: number;
+    max: number;
+  };
+}
+
 export const STACK_RECIPES: StackRecipe[] = [
   {
     id: 'phase-scar',
@@ -158,6 +180,161 @@ export function buildSmartStack(
   }
 
   return chosen;
+}
+
+
+function uniqueValidGuys(guyIds: string[]): { requestedIds: string[]; guys: LittleGuy[] } {
+  const requestedIds = Array.from(
+    new Set(
+      guyIds
+        .filter((id) => typeof id === 'string')
+        .map((id) => id.trim())
+        .filter(Boolean)
+    )
+  );
+  const guys = requestedIds
+    .map((id) => LITTLE_GUYS.find((g) => g.id === id))
+    .filter((g): g is LittleGuy => Boolean(g));
+  return { requestedIds, guys };
+}
+
+function structuralDistance(candidate: LittleGuy, references: LittleGuy[]): number {
+  const meta = getMindMetadata(candidate.id);
+  if (!references.length) return meta.chaos;
+
+  let total = 0;
+  for (const reference of references) {
+    const refMeta = getMindMetadata(reference.id);
+    if (meta.family !== refMeta.family) total += 2.2;
+    if (candidate.defaultJurisdiction !== reference.defaultJurisdiction) total += 2.4;
+    total += Math.abs(meta.chaos - refMeta.chaos) * 0.65;
+    total -= pairingStrength(reference.id, candidate.id) * 0.12;
+  }
+  return total / references.length;
+}
+
+export function assignActivationRoles(guys: LittleGuy[]): ActivationSlot[] {
+  if (!guys.length) return [];
+
+  const roleById = new Map<string, ActivationRole>();
+  roleById.set(guys[0].id, 'lead');
+
+  const tail = guys.slice(1);
+  if (tail.length >= 2) {
+    const counterforce = [...tail].sort(
+      (a, b) => structuralDistance(b, [guys[0]]) - structuralDistance(a, [guys[0]])
+    )[0];
+    if (counterforce) roleById.set(counterforce.id, 'counterforce');
+  }
+
+  if (guys.length >= 5) {
+    const wildcardCandidates = tail.filter((g) => roleById.get(g.id) !== 'counterforce');
+    const wildcard = [...wildcardCandidates].sort((a, b) => {
+      const am = getMindMetadata(a.id);
+      const bm = getMindMetadata(b.id);
+      const as = am.chaos * 1.35 + structuralDistance(a, guys.filter((g) => g.id !== a.id));
+      const bs = bm.chaos * 1.35 + structuralDistance(b, guys.filter((g) => g.id !== b.id));
+      return bs - as;
+    })[0];
+    if (wildcard) roleById.set(wildcard.id, 'wildcard');
+  }
+
+  return guys.map((guy) => ({
+    guy,
+    role: roleById.get(guy.id) || 'support',
+  }));
+}
+
+export function planGuyActivation(
+  guyIds: string[],
+  mode: 'balanced' | 'feral' = 'balanced',
+  preferenceWeights: Record<string, number> = {},
+  maxActive = ACTIVE_GUY_MAX
+): ActivationPlan {
+  const { requestedIds, guys } = uniqueValidGuys(guyIds);
+  const budgetMax = Math.max(1, Math.min(Math.floor(maxActive), ACTIVE_GUY_MAX));
+
+  if (guys.length <= budgetMax) {
+    const activeIds = guys.map((g) => g.id);
+    return {
+      requestedIds,
+      activeIds,
+      inactiveIds: requestedIds.filter((id) => !activeIds.includes(id)),
+      slots: assignActivationRoles(guys),
+      capped: false,
+      budget: { min: ACTIVE_GUY_MIN, max: budgetMax },
+    };
+  }
+
+  // Position 1 is deliberate user intent: preserve it as the lead instead of
+  // letting a large pool randomly dislodge the primary mind.
+  const chosen: LittleGuy[] = [guys[0]];
+  const supportTarget = Math.max(1, budgetMax - 2);
+
+  while (chosen.length < supportTarget) {
+    const remaining = guys.filter((g) => !chosen.some((c) => c.id === g.id));
+    if (!remaining.length) break;
+
+    const ranked = remaining
+      .map((candidate) => ({ candidate, score: candidateScore(candidate, chosen, mode, preferenceWeights) }))
+      .sort((a, b) => b.score - a.score);
+
+    const window = ranked.slice(0, Math.min(3, ranked.length));
+    const pick = window[Math.floor(Math.random() * window.length)]?.candidate || ranked[0].candidate;
+    chosen.push(pick);
+  }
+
+  if (chosen.length < budgetMax) {
+    const remaining = guys.filter((g) => !chosen.some((c) => c.id === g.id));
+    const counterforce = remaining
+      .map((candidate) => ({
+        candidate,
+        score:
+          structuralDistance(candidate, chosen) +
+          Math.min(0.8, (preferenceWeights[candidate.id] || 0) * 0.35) +
+          randomNoise(0.45),
+      }))
+      .sort((a, b) => b.score - a.score)[0]?.candidate;
+    if (counterforce) chosen.push(counterforce);
+  }
+
+  if (chosen.length < budgetMax) {
+    const remaining = guys.filter((g) => !chosen.some((c) => c.id === g.id));
+    const wildcard = remaining
+      .map((candidate) => {
+        const meta = getMindMetadata(candidate.id);
+        return {
+          candidate,
+          score:
+            meta.chaos * (mode === 'feral' ? 1.5 : 1.1) +
+            structuralDistance(candidate, chosen) * 0.7 +
+            Math.min(0.7, (preferenceWeights[candidate.id] || 0) * 0.25) +
+            randomNoise(1.4),
+        };
+      })
+      .sort((a, b) => b.score - a.score)[0]?.candidate;
+    if (wildcard) chosen.push(wildcard);
+  }
+
+  while (chosen.length < budgetMax) {
+    const remaining = guys.filter((g) => !chosen.some((c) => c.id === g.id));
+    if (!remaining.length) break;
+    const pick = remaining
+      .map((candidate) => ({ candidate, score: candidateScore(candidate, chosen, mode, preferenceWeights) }))
+      .sort((a, b) => b.score - a.score)[0]?.candidate;
+    if (!pick) break;
+    chosen.push(pick);
+  }
+
+  const activeIds = chosen.map((g) => g.id);
+  return {
+    requestedIds,
+    activeIds,
+    inactiveIds: requestedIds.filter((id) => !activeIds.includes(id)),
+    slots: assignActivationRoles(chosen),
+    capped: guys.length > chosen.length,
+    budget: { min: ACTIVE_GUY_MIN, max: budgetMax },
+  };
 }
 
 export function getStackChemistry(stack: LittleGuy[]): StackChemistry {
