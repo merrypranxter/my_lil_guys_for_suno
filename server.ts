@@ -162,6 +162,7 @@ app.post('/api/generate', async (req, res) => {
   const seed = typeof req.body?.seed === 'string' ? req.body.seed : '';
   const energy = typeof req.body?.energy === 'number' ? req.body.energy : 4;
   const recentFingerprints = sanitizeFingerprints(req.body?.recentFingerprints);
+  const forcedFingerprint = sanitizeFingerprints([req.body?.forcedFingerprint])[0];
   const likedSignals = sanitizeLikedSignals(req.body?.likedSignals);
 
   try {
@@ -175,6 +176,7 @@ app.post('/api/generate', async (req, res) => {
       seed,
       energy,
       recentFingerprints,
+      forcedFingerprint,
       likedSignals,
     });
 
@@ -237,9 +239,11 @@ app.post('/api/generate', async (req, res) => {
     const style = parsed.style || '';
     const lyrics = parsed.lyrics || '';
     const caption = parsed.caption || '';
-    const fingerprint = parsed.fingerprint && typeof parsed.fingerprint === 'object'
-      ? sanitizeFingerprints([parsed.fingerprint])[0]
-      : undefined;
+    const fingerprint = forcedFingerprint || (
+      parsed.fingerprint && typeof parsed.fingerprint === 'object'
+        ? sanitizeFingerprints([parsed.fingerprint])[0]
+        : undefined
+    );
 
     res.json({
       style,
@@ -267,6 +271,7 @@ app.post('/api/generate', async (req, res) => {
         seed,
         energy,
         recentFingerprints,
+        forcedFingerprint,
       });
 
       res.json({
