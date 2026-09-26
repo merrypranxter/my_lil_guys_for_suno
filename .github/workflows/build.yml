@@ -36,6 +36,9 @@ jobs:
       - name: Starter Seed UI/runtime smoke
         run: npm run verify:starter-ui
 
+      - name: Scientist Reality roles smoke
+        run: npm run verify:scientist-roles
+
       - name: Music Genetics regression smoke
         run: npm run verify:breeding
 
