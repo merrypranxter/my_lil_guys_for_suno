@@ -39,6 +39,9 @@ jobs:
       - name: Starter world event bridge smoke
         run: npm run verify:starter-event-bridge
 
+      - name: Starter favorites intelligence smoke
+        run: npm run verify:starter-favorites
+
       - name: Scientist Reality roles smoke
         run: npm run verify:scientist-roles
 
