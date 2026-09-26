@@ -901,6 +901,70 @@ export const STARTER_SEEDS: StarterSeedDefinition[] = [
     },
   },
 
+  {
+    schemaVersion: 1,
+    id: 'world-controlled-lab-demo',
+    name: 'CONTROLLED LAB DEMONSTRATION',
+    category: 'worldPackage',
+    description: 'A scientist runs a clear repeatable experiment while the phenomenon becomes progressively less cooperative.',
+    defaultIntensity: 100,
+    tags: ['science', 'laboratory', 'experiment', 'measurement'],
+    owns: ['semanticWorld', 'cast', 'medium', 'eventLogic'],
+    biases: ['hypothesis', 'baseline', 'measurements', 'replication', 'model revision'],
+    protects: ['observation and inference remain distinguishable even when the result is bizarre'],
+    forbids: ['science-flavored technobabble with no procedure', 'certainty that ignores contradictory data'],
+    operators: [
+      'Move through question → baseline → intervention → measurement → comparison → revised explanation.',
+      'When a trial produces an anomaly, repeat or alter one variable instead of instantly declaring a supernatural conclusion.',
+    ],
+    collisionMode: 'protect',
+    worldFrame: {
+      setting: 'a working laboratory bench during a live experimental demonstration',
+      medium: 'recorded training demonstration with measurements and trial notes',
+      primaryCharacter: 'a scientist responsible for explaining and testing the phenomenon',
+      supportingCast: ['lab assistant', 'instrument technician', 'safety observer', 'recorded procedure voice'],
+      recurringConcern: 'the scientist must determine what changed, why it changed, and whether the result can be repeated',
+      eventCues: ['baseline recorded', 'trial begins', 'measurement called out', 'control checked', 'anomaly detected', 'replication attempt'],
+      invariant: 'the scientist keeps testing the phenomenon through evidence, comparison, and model revision',
+    },
+    outputs: {
+      realityEngineIds: ['format-training-video', 'role-scientist', 'tone-clinical'],
+      realityChaos: 2,
+    },
+  },
+  {
+    schemaVersion: 1,
+    id: 'world-mad-scientist-lab-show',
+    name: 'MAD SCIENTIST LAB SHOW',
+    category: 'worldPackage',
+    description: 'A delighted theatrical inventor demonstrates a ridiculous machine and treats each alarming result as a reason to pull another lever.',
+    defaultIntensity: 100,
+    tags: ['science', 'mad-scientist', 'laboratory', 'public-access', 'camp'],
+    owns: ['semanticWorld', 'cast', 'medium', 'eventLogic'],
+    biases: ['apparatus', 'countdowns', 'readings', 'switches', 'reckless escalation', 'triumphant laughter'],
+    protects: ['every escalation remains tied to a specific experiment, intervention, reading, or attempted correction'],
+    forbids: ['random cackling with no experimental logic', 'generic spooky laboratory wallpaper'],
+    operators: [
+      'Every new section begins because the scientist changes one thing: voltage, reagent, timing, specimen, switch position, or control condition.',
+      'Treat failure as evidence: announce the reading, form a new explanation, then escalate with a concrete next test.',
+      'Use alarms, assistant objections, switch throws, countdowns, and triumphant reveals as recurring event cues rather than decorative sound effects.',
+    ],
+    collisionMode: 'protect',
+    worldFrame: {
+      setting: 'an overstuffed homemade laboratory being broadcast like a deranged local science program',
+      medium: 'live public-access laboratory demonstration',
+      primaryCharacter: 'a theatrical mad scientist who is ecstatic that the machine is doing something impossible',
+      supportingCast: ['nervous lab assistant', 'skeptical safety inspector', 'malfunctioning apparatus voice', 'prerecorded disclaimer'],
+      recurringConcern: 'the scientist is trying to prove the machine works and interprets every new danger as useful experimental evidence',
+      eventCues: ['knife switch thrown', 'countdown', 'meter spikes', 'assistant objects', 'alarm fires', 'new hypothesis', 'one more test', 'triumphant reveal'],
+      invariant: 'this remains a causally legible experiment conducted by an increasingly delighted mad scientist',
+    },
+    outputs: {
+      realityEngineIds: ['format-public-access-show', 'role-mad-scientist', 'tone-camp'],
+      realityChaos: 3,
+    },
+  },
+
   // ---------------------------------------------------------------------------
   // INSTRUMENT COLLISION PACKS — eight sources, eight jobs
   // ---------------------------------------------------------------------------
