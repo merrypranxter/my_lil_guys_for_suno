@@ -69,6 +69,9 @@ jobs:
       - name: Mouth Lab dynamic-mouth regression smoke
         run: npm run verify:mouth-dynamics
 
+      - name: Mouth Lab evolution/fitness/Petri regression smoke
+        run: npm run verify:mouth-evolution
+
       - name: Build
         run: npm run build
 
