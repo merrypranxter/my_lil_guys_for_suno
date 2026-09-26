@@ -169,16 +169,16 @@ export function normalizeMouthFitnessRecord(value: unknown): MouthFitnessRecord 
       : '';
   if (!signature) return undefined;
 
-  const validTraits = (items: unknown) =>
-    unique(
-      (Array.isArray(items) ? items : [])
+  const validTraits = (items: unknown): string[] =>
+    unique<string>(
+      (Array.isArray(items) ? items as unknown[] : [])
         .map((id: unknown) => String(id))
         .filter((id: string) => Boolean(getMouthTrait(id))),
     ).slice(0, 40);
 
-  const validQuirks = (items: unknown) =>
-    unique(
-      (Array.isArray(items) ? items : [])
+  const validQuirks = (items: unknown): string[] =>
+    unique<string>(
+      (Array.isArray(items) ? items as unknown[] : [])
         .map((id: unknown) => String(id))
         .filter((id: string) => Boolean(getMouthQuirkDefinition(id))),
     ).slice(0, 40);
@@ -186,10 +186,10 @@ export function normalizeMouthFitnessRecord(value: unknown): MouthFitnessRecord 
   const now = Date.now();
   return {
     phenotypeSignature: signature,
-    genomeIds: unique(
-      (Array.isArray(raw.genomeIds) ? raw.genomeIds : [])
+    genomeIds: unique<string>(
+      (Array.isArray(raw.genomeIds) ? raw.genomeIds as unknown[] : [])
         .map((id: unknown) => String(id).trim())
-        .filter(Boolean),
+        .filter((id: string) => Boolean(id)),
     ).slice(0, 60),
     approved: raw.approved !== false,
     approvalCount: Math.max(
@@ -205,10 +205,10 @@ export function normalizeMouthFitnessRecord(value: unknown): MouthFitnessRecord 
     dislikedTraitIds: validTraits(raw.dislikedTraitIds),
     likedQuirkIds: validQuirks(raw.likedQuirkIds),
     dislikedQuirkIds: validQuirks(raw.dislikedQuirkIds),
-    sourceRunIds: unique(
-      (Array.isArray(raw.sourceRunIds) ? raw.sourceRunIds : [])
+    sourceRunIds: unique<string>(
+      (Array.isArray(raw.sourceRunIds) ? raw.sourceRunIds as unknown[] : [])
         .map((id: unknown) => String(id).trim())
-        .filter(Boolean),
+        .filter((id: string) => Boolean(id)),
     ).slice(0, 100),
     note: typeof raw.note === 'string' ? raw.note.slice(0, 1600) : '',
     createdAt: Number.isFinite(Number(raw.createdAt)) ? Number(raw.createdAt) : now,
