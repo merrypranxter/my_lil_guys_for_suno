@@ -29,7 +29,8 @@
     "verify:starter-ui": "tsx scripts/verifyStarterSeedUi.ts",
     "verify:scientist-roles": "tsx scripts/verifyScientistRoles.ts",
     "verify:starter-event-bridge": "tsx scripts/verifyStarterEventBridge.ts",
-    "verify:starter-favorites": "tsx scripts/verifyStarterFavorites.ts"
+    "verify:starter-favorites": "tsx scripts/verifyStarterFavorites.ts",
+    "verify:starter-textures": "tsx scripts/verifyStarterTextures.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
