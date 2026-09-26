@@ -26,7 +26,8 @@
     "verify:mouth-dynamics": "tsx scripts/verifyMouthDynamics.ts",
     "verify:mouth-evolution": "tsx scripts/verifyMouthEvolution.ts",
     "verify:starter-seeds": "tsx scripts/verifyStarterSeedsV2.ts",
-    "verify:starter-ui": "tsx scripts/verifyStarterSeedUi.ts"
+    "verify:starter-ui": "tsx scripts/verifyStarterSeedUi.ts",
+    "verify:scientist-roles": "tsx scripts/verifyScientistRoles.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
