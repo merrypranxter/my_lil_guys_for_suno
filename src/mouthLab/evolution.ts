@@ -47,6 +47,13 @@ function unique<T>(items: T[]): T[] {
   return Array.from(new Set(items));
 }
 
+function rankedShuffle<T>(items: T[], rng: () => number): T[] {
+  return items
+    .map((item, index) => ({ item, rank: rng(), index }))
+    .sort((a, b) => a.rank - b.rank || a.index - b.index)
+    .map((entry) => entry.item);
+}
+
 function pressureRank(pressure: MouthTraitPressure): number {
   return MOUTH_PRESSURE_RANK[pressure] || 2;
 }
@@ -627,25 +634,21 @@ function mergedDynamics(
   const b = normalizeMouthDynamics(parentB.dynamics);
   if (!hasDynamics(parentA) && !hasDynamics(parentB)) return undefined;
 
-  const castProfiles = [...a.castProfiles, ...b.castProfiles]
-    .sort(() => rng() - 0.5)
+  const castProfiles = rankedShuffle([...a.castProfiles, ...b.castProfiles], rng)
     .filter(
       (item, index, all) =>
         all.findIndex((candidate) => candidate.role === item.role) === index,
     )
     .slice(0, 6);
 
-  const expressionRules = [...a.expressionRules, ...b.expressionRules]
-    .sort(() => rng() - 0.5)
+  const expressionRules = rankedShuffle([...a.expressionRules, ...b.expressionRules], rng)
     .slice(0, 8);
-  const mutationCurves = [...a.mutationCurves, ...b.mutationCurves]
-    .sort(() => rng() - 0.5)
+  const mutationCurves = rankedShuffle([...a.mutationCurves, ...b.mutationCurves], rng)
     .slice(0, 6);
-  const timeline = [...a.timeline, ...b.timeline]
-    .sort((x, y) => x.positionPercent - y.positionPercent || rng() - 0.5)
+  const timeline = rankedShuffle([...a.timeline, ...b.timeline], rng)
+    .sort((x, y) => x.positionPercent - y.positionPercent || x.id.localeCompare(y.id))
     .slice(0, 10);
-  const transductions = [...a.transductions, ...b.transductions]
-    .sort(() => rng() - 0.5)
+  const transductions = rankedShuffle([...a.transductions, ...b.transductions], rng)
     .slice(0, 6);
 
   return normalizeMouthDynamics({
