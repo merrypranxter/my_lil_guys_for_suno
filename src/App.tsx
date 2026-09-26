@@ -13,6 +13,7 @@ import { CompositionLabPanel } from './components/CompositionLabPanel';
 import { MouthLabPanel } from './components/MouthLabPanel';
 import { MusicSeedLabPanel } from './components/MusicSeedLabPanel';
 import { PetriDishPanel } from './components/PetriDishPanel';
+import { StarterSeedPanel } from './components/StarterSeedPanel';
 import { genomeToStackItem } from './lib/musicBreeding';
 import { blendSiblingControls, buildSiblingMusicStack } from './lib/petriDish';
 import { MUSIC_FEEDBACK_TAGS, compileMusicStack, musicGenomePhenotypeSignature } from './data/musicSeedSystem';
@@ -67,10 +68,13 @@ import { AlertCircle, Archive, Download, Layers, MessageSquare, Sparkles, Star, 
 import type { MouthGenome, MouthPromptMode, MouthSemanticMode } from './mouthLab/types';
 import { getMouthQuirkDefinition } from './mouthLab/quirks';
 import { getMouthTrait } from './mouthLab/traits';
+import type { StarterSeedStackItem } from './starterSeeds/types';
+import { applyStarterSeedStackToLab, getLastStarterSeedStack, setLastStarterSeedStack } from './starterSeeds/runtime';
 
 const UI_MODULES: ModuleNavItem[] = [
   { id: 'stack', label: 'STACK', tone: 'cyan' },
   { id: 'controls', label: 'CONTROLS', tone: 'lime' },
+  { id: 'starter', label: 'STARTER', tone: 'coral' },
   { id: 'reality', label: 'REALITY', tone: 'pink' },
   { id: 'music', label: 'MUSIC SEEDS', tone: 'yellow' },
   { id: 'petri', label: 'PETRI DISH', tone: 'coral' },
@@ -109,6 +113,7 @@ export default function App() {
   const [compositionEngineIds, setCompositionEngineIds] = useState<string[]>(() => getLastCompositionEngineIds());
   const [musicStack, setMusicStack] = useState<MusicStackItem[]>(() => getLastMusicStack());
   const [musicControls, setMusicControls] = useState<MusicControls>(() => getSavedMusicControls());
+  const [starterSeedStack, setStarterSeedStack] = useState<StarterSeedStackItem[]>(() => getLastStarterSeedStack());
   const [realityChaos, setRealityChaos] = useState<RealityChaosLevel>(() => getSavedRealityChaos());
   const [savedStacks, setSavedStacks] = useState<SavedStack[]>(() => getSavedStacks());
   const [seed, setSeed] = useState<string>(() => getSavedSeed());
@@ -185,6 +190,10 @@ export default function App() {
   }, [musicControls]);
 
   useEffect(() => {
+    setLastStarterSeedStack(starterSeedStack);
+  }, [starterSeedStack]);
+
+  useEffect(() => {
     setSavedRealityChaos(realityChaos);
   }, [realityChaos]);
 
@@ -251,6 +260,31 @@ export default function App() {
   const handleEnergyChange = (level: number) => {
     setEnergy(level);
     setSavedEnergy(level);
+  };
+
+  const handleBuildStarterStack = () => {
+    const result = applyStarterSeedStackToLab(starterSeedStack, {
+      realityEngineIds,
+      compositionEngineIds,
+      musicStack,
+      musicControls,
+      realityChaos,
+    });
+
+    setRealityEngineIds(result.realityEngineIds);
+    setCompositionEngineIds(result.compositionEngineIds);
+    setMusicStack(result.musicStack);
+    setMusicControls(result.musicControls);
+    setRealityChaos(result.realityChaos);
+    setNoticeMessage(
+      'Starter stack loaded into the labs: ' +
+      result.compiled.activeSeeds.length + ' seed' + (result.compiled.activeSeeds.length === 1 ? '' : 's') +
+      ', ' + result.compiled.realityEngineIds.length + ' Reality engine' + (result.compiled.realityEngineIds.length === 1 ? '' : 's') +
+      ', ' + result.compiled.compositionEngineIds.length + ' Composition source' + (result.compiled.compositionEngineIds.length === 1 ? '' : 's') +
+      ', and ' + (result.compiled.musicRecipeRefs.length + result.compiled.musicMechanismRefs.length) + ' Music Seed gene' +
+      ((result.compiled.musicRecipeRefs.length + result.compiled.musicMechanismRefs.length) === 1 ? '' : 's') + '. You can still tweak any lab manually after this.'
+    );
+    setErrorMessage(null);
   };
 
   const handleToggleGuy = (guyId: string) => {
@@ -467,6 +501,7 @@ export default function App() {
           compositionEngineIds,
           musicStack,
           musicControls,
+          starterSeedStack,
           realityChaos,
           seed,
           energy,
@@ -529,6 +564,7 @@ export default function App() {
             compositionEngineIds,
             musicStack,
             musicControls,
+            starterSeedStack,
             realityChaos,
             seed,
             energy,
@@ -859,6 +895,23 @@ export default function App() {
             </ModuleSection>
           </div>
         </div>
+
+        <ModuleSection
+          id="starter"
+          title="STARTER SEEDS"
+          eyebrow="03 • fast-start the whole damn machine"
+          summary={starterSeedStack.length + ' starter seed' + (starterSeedStack.length === 1 ? '' : 's') + ' stacked • BUILD ME loads their outputs into the labs'}
+          tone="coral"
+          open={moduleOpen.starter}
+          active={activeModule === 'starter'}
+          onToggle={() => toggleModule('starter')}
+        >
+          <StarterSeedPanel
+            stack={starterSeedStack}
+            onChange={setStarterSeedStack}
+            onBuild={handleBuildStarterStack}
+          />
+        </ModuleSection>
 
         <ModuleSection
           id="reality"
