@@ -54,7 +54,7 @@ assert(block.includes('phone rings'));
 
 const prompt = buildMasterPrompt({
   guyIds: ['taxonomy-goblin'],
-  starterSeedStack,
+  starterSeedStack: starterStack,
   realityEngineIds: applied.realityEngineIds,
   compositionEngineIds: applied.compositionEngineIds,
   musicStack: applied.musicStack,
