@@ -1159,7 +1159,7 @@ export default function App() {
 
       {feedbackOpen && currentRun && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-xl rounded-2xl border border-[#ff4fd8]/50 bg-[#0d1017] shadow-2xl overflow-hidden">
+          <div className="w-full max-w-xl max-h-[90vh] overflow-y-auto overscroll-contain rounded-2xl border border-[#ff4fd8]/50 bg-[#0d1017] shadow-2xl [scrollbar-width:thin]">
             <div className="flex items-start justify-between gap-4 p-5 border-b border-[#252d3b]">
               <div>
                 <h3 className="font-mono font-bold text-[#ffe680] flex items-center gap-2">
