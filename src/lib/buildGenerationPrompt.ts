@@ -11,6 +11,8 @@ import { REALITY_CHAOS_LABELS, analyzeRealityChemistry } from './realityChemistr
 import { assignActivationRoles } from './mindStacking';
 import { renderLayerJurisdictionMatrix, renderSeedSovereigntyContract } from './generationJurisdictions';
 import { renderFingerprintNoveltyPressure } from './noveltyPressure';
+import type { StarterSeedStackItem } from '../starterSeeds/types';
+import { normalizeStarterSeedStack, starterSeedPromptBlock } from '../starterSeeds/runtime';
 
 export interface GenerationPromptParams {
   guyIds: string[];
@@ -18,6 +20,7 @@ export interface GenerationPromptParams {
   compositionEngineIds?: string[];
   musicStack?: MusicStackItem[];
   musicControls?: MusicControls;
+  starterSeedStack?: StarterSeedStackItem[];
   realityChaos?: RealityChaosLevel;
   seed?: string;
   energy: number;
@@ -31,7 +34,7 @@ export interface GenerationPromptParams {
 }
 
 export function buildMasterPrompt(params: GenerationPromptParams): { systemInstruction: string; userPrompt: string } {
-  const { guyIds, realityEngineIds = [], compositionEngineIds = [], musicStack = [], musicControls, realityChaos = 2, seed, energy, recentFingerprints = [], forcedFingerprint, likedSignals = [], noveltySignals = [], mouthGenome, mouthPromptMode = 'bracketed', mouthSemanticMode = 'inherit' } = params;
+  const { guyIds, realityEngineIds = [], compositionEngineIds = [], musicStack = [], musicControls, starterSeedStack = [], realityChaos = 2, seed, energy, recentFingerprints = [], forcedFingerprint, likedSignals = [], noveltySignals = [], mouthGenome, mouthPromptMode = 'bracketed', mouthSemanticMode = 'inherit' } = params;
 
   const selectedGuys: LittleGuy[] = guyIds
     .map((id) => LITTLE_GUYS.find((g) => g.id === id))
@@ -45,6 +48,8 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
   const activationSlots = assignActivationRoles(guys);
   const seedSovereigntyBlock = renderSeedSovereigntyContract(seed);
   const layerJurisdictionMatrix = renderLayerJurisdictionMatrix();
+  const normalizedStarterSeedStack = normalizeStarterSeedStack(starterSeedStack);
+  const starterSeedBlock = starterSeedPromptBlock(normalizedStarterSeedStack);
 
   const realityEngines: RealityEngine[] = getRealityEngines(realityEngineIds);
   const realityChemistry = analyzeRealityChemistry(realityEngineIds);
@@ -358,7 +363,8 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
     '21. STEMMINESS IS AN ARRANGEMENT VARIABLE, NOT A QUALITY SCORE. High stemminess requires register/role separation, local rather than universal wash, useful exposure windows, and parts that remain interesting when isolated. High kinetic density plus high stemminess means rapid events rotate through distinct actors instead of everybody playing constantly.\n' +
     '22. MOUTH LAB IS VOCAL GENETICS, NOT AN ACCENT PRESET. When active, each Mouth Lab trait owns only its assigned mouth jurisdiction. Preserve distinct donors and explicit conflicts instead of averaging them into a vague foreign accent. Quirks are narrow operational laws: frequency controls how many eligible targets are hit, consistency controls reliability, exaggeration controls audible severity, and takeover controls WHEN the mutation spreads. HIGH and OBSESSIVE pressure must remain audible across section changes.\n' +
     '23. MOUTH LAB PRECEDENCE: for mouth axes explicitly owned by a Mouth Lab genome, Mouth Lab overrides conflicting single-profile language guidance. Composition Lab language settings may fill only unclaimed mouth axes. If ENGLISH MEANING / ALIEN MOUTH is active, keep semantic propositions and lexical targets in English while non-English donor mechanisms govern the assigned mouth physics. Do not translate into donor languages, invent fake fluent donor-language text, or claim the hybrid is authentic speech.\n' +
-    '24. OUTPUT FORMAT: valid JSON with keys style, lyrics, caption, fingerprint. fingerprint must contain genreFamily, harmony, melody, rhythm, timbre, vocal, performance, production.\n\n' +
+    '24. STARTER SEEDS ARE INITIAL CONDITIONS, NOT A NEW SUBJECT. They may establish affect, perceptual laws, motion, social recruitment, a coherent world frame, or source-role assignments. Preserve their explicit invariants and anti-drift rules, but never let a Starter Seed replace the sovereign user seed, Little Guy cognition, or the jurisdictions of manually selected engines. If Starter Seeds collide, negotiate the collision explicitly instead of averaging it.\n' +
+    '25. OUTPUT FORMAT: valid JSON with keys style, lyrics, caption, fingerprint. fingerprint must contain genreFamily, harmony, melody, rhythm, timbre, vocal, performance, production.\n\n' +
     'TARGET CHARACTER COUNTS INCLUDING SPACES AND LINE BREAKS:\n' +
     'style: 975 to 999 characters.\n' +
     'lyrics: 4900 to 4999 characters.\n' +
@@ -368,6 +374,7 @@ export function buildMasterPrompt(params: GenerationPromptParams): { systemInstr
     'SEED SOVEREIGNTY CONTRACT:\n' + seedSovereigntyBlock + '\n\n' +
     'GENERATION JURISDICTION / AUTHORITY MATRIX:\n' + layerJurisdictionMatrix + '\n\n' +
     'ACTIVE LITTLE GUY STACK:\n' + stackBreakdown + '\n\n' +
+    'STARTER SEED STACK / INITIAL CONDITIONS:\n' + starterSeedBlock + '\n\n' +
     'ACTIVE REALITY ENGINES:\n' + realityBreakdown + '\n\n' +
     'REALITY CHEMISTRY / COLLISION MAP:\n' + realityChemistryBlock + '\n\n' +
     'ACTIVE COMPOSITION LAB ENGINES:\n' + compositionBreakdown + '\n\n' +
