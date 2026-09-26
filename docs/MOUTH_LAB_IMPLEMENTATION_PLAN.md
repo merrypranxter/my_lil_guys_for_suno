@@ -120,7 +120,7 @@ Deliver:
 - music-to-language reverse transduction;
 - conditional phonetics.
 
-### Job 7 — EVOLUTION + QA — COMPLETE — COMPLETE
+### Job 7 — EVOLUTION + QA — COMPLETE
 
 Deliver:
 
