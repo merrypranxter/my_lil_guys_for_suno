@@ -17,6 +17,7 @@ import {
 import type {
   MouthCastRole,
   MouthExpressionState,
+  MouthEvolutionResult,
   MouthGenome,
   MouthLabArchive,
   MouthMutationAction,
@@ -38,6 +39,7 @@ import {
   applyMouthQuirk,
   applyMouthSpecimen,
   breedMouthGenome,
+  breedMouthSpecies,
   captureMouthSpecimen,
   compileMouthPrompt,
   createExpressionRule,
@@ -64,6 +66,12 @@ import {
   upsertMouthSpecimen,
   upsertMouthSpecies,
 } from '../mouthLab';
+import {
+  getMouthFitnessRecords,
+  getMouthNoveltyPressureSignals,
+  getMouthTraitFitnessScores,
+  getRecentMouthGenomes,
+} from '../lib/localStorage';
 
 interface MouthLabPanelProps {
   genome?: MouthGenome;
@@ -76,7 +84,7 @@ interface MouthLabPanelProps {
   onNotice?: (message: string) => void;
 }
 
-type MouthTab = 'breed' | 'quirks' | 'inspect' | 'dynamics' | 'specimens';
+type MouthTab = 'breed' | 'quirks' | 'inspect' | 'dynamics' | 'evolve' | 'specimens';
 
 const PRESSURES: MouthTraitPressure[] = ['low', 'medium', 'high', 'obsessive'];
 
@@ -85,6 +93,7 @@ const TAB_META: Record<MouthTab, { label: string; subtitle: string }> = {
   quirks: { label: 'QUIRK MONSTER', subtitle: 'tiny mutations become laws' },
   inspect: { label: 'DESIGN A MOUTH', subtitle: 'inspect / pressure / compiler' },
   dynamics: { label: 'DYNAMIC MOUTHS', subtitle: 'cast / infection / timeline / transduction' },
+  evolve: { label: 'EVOLUTION', subtitle: 'species × species • specimens • assay' },
   specimens: { label: 'SPECIMEN ARCHIVE', subtitle: 'save the accidents worth keeping' },
 };
 
@@ -158,6 +167,14 @@ export function MouthLabPanel({
   const [timelineTargetRole, setTimelineTargetRole] = useState<MouthCastRole>('crowd');
   const [timelineAmount, setTimelineAmount] = useState(80);
   const [timelineTrigger, setTimelineTrigger] = useState('');
+  const [evolutionParentAId, setEvolutionParentAId] = useState('');
+  const [evolutionParentBId, setEvolutionParentBId] = useState('');
+  const [evolutionSeed, setEvolutionSeed] = useState(() => randomSeed('species'));
+  const [evolutionSpecimenIds, setEvolutionSpecimenIds] = useState<string[]>([]);
+  const [evolutionResult, setEvolutionResult] = useState<MouthEvolutionResult | null>(null);
+  const [assaySiblingCount, setAssaySiblingCount] = useState(4);
+  const [assayFamilySeed, setAssayFamilySeed] = useState(() => randomSeed('mouth-assay'));
+  const [assayResults, setAssayResults] = useState<MouthEvolutionResult[]>([]);
 
   const phenotype = useMemo(() => (genome ? projectMouthPhenotype(genome) : undefined), [genome]);
   const activeTraitIds = useMemo(
@@ -214,6 +231,47 @@ export function MouthLabPanel({
         .includes(q)
     );
   }, [quirkQuery]);
+
+
+  const evolutionParentOptions = useMemo(() => {
+    const options: Array<{ id: string; genome: MouthGenome; label: string }> = [];
+    if (genome) {
+      options.push({
+        id: 'active',
+        genome,
+        label: 'ACTIVE — ' + genome.name,
+      });
+    }
+    for (const species of archive.species) {
+      if (genome?.id === species.id) continue;
+      options.push({
+        id: species.id,
+        genome: species,
+        label:
+          (species.lineage ? 'G' + species.lineage.generation + ' — ' : 'G0 — ') +
+          species.name,
+      });
+    }
+    return options;
+  }, [genome, archive.species]);
+
+  const mouthFitnessScores = useMemo(
+    () => getMouthTraitFitnessScores(),
+    [archive.updatedAt, sourceRunId],
+  );
+  const mouthNoveltySignals = useMemo(
+    () => getMouthNoveltyPressureSignals(5),
+    [archive.updatedAt, sourceRunId],
+  );
+
+  useEffect(() => {
+    if (tab !== 'evolve' && tab !== 'specimens' && tab !== 'dynamics') return;
+    try {
+      setArchive(loadMouthLabArchive(window.localStorage));
+    } catch {
+      // Keep current in-memory archive if browser storage is unavailable.
+    }
+  }, [tab, sourceRunId]);
 
   useEffect(() => {
     if (!genome) return;
@@ -564,6 +622,105 @@ export function MouthLabPanel({
       ],
     });
     announce('Transduction installed: ' + (MOUTH_TRANSDUCTION_PRESETS.find((item) => item.id === presetId)?.name || presetId) + '.');
+  };
+
+
+  const resolveEvolutionParent = (id: string): MouthGenome | undefined => {
+    if (id === 'active') return genome;
+    return archive.species.find((species) => species.id === id);
+  };
+
+  const toggleEvolutionSpecimen = (specimenId: string) => {
+    setEvolutionSpecimenIds((current) =>
+      current.includes(specimenId)
+        ? current.filter((id) => id !== specimenId)
+        : [...current, specimenId].slice(0, 6)
+    );
+  };
+
+  const breedDescendant = () => {
+    const parentA = resolveEvolutionParent(evolutionParentAId);
+    const parentB = resolveEvolutionParent(evolutionParentBId);
+    if (!parentA || !parentB) {
+      announce('Pick two saved/active mouth species before evolving a descendant.');
+      return;
+    }
+    if (parentA.id === parentB.id) {
+      announce('Pick two distinct mouth species. Selfing is not enabled in this lab.');
+      return;
+    }
+
+    try {
+      const specimens = archive.specimens.filter((item) =>
+        evolutionSpecimenIds.includes(item.id)
+      );
+      const result = breedMouthSpecies({
+        parentA,
+        parentB,
+        breedingSeed: evolutionSeed || randomSeed('species'),
+        specimenAssist: specimens,
+        fitnessRecords: getMouthFitnessRecords(),
+        recentGenomes: [
+          ...getRecentMouthGenomes(10),
+          ...archive.species.slice(0, 10),
+        ],
+      });
+      setEvolutionResult(result);
+      onGenomeChange(result.genome);
+      setTab('evolve');
+      announce(
+        'Bred G' +
+          result.lineage.generation +
+          ' mouth descendant. It is ACTIVE but temporary until you save the species.'
+      );
+    } catch (error: any) {
+      announce(error?.message || 'Species breeding failed.');
+    }
+  };
+
+  const runMouthAssay = () => {
+    const parentA = resolveEvolutionParent(evolutionParentAId);
+    const parentB = resolveEvolutionParent(evolutionParentBId);
+    if (!parentA || !parentB || parentA.id === parentB.id) {
+      announce('Mouth Assay needs two distinct species parents.');
+      return;
+    }
+
+    try {
+      const specimens = archive.specimens.filter((item) =>
+        evolutionSpecimenIds.includes(item.id)
+      );
+      const fitnessRecords = getMouthFitnessRecords();
+      const recentGenomes = [
+        ...getRecentMouthGenomes(10),
+        ...archive.species.slice(0, 10),
+      ];
+      const root = assayFamilySeed || randomSeed('mouth-assay');
+      const results = Array.from({ length: assaySiblingCount }, (_, index) =>
+        breedMouthSpecies({
+          parentA,
+          parentB,
+          breedingSeed:
+            root + ':sibling:' + String(index + 1).padStart(2, '0'),
+          specimenAssist: specimens,
+          fitnessRecords,
+          recentGenomes,
+        })
+      );
+      setAssayResults(results);
+      announce(
+        'Mouth Assay bred ' +
+          results.length +
+          ' local genetic siblings. Zero model calls; no winner was chosen for you.'
+      );
+    } catch (error: any) {
+      announce(error?.message || 'Mouth Assay failed.');
+    }
+  };
+
+  const saveEvolutionSpecies = (child: MouthGenome) => {
+    commitArchive(upsertMouthSpecies(archive, child));
+    announce('Saved evolved species: ' + child.name + '.');
   };
 
   const applySpecimen = (specimenId: string) => {
