@@ -56,6 +56,8 @@ import {
   getLikedMusicMechanismWeights,
   getLikedMindWeights,
   getLikedRealityWeights,
+  getStarterSeedPreferenceWeights,
+  getStarterPreferenceSignals,
   getNoveltyPressureSignals,
   getMouthNoveltyPressureSignals,
   getRecentMechanismSaturation,
@@ -69,6 +71,7 @@ import type { MouthGenome, MouthPromptMode, MouthSemanticMode } from './mouthLab
 import { getMouthQuirkDefinition } from './mouthLab/quirks';
 import { getMouthTrait } from './mouthLab/traits';
 import type { StarterSeedStackItem } from './starterSeeds/types';
+import { STARTER_SEEDS } from './starterSeeds/library';
 import { applyStarterSeedStackToLab, getLastStarterSeedStack, setLastStarterSeedStack } from './starterSeeds/runtime';
 
 const UI_MODULES: ModuleNavItem[] = [
@@ -133,6 +136,8 @@ export default function App() {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedbackDraft, setFeedbackDraft] = useState('');
   const [feedbackTagsDraft, setFeedbackTagsDraft] = useState<string[]>([]);
+  const [likedStarterSeedIdsDraft, setLikedStarterSeedIdsDraft] = useState<string[]>([]);
+  const [dislikedStarterSeedIdsDraft, setDislikedStarterSeedIdsDraft] = useState<string[]>([]);
   const [likedMechanismIdsDraft, setLikedMechanismIdsDraft] = useState<string[]>([]);
   const [dislikedMechanismIdsDraft, setDislikedMechanismIdsDraft] = useState<string[]>([]);
   const [likedMouthTraitIdsDraft, setLikedMouthTraitIdsDraft] = useState<string[]>([]);
@@ -346,7 +351,8 @@ export default function App() {
         musicControls,
         mouthGenome,
         mouthPromptMode,
-        mouthSemanticMode
+        mouthSemanticMode,
+        starterSeedStack
       )
     );
   };
@@ -356,6 +362,7 @@ export default function App() {
     setRealityEngineIds(saved.realityEngineIds || []);
     setCompositionEngineIds(saved.compositionEngineIds || []);
     setMusicStack(saved.musicStack || []);
+    setStarterSeedStack((saved.starterSeedStack || []) as StarterSeedStackItem[]);
     if (saved.musicControls) setMusicControls(saved.musicControls);
     if (saved.realityChaos) setRealityChaos(saved.realityChaos);
     setMouthGenome(saved.mouthGenome);
@@ -437,6 +444,7 @@ export default function App() {
       compositionEngineIds: [...compositionEngineIds],
       musicStack: [...musicStack],
       musicControls: { ...musicControls },
+      starterSeedStack: starterSeedStack.map((item) => ({ ...item })),
       realityChaos,
       mouthGenome,
       mouthPromptMode,
@@ -480,10 +488,11 @@ export default function App() {
 
     const recentFingerprints = getRecentFingerprints(12);
     const likedSignals = [
-      ...getCompositionFavoriteSignals(4),
-      ...getMusicPreferenceSignals(4),
-      ...getLikedPreferenceSignals(5),
-    ].slice(0, 10);
+      ...getCompositionFavoriteSignals(3),
+      ...getStarterPreferenceSignals(3),
+      ...getMusicPreferenceSignals(3),
+      ...getLikedPreferenceSignals(4),
+    ].slice(0, 12);
     const noveltySignals = [
       ...getNoveltyPressureSignals(8),
       ...getMouthNoveltyPressureSignals(5),
@@ -688,6 +697,8 @@ export default function App() {
     if (!currentRun) return;
     setFeedbackDraft(currentRun.feedback || '');
     setFeedbackTagsDraft(currentRun.feedbackTags || []);
+    setLikedStarterSeedIdsDraft(currentRun.likedStarterSeedIds || []);
+    setDislikedStarterSeedIdsDraft(currentRun.dislikedStarterSeedIds || []);
     setLikedMechanismIdsDraft(currentRun.likedMechanismIds || []);
     setDislikedMechanismIdsDraft(currentRun.dislikedMechanismIds || []);
     setLikedMouthTraitIdsDraft(currentRun.likedMouthTraitIds || []);
@@ -703,6 +714,8 @@ export default function App() {
       starred: true,
       feedback: feedbackDraft.trim(),
       feedbackTags: feedbackTagsDraft,
+      likedStarterSeedIds: likedStarterSeedIdsDraft,
+      dislikedStarterSeedIds: dislikedStarterSeedIdsDraft,
       likedMechanismIds: likedMechanismIdsDraft,
       dislikedMechanismIds: dislikedMechanismIdsDraft,
       likedMouthTraitIds: likedMouthTraitIdsDraft,
@@ -751,9 +764,16 @@ export default function App() {
     .map((id) => LITTLE_GUYS.find((g) => g.id === id))
     .filter((g): g is LittleGuy => Boolean(g));
 
+  const currentFeedbackStarterSeeds = currentRun
+    ? (currentRun.starterSeedStack || [])
+        .filter((item) => !item.muted)
+        .map((item) => STARTER_SEEDS.find((seed) => seed.id === item.seedId))
+        .filter((seed): seed is NonNullable<typeof seed> => Boolean(seed))
+    : [];
   const currentFeedbackMechanisms = currentRun
     ? compileMusicStack(currentRun.musicStack || [], currentRun.musicControls).mechanisms.map((entry) => entry.mechanism)
     : [];
+  const starterPreferenceWeights = getStarterSeedPreferenceWeights();
   const currentFeedbackMouthTraits = currentRun?.mouthGenome
     ? Array.from(
         new Set(currentRun.mouthGenome.assignments.flatMap((assignment) => assignment.traitIds)),
@@ -910,6 +930,7 @@ export default function App() {
             stack={starterSeedStack}
             onChange={setStarterSeedStack}
             onBuild={handleBuildStarterStack}
+            preferenceWeights={starterPreferenceWeights}
           />
         </ModuleSection>
 
