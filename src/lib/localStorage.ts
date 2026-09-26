@@ -1,6 +1,18 @@
 import { ArchivedRun, CompositionFavorite, CompositionPreset, GenomeFitnessRecord, GenomePromotionReason, MusicBredGenome, MusicControls, MusicFingerprint, MusicStackItem, PetriDishExperiment, RealityChaosLevel, RecentCompositionBuild, SavedStack } from '../types';
-import type { MouthGenome, MouthPromptMode, MouthSemanticMode } from '../mouthLab/types';
+import type { MouthFitnessRecord, MouthGenome, MouthPromptMode, MouthSemanticMode } from '../mouthLab/types';
 import { normalizeMouthGenomeForGeneration } from '../mouthLab/promptCompiler';
+import { getMouthQuirkDefinition } from '../mouthLab/quirks';
+import { getMouthTrait } from '../mouthLab/traits';
+import {
+  buildMouthNoveltySignals,
+  mouthGenomePhenotypeSignature,
+  normalizeMouthFitnessRecord,
+} from '../mouthLab/evolution';
+import {
+  loadMouthLabArchive,
+  saveMouthLabArchive,
+  upsertMouthSpecies,
+} from '../mouthLab/persistence';
 import { fingerprintToLine } from '../data/musicTaxonomy';
 import { getCompositionEngine, normalizeCompositionEngineIds } from '../data/compositionEngines';
 import { DEFAULT_MUSIC_CONTROLS, compileMusicStack, getMusicMechanism, musicGenomePhenotypeSignature, normalizeMusicControls, normalizeMusicGenome, normalizeMusicStack, summarizeMusicStack } from '../data/musicSeedSystem';
@@ -27,6 +39,7 @@ const STORAGE_KEYS = {
   LAST_MOUTH_GENOME: 'lgm_last_mouth_genome_v1',
   MOUTH_PROMPT_MODE: 'lgm_mouth_prompt_mode_v1',
   MOUTH_SEMANTIC_MODE: 'lgm_mouth_semantic_mode_v1',
+  MOUTH_FITNESS: 'lgm_mouth_fitness_v1',
 };
 
 const MAX_ARCHIVE_RUNS = 150;
@@ -264,6 +277,29 @@ export function setSavedMusicControls(controls: MusicControls): void {
 
 
 
+
+function validMouthTraitIds(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return Array.from(
+    new Set<string>(
+      value
+        .map((id: unknown) => String(id))
+        .filter((id: string) => Boolean(getMouthTrait(id))),
+    ),
+  ).slice(0, 40);
+}
+
+function validMouthQuirkIds(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return Array.from(
+    new Set<string>(
+      value
+        .map((id: unknown) => String(id))
+        .filter((id: string) => Boolean(getMouthQuirkDefinition(id))),
+    ),
+  ).slice(0, 40);
+}
+
 function validMechanismIds(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return Array.from(new Set(
@@ -398,6 +434,236 @@ export function upsertGenomeFitness(
   ]);
   return next;
 }
+
+
+export function getMouthFitnessRecords(): MouthFitnessRecord[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.MOUTH_FITNESS);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map((item) => normalizeMouthFitnessRecord(item))
+      .filter((item): item is MouthFitnessRecord => Boolean(item))
+      .sort((a, b) => b.updatedAt - a.updatedAt)
+      .slice(0, 240);
+  } catch {
+    return [];
+  }
+}
+
+function writeMouthFitnessRecords(records: MouthFitnessRecord[]): MouthFitnessRecord[] {
+  const normalized = records
+    .map((item) => normalizeMouthFitnessRecord(item))
+    .filter((item): item is MouthFitnessRecord => Boolean(item));
+  const deduped = normalized
+    .filter(
+      (item, index, all) =>
+        all.findIndex(
+          (candidate) => candidate.phenotypeSignature === item.phenotypeSignature,
+        ) === index,
+    )
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .slice(0, 240);
+
+  try {
+    localStorage.setItem(STORAGE_KEYS.MOUTH_FITNESS, JSON.stringify(deduped));
+  } catch {
+    // ignore
+  }
+  return deduped;
+}
+
+export function getMouthFitnessRecord(
+  genomeOrSignature: MouthGenome | string,
+): MouthFitnessRecord | undefined {
+  const signature =
+    typeof genomeOrSignature === 'string'
+      ? genomeOrSignature
+      : mouthGenomePhenotypeSignature(genomeOrSignature);
+  if (!signature) return undefined;
+  return getMouthFitnessRecords().find(
+    (record) => record.phenotypeSignature === signature,
+  );
+}
+
+export function upsertMouthFitness(
+  genome: MouthGenome,
+  options: {
+    likedTraitIds?: string[];
+    dislikedTraitIds?: string[];
+    likedQuirkIds?: string[];
+    dislikedQuirkIds?: string[];
+    sourceRunId?: string;
+    note?: string;
+  } = {},
+): MouthFitnessRecord | undefined {
+  const normalized = normalizeMouthGenomeForGeneration(genome);
+  if (!normalized) return undefined;
+
+  const phenotypeSignature = mouthGenomePhenotypeSignature(normalized);
+  const current = getMouthFitnessRecords();
+  const existing = current.find(
+    (record) => record.phenotypeSignature === phenotypeSignature,
+  );
+
+  const activeTraits = new Set(
+    normalized.assignments.flatMap((assignment) => assignment.traitIds),
+  );
+  const activeQuirks = new Set(
+    normalized.quirks.filter((quirk) => quirk.enabled).map((quirk) => quirk.quirkId),
+  );
+
+  const likedTraitIds = validMouthTraitIds(options.likedTraitIds).filter((id) =>
+    activeTraits.has(id),
+  );
+  const dislikedTraitIds = validMouthTraitIds(options.dislikedTraitIds).filter(
+    (id) => activeTraits.has(id) && !likedTraitIds.includes(id),
+  );
+  const likedQuirkIds = validMouthQuirkIds(options.likedQuirkIds).filter((id) =>
+    activeQuirks.has(id),
+  );
+  const dislikedQuirkIds = validMouthQuirkIds(options.dislikedQuirkIds).filter(
+    (id) => activeQuirks.has(id) && !likedQuirkIds.includes(id),
+  );
+
+  const now = Date.now();
+  const next: MouthFitnessRecord = {
+    phenotypeSignature,
+    genomeIds: Array.from(new Set([normalized.id, ...(existing?.genomeIds || [])])),
+    approved: true,
+    approvalCount: Math.min(999, (existing?.approvalCount || 0) + 1),
+    likedTraitIds: Array.from(
+      new Set([...(existing?.likedTraitIds || []), ...likedTraitIds]),
+    ).filter((id) => !dislikedTraitIds.includes(id)),
+    dislikedTraitIds: Array.from(
+      new Set([...(existing?.dislikedTraitIds || []), ...dislikedTraitIds]),
+    ).filter((id) => !likedTraitIds.includes(id)),
+    likedQuirkIds: Array.from(
+      new Set([...(existing?.likedQuirkIds || []), ...likedQuirkIds]),
+    ).filter((id) => !dislikedQuirkIds.includes(id)),
+    dislikedQuirkIds: Array.from(
+      new Set([...(existing?.dislikedQuirkIds || []), ...dislikedQuirkIds]),
+    ).filter((id) => !likedQuirkIds.includes(id)),
+    sourceRunIds: Array.from(
+      new Set([
+        ...(options.sourceRunId ? [options.sourceRunId] : []),
+        ...(existing?.sourceRunIds || []),
+      ]),
+    ).slice(0, 100),
+    note: options.note?.trim()
+      ? options.note.trim().slice(0, 1600)
+      : existing?.note || '',
+    createdAt: existing?.createdAt || now,
+    updatedAt: now,
+  };
+
+  writeMouthFitnessRecords([
+    next,
+    ...current.filter(
+      (record) => record.phenotypeSignature !== phenotypeSignature,
+    ),
+  ]);
+  return next;
+}
+
+export function getRecentMouthGenomes(limit = 10): MouthGenome[] {
+  const seen = new Set<string>();
+  const out: MouthGenome[] = [];
+
+  for (const run of getRunArchive()) {
+    if (!run.mouthGenome) continue;
+    const genome = normalizeMouthGenomeForGeneration(run.mouthGenome);
+    if (!genome) continue;
+    const signature = mouthGenomePhenotypeSignature(genome);
+    if (seen.has(signature)) continue;
+    seen.add(signature);
+    out.push(genome);
+    if (out.length >= limit) break;
+  }
+
+  return out;
+}
+
+export function getMouthNoveltyPressureSignals(limit = 8): string[] {
+  return buildMouthNoveltySignals(getRecentMouthGenomes(12), limit);
+}
+
+export function getMouthTraitFitnessScores(limit = 60): {
+  traits: Record<string, number>;
+  quirks: Record<string, number>;
+} {
+  const traits: Record<string, number> = {};
+  const quirks: Record<string, number> = {};
+  const starred = getRunArchive().filter((run) => run.starred && run.mouthGenome).slice(0, limit);
+
+  for (const run of starred) {
+    const likedTraits = validMouthTraitIds(run.likedMouthTraitIds);
+    const dislikedTraits = validMouthTraitIds(run.dislikedMouthTraitIds);
+    const likedQuirks = validMouthQuirkIds(run.likedMouthQuirkIds);
+    const dislikedQuirks = validMouthQuirkIds(run.dislikedMouthQuirkIds);
+    const explicit =
+      likedTraits.length ||
+      dislikedTraits.length ||
+      likedQuirks.length ||
+      dislikedQuirks.length;
+
+    if (explicit) {
+      for (const id of likedTraits) traits[id] = (traits[id] || 0) + 2;
+      for (const id of dislikedTraits) traits[id] = (traits[id] || 0) - 2.5;
+      for (const id of likedQuirks) quirks[id] = (quirks[id] || 0) + 2;
+      for (const id of dislikedQuirks) quirks[id] = (quirks[id] || 0) - 2.5;
+      continue;
+    }
+
+    // Whole-run approval is intentionally weak evidence. It cannot make every
+    // active mouth gene dominant forever.
+    for (const assignment of run.mouthGenome!.assignments) {
+      for (const id of assignment.traitIds) {
+        traits[id] = (traits[id] || 0) + 0.15;
+      }
+    }
+    for (const quirk of run.mouthGenome!.quirks.filter((item) => item.enabled)) {
+      quirks[quirk.quirkId] = (quirks[quirk.quirkId] || 0) + 0.15;
+    }
+  }
+
+  const normalize = (scores: Record<string, number>) => {
+    const maxAbs = Math.max(0, ...Object.values(scores).map((value) => Math.abs(value)));
+    if (maxAbs <= 0) return scores;
+    for (const id of Object.keys(scores)) {
+      scores[id] = Math.round((scores[id] / maxAbs) * 100) / 100;
+    }
+    return scores;
+  };
+
+  return { traits: normalize(traits), quirks: normalize(quirks) };
+}
+
+export function promoteMouthGenomeFromRun(run: ArchivedRun): boolean {
+  if (!run.starred || !run.mouthGenome) return false;
+  const genome = normalizeMouthGenomeForGeneration(run.mouthGenome);
+  if (!genome) return false;
+
+  upsertMouthFitness(genome, {
+    likedTraitIds: run.likedMouthTraitIds || [],
+    dislikedTraitIds: run.dislikedMouthTraitIds || [],
+    likedQuirkIds: run.likedMouthQuirkIds || [],
+    dislikedQuirkIds: run.dislikedMouthQuirkIds || [],
+    sourceRunId: run.id,
+    note: run.feedback,
+  });
+
+  try {
+    const archive = loadMouthLabArchive(localStorage);
+    saveMouthLabArchive(localStorage, upsertMouthSpecies(archive, genome));
+  } catch {
+    // Fitness remains useful even if the species archive cannot be written.
+  }
+
+  return true;
+}
+
 
 export function getBredMusicGenomes(): MusicBredGenome[] {
   try {
@@ -785,6 +1051,10 @@ export function getRunArchive(): ArchivedRun[] {
       feedbackTags: Array.isArray(run?.feedbackTags) ? run.feedbackTags.filter((tag: unknown) => typeof tag === 'string') : [],
       likedMechanismIds: validMechanismIds(run?.likedMechanismIds),
       dislikedMechanismIds: validMechanismIds(run?.dislikedMechanismIds),
+      likedMouthTraitIds: validMouthTraitIds(run?.likedMouthTraitIds),
+      dislikedMouthTraitIds: validMouthTraitIds(run?.dislikedMouthTraitIds),
+      likedMouthQuirkIds: validMouthQuirkIds(run?.likedMouthQuirkIds),
+      dislikedMouthQuirkIds: validMouthQuirkIds(run?.dislikedMouthQuirkIds),
     }));
   } catch (e) {
     console.error('Failed to load run archive', e);
@@ -1019,6 +1289,10 @@ export function runToMarkdown(run: ArchivedRun): string {
     '**Feedback tags:** ' + (run.feedbackTags?.length ? run.feedbackTags.join(', ') : 'None'),
     '**Breed-positive mechanisms:** ' + (run.likedMechanismIds?.length ? run.likedMechanismIds.join(', ') : 'None'),
     '**Suppress-inheritance mechanisms:** ' + (run.dislikedMechanismIds?.length ? run.dislikedMechanismIds.join(', ') : 'None'),
+    '**Breed-positive mouth traits:** ' + (run.likedMouthTraitIds?.length ? run.likedMouthTraitIds.join(', ') : 'None'),
+    '**Suppress-inheritance mouth traits:** ' + (run.dislikedMouthTraitIds?.length ? run.dislikedMouthTraitIds.join(', ') : 'None'),
+    '**Breed-positive mouth quirks:** ' + (run.likedMouthQuirkIds?.length ? run.likedMouthQuirkIds.join(', ') : 'None'),
+    '**Suppress-inheritance mouth quirks:** ' + (run.dislikedMouthQuirkIds?.length ? run.dislikedMouthQuirkIds.join(', ') : 'None'),
     '**Musical fingerprint:** ' + fingerprint,
     '**Character counts:** style ' + run.charCounts.style + ' / lyrics ' + run.charCounts.lyrics + ' / caption ' + run.charCounts.caption,
     '',
