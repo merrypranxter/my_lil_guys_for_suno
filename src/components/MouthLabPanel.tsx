@@ -1556,6 +1556,255 @@ export function MouthLabPanel({
         </div>
       )}
 
+      {tab === 'evolve' && (
+        <div className="space-y-4">
+          {evolutionParentOptions.length < 2 ? (
+            <div className="rounded-2xl border border-dashed border-[#39445a] p-8 text-center text-xs font-mono text-[#718096]">
+              Evolution needs two mouth species. Save the active mouth plus at least one other species in the Specimen Archive first.
+            </div>
+          ) : (
+            <>
+              <div className="grid gap-4 xl:grid-cols-[1fr_0.9fr]">
+                <div className="rounded-2xl border border-[#39ff14]/30 bg-[#0a130d] p-3">
+                  <div className="text-xs font-mono font-black text-[#b8ff9f]">SPECIES × SPECIES</div>
+                  <div className="mt-1 text-[10px] font-mono leading-relaxed text-[#728377]">
+                    Breed whole Mouth Lab species, not just donor languages. Crossover operates on actual lived traits, quirks, scars, linked genes, and bounded dynamic behavior.
+                  </div>
+
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                    <label>
+                      <div className="mb-1 text-[9px] font-mono font-black text-[#ff9dea]">PARENT A</div>
+                      <select
+                        value={evolutionParentAId}
+                        onChange={(event) => setEvolutionParentAId(event.target.value)}
+                        className="w-full rounded-lg border border-[#30433a] bg-[#0c1210] px-2.5 py-2 text-[10px] font-mono text-white"
+                      >
+                        <option value="">pick species A…</option>
+                        {evolutionParentOptions.map((item) => (
+                          <option key={'evo-a-' + item.id} value={item.id}>{item.label}</option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      <div className="mb-1 text-[9px] font-mono font-black text-[#7eeeff]">PARENT B</div>
+                      <select
+                        value={evolutionParentBId}
+                        onChange={(event) => setEvolutionParentBId(event.target.value)}
+                        className="w-full rounded-lg border border-[#30433a] bg-[#0c1210] px-2.5 py-2 text-[10px] font-mono text-white"
+                      >
+                        <option value="">pick species B…</option>
+                        {evolutionParentOptions.map((item) => (
+                          <option key={'evo-b-' + item.id} value={item.id}>{item.label}</option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+
+                  <div className="mt-3">
+                    <div className="mb-1 text-[9px] font-mono font-black text-[#ffe995]">BREEDING SEED</div>
+                    <div className="flex gap-2">
+                      <input
+                        value={evolutionSeed}
+                        onChange={(event) => setEvolutionSeed(event.target.value)}
+                        className="min-w-0 flex-1 rounded-lg border border-[#30433a] bg-[#0c1210] px-2.5 py-2 text-[10px] font-mono text-white"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setEvolutionSeed(randomSeed('species'))}
+                        className="rounded-lg border border-[#4f4b2d] px-2.5 text-[#ffe995]"
+                      >
+                        <Shuffle className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="mt-3">
+                    <div className="text-[9px] font-mono font-black text-[#ffd29a]">SPECIMEN-ASSISTED MUTATION</div>
+                    <div className="mt-1 text-[9px] leading-relaxed text-[#6f7e74]">
+                      Optional specimens bias inheritance and may contribute one bounded mutation. They do not dump every captured accident into the child.
+                    </div>
+                    <div className="mt-2 max-h-44 space-y-1.5 overflow-y-auto pr-1 [scrollbar-width:thin]">
+                      {archive.specimens.length ? archive.specimens.map((specimen) => {
+                        const selected = evolutionSpecimenIds.includes(specimen.id);
+                        return (
+                          <button
+                            key={specimen.id}
+                            type="button"
+                            onClick={() => toggleEvolutionSpecimen(specimen.id)}
+                            className={
+                              'w-full rounded-lg border p-2 text-left ' +
+                              (selected
+                                ? 'border-[#ffd84d] bg-[#211b0d]'
+                                : 'border-[#2c3a31] bg-[#0c1210] hover:border-[#ffd84d]/40')
+                            }
+                          >
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-[9px] font-mono font-black text-[#ffe995]">{specimen.name}</span>
+                              <span className="text-[8px] font-mono text-[#6f7e74]">{selected ? 'ASSISTING' : 'OFF'}</span>
+                            </div>
+                            <div className="mt-0.5 text-[9px] text-[#718078] line-clamp-1">{specimen.observedBehavior}</div>
+                          </button>
+                        );
+                      }) : (
+                        <div className="rounded-lg border border-dashed border-[#334155] p-3 text-[9px] font-mono text-[#657187]">
+                          No specimens captured yet. Evolution still works without them.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={breedDescendant}
+                    disabled={!evolutionParentAId || !evolutionParentBId}
+                    className="mt-3 w-full rounded-xl border border-[#39ff14] bg-[#39ff14] px-4 py-3 text-xs font-mono font-black text-black disabled:opacity-35"
+                  >
+                    BREED DESCENDANT
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="rounded-2xl border border-[#a855f7]/30 bg-[#120d1a] p-3">
+                    <div className="text-xs font-mono font-black text-[#d7a7ff]">FITNESS WITHOUT MONOCULTURE</div>
+                    <div className="mt-1 text-[10px] leading-relaxed text-[#7d7188]">
+                      Explicit ★ INHERIT / ✕ SUPPRESS votes change crossover pressure. A plain star remains weak evidence. Recent overuse applies temporary ecological cooldown instead of erasing what you liked.
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 gap-2">
+                      <div className="rounded-lg border border-[#30283d] bg-[#0e0b14] p-2">
+                        <div className="text-[8px] font-mono text-[#78698b]">POSITIVE TRAIT SIGNALS</div>
+                        <div className="mt-1 text-lg font-mono font-black text-[#b8ff9f]">
+                          {Object.values(mouthFitnessScores.traits).filter((value) => value > 0).length}
+                        </div>
+                      </div>
+                      <div className="rounded-lg border border-[#30283d] bg-[#0e0b14] p-2">
+                        <div className="text-[8px] font-mono text-[#78698b]">POSITIVE QUIRK SIGNALS</div>
+                        <div className="mt-1 text-lg font-mono font-black text-[#ff9daf]">
+                          {Object.values(mouthFitnessScores.quirks).filter((value) => value > 0).length}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-3 space-y-1.5">
+                      {mouthNoveltySignals.length ? mouthNoveltySignals.map((signal, index) => (
+                        <div key={index} className="rounded-lg border border-[#3b3320] bg-[#151208] px-2.5 py-2 text-[9px] font-mono leading-relaxed text-[#cbbd83]">
+                          {signal}
+                        </div>
+                      )) : (
+                        <div className="text-[9px] font-mono text-[#657187]">No mouth gene is currently overexposed enough to trigger cooldown.</div>
+                      )}
+                    </div>
+                  </div>
+
+                  {evolutionResult && (
+                    <div className="rounded-2xl border border-[#00f0ff]/35 bg-[#08151a] p-3">
+                      <div className="text-[9px] font-mono font-black tracking-[0.14em] text-[#7eeeff]">
+                        NEW DESCENDANT • G{evolutionResult.lineage.generation}
+                      </div>
+                      <div className="mt-1 text-sm font-mono font-black text-white">{evolutionResult.genome.name}</div>
+                      <div className="mt-2 text-[10px] leading-relaxed text-[#9ab3b8]">{evolutionResult.phenotype.summary}</div>
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {evolutionResult.genome.assignments.flatMap((assignment) => assignment.traitIds).map((id) => (
+                          <span key={id} className="rounded border border-[#21414a] bg-[#0b1b20] px-1.5 py-0.5 text-[8px] font-mono text-[#9bf8ff]">
+                            {getMouthTrait(id)?.name || id}
+                          </span>
+                        ))}
+                      </div>
+                      {evolutionResult.lineage.specimenIds.length > 0 && (
+                        <div className="mt-2 text-[9px] font-mono text-[#ffe995]">
+                          specimen assist: {evolutionResult.lineage.specimenIds.length} • bounded mutations: {evolutionResult.lineage.mutationTraitIds.length + evolutionResult.lineage.mutationQuirkIds.length}
+                        </div>
+                      )}
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => onGenomeChange(evolutionResult.genome)}
+                          className="rounded-lg border border-[#00f0ff]/50 bg-[#0a1d23] px-2.5 py-1.5 text-[9px] font-mono font-black text-[#9bf8ff]"
+                        >
+                          LOAD CHILD
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => saveEvolutionSpecies(evolutionResult.genome)}
+                          className="rounded-lg border border-[#39ff14]/50 bg-[#0e1a10] px-2.5 py-1.5 text-[9px] font-mono font-black text-[#b8ff9f]"
+                        >
+                          SAVE CHILD AS SPECIES
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-[#ffd84d]/30 bg-[#161308] p-3">
+                <div className="text-xs font-mono font-black text-[#ffe995]">MOUTH ASSAY — SIBLING FAMILY</div>
+                <div className="mt-1 text-[10px] font-mono leading-relaxed text-[#8d835e]">
+                  Freeze the two species parents + specimen assists, then breed several deterministic genetic siblings. This is free local genetics: zero generation calls and no hidden “winner.”
+                </div>
+                <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_120px_auto]">
+                  <input
+                    value={assayFamilySeed}
+                    onChange={(event) => setAssayFamilySeed(event.target.value)}
+                    className="rounded-lg border border-[#4a4227] bg-[#0d0c08] px-2.5 py-2 text-[10px] font-mono text-white"
+                    placeholder="family seed"
+                  />
+                  <select
+                    value={assaySiblingCount}
+                    onChange={(event) => setAssaySiblingCount(Number(event.target.value))}
+                    className="rounded-lg border border-[#4a4227] bg-[#0d0c08] px-2.5 py-2 text-[10px] font-mono text-white"
+                  >
+                    {[2,3,4,5,6].map((count) => <option key={count} value={count}>{count} siblings</option>)}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={runMouthAssay}
+                    disabled={!evolutionParentAId || !evolutionParentBId}
+                    className="rounded-lg border border-[#ffd84d] bg-[#ffd84d] px-3 py-2 text-[10px] font-mono font-black text-black disabled:opacity-35"
+                  >
+                    BREED ASSAY
+                  </button>
+                </div>
+
+                {assayResults.length > 0 && (
+                  <div className="mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                    {assayResults.map((result, index) => (
+                      <div key={result.genome.id} className="rounded-xl border border-[#493f20] bg-[#0d0c08] p-3">
+                        <div className="text-[8px] font-mono font-black text-[#ffe995]">SIBLING {index + 1} • G{result.lineage.generation}</div>
+                        <div className="mt-1 text-[10px] font-mono font-black text-white line-clamp-2">{result.genome.name}</div>
+                        <div className="mt-1 text-[9px] text-[#847b5d]">
+                          {result.genome.assignments.flatMap((assignment) => assignment.traitIds).length} traits • {result.genome.quirks.length} quirks
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {result.genome.assignments.flatMap((assignment) => assignment.traitIds).slice(0, 5).map((id) => (
+                            <span key={id} className="rounded bg-[#1b170b] px-1.5 py-0.5 text-[8px] font-mono text-[#c9bd85]">
+                              {getMouthTrait(id)?.name || id}
+                            </span>
+                          ))}
+                        </div>
+                        <div className="mt-3 flex flex-wrap gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => onGenomeChange(result.genome)}
+                            className="rounded border border-[#00f0ff]/40 px-2 py-1 text-[8px] font-mono font-black text-[#9bf8ff]"
+                          >
+                            LOAD
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => saveEvolutionSpecies(result.genome)}
+                            className="rounded border border-[#39ff14]/40 px-2 py-1 text-[8px] font-mono font-black text-[#b8ff9f]"
+                          >
+                            SAVE
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
       {tab === 'specimens' && (
         <div className="grid gap-4 xl:grid-cols-2">
           <div className="rounded-2xl border border-[#293246] bg-[#090d14] p-3">
