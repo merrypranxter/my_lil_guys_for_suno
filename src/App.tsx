@@ -56,13 +56,17 @@ import {
   getLikedMindWeights,
   getLikedRealityWeights,
   getNoveltyPressureSignals,
+  getMouthNoveltyPressureSignals,
   getRecentMechanismSaturation,
   promoteGenomesFromRun,
+  promoteMouthGenomeFromRun,
   runToMarkdown,
   archiveToMarkdown,
 } from './lib/localStorage';
 import { AlertCircle, Archive, Download, Layers, MessageSquare, Sparkles, Star, X } from 'lucide-react';
 import type { MouthGenome, MouthPromptMode, MouthSemanticMode } from './mouthLab/types';
+import { getMouthQuirkDefinition } from './mouthLab/quirks';
+import { getMouthTrait } from './mouthLab/traits';
 
 const UI_MODULES: ModuleNavItem[] = [
   { id: 'stack', label: 'STACK', tone: 'cyan' },
@@ -126,6 +130,10 @@ export default function App() {
   const [feedbackTagsDraft, setFeedbackTagsDraft] = useState<string[]>([]);
   const [likedMechanismIdsDraft, setLikedMechanismIdsDraft] = useState<string[]>([]);
   const [dislikedMechanismIdsDraft, setDislikedMechanismIdsDraft] = useState<string[]>([]);
+  const [likedMouthTraitIdsDraft, setLikedMouthTraitIdsDraft] = useState<string[]>([]);
+  const [dislikedMouthTraitIdsDraft, setDislikedMouthTraitIdsDraft] = useState<string[]>([]);
+  const [likedMouthQuirkIdsDraft, setLikedMouthQuirkIdsDraft] = useState<string[]>([]);
+  const [dislikedMouthQuirkIdsDraft, setDislikedMouthQuirkIdsDraft] = useState<string[]>([]);
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [repairingBox, setRepairingBox] = useState<BoxType | null>(null);
@@ -336,6 +344,9 @@ export default function App() {
     handleEnergyChange(challenge.energy);
     setMusicStack(buildSiblingMusicStack(challenge.baseMusicStack, sibling.genome));
     setMusicControls(blendSiblingControls(challenge.baseMusicControls, sibling.genome.controls));
+    setMouthGenome(challenge.mouthGenome);
+    setMouthPromptMode(challenge.mouthPromptMode || 'bracketed');
+    setMouthSemanticMode(challenge.mouthSemanticMode || 'inherit');
 
     if (sibling.result && !sibling.result.error) {
       setOutputs({
@@ -439,7 +450,10 @@ export default function App() {
       ...getMusicPreferenceSignals(4),
       ...getLikedPreferenceSignals(5),
     ].slice(0, 10);
-    const noveltySignals = getNoveltyPressureSignals(8);
+    const noveltySignals = [
+      ...getNoveltyPressureSignals(8),
+      ...getMouthNoveltyPressureSignals(5),
+    ].slice(0, 12);
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 65000);
 
@@ -640,6 +654,10 @@ export default function App() {
     setFeedbackTagsDraft(currentRun.feedbackTags || []);
     setLikedMechanismIdsDraft(currentRun.likedMechanismIds || []);
     setDislikedMechanismIdsDraft(currentRun.dislikedMechanismIds || []);
+    setLikedMouthTraitIdsDraft(currentRun.likedMouthTraitIds || []);
+    setDislikedMouthTraitIdsDraft(currentRun.dislikedMouthTraitIds || []);
+    setLikedMouthQuirkIdsDraft(currentRun.likedMouthQuirkIds || []);
+    setDislikedMouthQuirkIdsDraft(currentRun.dislikedMouthQuirkIds || []);
     setFeedbackOpen(true);
   };
 
@@ -651,20 +669,25 @@ export default function App() {
       feedbackTags: feedbackTagsDraft,
       likedMechanismIds: likedMechanismIdsDraft,
       dislikedMechanismIds: dislikedMechanismIdsDraft,
+      likedMouthTraitIds: likedMouthTraitIdsDraft,
+      dislikedMouthTraitIds: dislikedMouthTraitIdsDraft,
+      likedMouthQuirkIds: likedMouthQuirkIdsDraft,
+      dislikedMouthQuirkIds: dislikedMouthQuirkIdsDraft,
     });
     if (updated) {
       setCurrentRun(updated);
       const promoted = promoteGenomesFromRun(updated);
-      if (promoted > 0) {
-        setNoticeMessage(
-          'Fitness recorded. ' + promoted + ' genome phenotype' + (promoted === 1 ? '' : 's') +
-          ' from this liked run earned durable breeding status; trait-level inherit/suppress votes will bias future crossover.'
-        );
-      } else {
-        setNoticeMessage(
-          'Fitness recorded. Trait-level inherit/suppress votes will bias future crossover; no genome phenotype was present to promote.'
-        );
-      }
+      const mouthPromoted = promoteMouthGenomeFromRun(updated);
+      const parts = [
+        'Fitness recorded.',
+        promoted > 0
+          ? promoted + ' music genome phenotype' + (promoted === 1 ? '' : 's') + ' earned durable breeding status.'
+          : 'No music genome phenotype was present to promote.',
+        mouthPromoted
+          ? 'The active Mouth Lab phenotype entered breeding stock; explicit mouth-gene votes will bias species crossover while recent-use cooldown still protects novelty.'
+          : 'No Mouth Lab phenotype was present to promote.',
+      ];
+      setNoticeMessage(parts.join(' '));
     }
     setFeedbackOpen(false);
   };
@@ -694,6 +717,24 @@ export default function App() {
 
   const currentFeedbackMechanisms = currentRun
     ? compileMusicStack(currentRun.musicStack || [], currentRun.musicControls).mechanisms.map((entry) => entry.mechanism)
+    : [];
+  const currentFeedbackMouthTraits = currentRun?.mouthGenome
+    ? Array.from(
+        new Set(currentRun.mouthGenome.assignments.flatMap((assignment) => assignment.traitIds)),
+      )
+        .map((id) => getMouthTrait(id))
+        .filter((trait): trait is NonNullable<ReturnType<typeof getMouthTrait>> => Boolean(trait))
+    : [];
+  const currentFeedbackMouthQuirks = currentRun?.mouthGenome
+    ? Array.from(
+        new Set(
+          currentRun.mouthGenome.quirks
+            .filter((quirk) => quirk.enabled)
+            .map((quirk) => quirk.quirkId),
+        ),
+      )
+        .map((id) => getMouthQuirkDefinition(id))
+        .filter((quirk): quirk is NonNullable<ReturnType<typeof getMouthQuirkDefinition>> => Boolean(quirk))
     : [];
   const mechanismSaturation = getRecentMechanismSaturation(8);
   const coolingMechanismCount = Object.values(mechanismSaturation).filter((value) => value >= 0.72).length;
@@ -877,6 +918,9 @@ export default function App() {
             energy={energy}
             musicStack={musicStack}
             musicControls={musicControls}
+            mouthGenome={mouthGenome}
+            mouthPromptMode={mouthPromptMode}
+            mouthSemanticMode={mouthSemanticMode}
             onOpenSibling={handleOpenPetriSibling}
             onStackSibling={handleStackPetriGenome}
           />
@@ -1115,7 +1159,7 @@ export default function App() {
 
       {feedbackOpen && currentRun && (
         <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-xl rounded-2xl border border-[#ff4fd8]/50 bg-[#0d1017] shadow-2xl overflow-hidden">
+          <div className="w-full max-w-xl max-h-[90vh] overflow-y-auto overscroll-contain rounded-2xl border border-[#ff4fd8]/50 bg-[#0d1017] shadow-2xl [scrollbar-width:thin]">
             <div className="flex items-start justify-between gap-4 p-5 border-b border-[#252d3b]">
               <div>
                 <h3 className="font-mono font-bold text-[#ffe680] flex items-center gap-2">
@@ -1222,6 +1266,123 @@ export default function App() {
                       );
                     })}
                   </div>
+                </div>
+              )}
+
+              {(currentFeedbackMouthTraits.length > 0 || currentFeedbackMouthQuirks.length > 0) && (
+                <div className="rounded-xl border border-[#55313f] bg-[#120c11] p-3">
+                  <div className="text-xs font-mono text-[#ff9daf] mb-1">MOUTH FITNESS — WHICH WEIRD SHIT SHOULD REPRODUCE?</div>
+                  <div className="text-[10px] font-mono text-[#7d6870] mb-3">
+                    The whole star stays weak evidence. These explicit votes affect species crossover; recent-use cooldown can still temporarily push a beloved gene aside so Mouth Lab does not become one RRRRR-shaped monoculture.
+                  </div>
+
+                  {currentFeedbackMouthTraits.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="text-[9px] font-mono font-black tracking-[0.14em] text-[#d7a7ff]">TRAITS</div>
+                      {currentFeedbackMouthTraits.map((trait) => {
+                        const liked = likedMouthTraitIdsDraft.includes(trait.id);
+                        const disliked = dislikedMouthTraitIdsDraft.includes(trait.id);
+                        return (
+                          <div key={trait.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-lg border border-[#322633] bg-[#0d0b10] px-3 py-2">
+                            <div className="min-w-0">
+                              <div className="text-[10px] font-mono font-black text-white">{trait.name}</div>
+                              <div className="text-[9px] text-[#725f72] line-clamp-1">{trait.shortExplanation}</div>
+                            </div>
+                            <div className="flex shrink-0 gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setLikedMouthTraitIdsDraft((current) =>
+                                    liked ? current.filter((id) => id !== trait.id) : [...current.filter((id) => id !== trait.id), trait.id]
+                                  );
+                                  setDislikedMouthTraitIdsDraft((current) => current.filter((id) => id !== trait.id));
+                                }}
+                                className={
+                                  'rounded border px-2 py-1 text-[9px] font-mono font-black ' +
+                                  (liked
+                                    ? 'border-[#39ff14] bg-[#102417] text-[#a7ff9f]'
+                                    : 'border-[#3a3040] bg-[#111018] text-[#7d7183] hover:text-white')
+                                }
+                              >
+                                ★ INHERIT
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setDislikedMouthTraitIdsDraft((current) =>
+                                    disliked ? current.filter((id) => id !== trait.id) : [...current.filter((id) => id !== trait.id), trait.id]
+                                  );
+                                  setLikedMouthTraitIdsDraft((current) => current.filter((id) => id !== trait.id));
+                                }}
+                                className={
+                                  'rounded border px-2 py-1 text-[9px] font-mono font-black ' +
+                                  (disliked
+                                    ? 'border-[#ef4444] bg-[#2b1216] text-[#fca5a5]'
+                                    : 'border-[#3a3040] bg-[#111018] text-[#7d7183] hover:text-white')
+                                }
+                              >
+                                ✕ SUPPRESS
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {currentFeedbackMouthQuirks.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      <div className="text-[9px] font-mono font-black tracking-[0.14em] text-[#ff9daf]">QUIRKS</div>
+                      {currentFeedbackMouthQuirks.map((quirk) => {
+                        const liked = likedMouthQuirkIdsDraft.includes(quirk.id);
+                        const disliked = dislikedMouthQuirkIdsDraft.includes(quirk.id);
+                        return (
+                          <div key={quirk.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-lg border border-[#3a2630] bg-[#100b0e] px-3 py-2">
+                            <div className="min-w-0">
+                              <div className="text-[10px] font-mono font-black text-white">{quirk.name}</div>
+                              <div className="text-[9px] text-[#765f68] line-clamp-1">{quirk.shortExplanation}</div>
+                            </div>
+                            <div className="flex shrink-0 gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setLikedMouthQuirkIdsDraft((current) =>
+                                    liked ? current.filter((id) => id !== quirk.id) : [...current.filter((id) => id !== quirk.id), quirk.id]
+                                  );
+                                  setDislikedMouthQuirkIdsDraft((current) => current.filter((id) => id !== quirk.id));
+                                }}
+                                className={
+                                  'rounded border px-2 py-1 text-[9px] font-mono font-black ' +
+                                  (liked
+                                    ? 'border-[#39ff14] bg-[#102417] text-[#a7ff9f]'
+                                    : 'border-[#3a3040] bg-[#111018] text-[#7d7183] hover:text-white')
+                                }
+                              >
+                                ★ INHERIT
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setDislikedMouthQuirkIdsDraft((current) =>
+                                    disliked ? current.filter((id) => id !== quirk.id) : [...current.filter((id) => id !== quirk.id), quirk.id]
+                                  );
+                                  setLikedMouthQuirkIdsDraft((current) => current.filter((id) => id !== quirk.id));
+                                }}
+                                className={
+                                  'rounded border px-2 py-1 text-[9px] font-mono font-black ' +
+                                  (disliked
+                                    ? 'border-[#ef4444] bg-[#2b1216] text-[#fca5a5]'
+                                    : 'border-[#3a3040] bg-[#111018] text-[#7d7183] hover:text-white')
+                                }
+                              >
+                                ✕ SUPPRESS
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
 

@@ -10,6 +10,7 @@ import {
 } from '../types';
 import { normalizeMusicControls, normalizeMusicGenome, normalizeMusicStack } from '../data/musicSeedSystem';
 import { breedMusicGenome, genomeToStackItem, MusicBreedingParent } from './musicBreeding';
+import { normalizeMouthGenomeForGeneration } from '../mouthLab/promptCompiler';
 
 function clampInt(value: unknown, min: number, max: number, fallback: number): number {
   const n = Number(value);
@@ -174,6 +175,15 @@ export function normalizePetriDishChallenge(value: any): PetriDishChallenge {
     recentFingerprints: recentFingerprints as PetriDishChallenge['recentFingerprints'],
     forcedFingerprint,
     likedSignals,
+    mouthGenome: normalizeMouthGenomeForGeneration(value?.mouthGenome),
+    mouthPromptMode:
+      value?.mouthPromptMode === 'compact' || value?.mouthPromptMode === 'descriptive'
+        ? value.mouthPromptMode
+        : 'bracketed',
+    mouthSemanticMode:
+      value?.mouthSemanticMode === 'englishMeaningAlienMouth'
+        ? 'englishMeaningAlienMouth'
+        : 'inherit',
   };
 }
 

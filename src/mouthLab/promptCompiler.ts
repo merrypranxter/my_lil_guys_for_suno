@@ -245,6 +245,86 @@ export function normalizeMouthGenomeForGeneration(value: unknown): MouthGenome |
     mutationScars: mutationScars as MouthGenome['mutationScars'],
     linkedGeneBundles: linkedGeneBundles as MouthGenome['linkedGeneBundles'],
     dynamics: normalizeMouthDynamics(raw.dynamics),
+    lineage:
+      raw.lineage && typeof raw.lineage === 'object'
+        ? {
+            parentGenomeIds: Array.from(
+              new Set<string>(
+                (Array.isArray(raw.lineage.parentGenomeIds) ? raw.lineage.parentGenomeIds : [])
+                  .map((id: unknown) => cleanText(id, 180))
+                  .filter(Boolean),
+              ),
+            ).slice(0, 6),
+            parentNames: (Array.isArray(raw.lineage.parentNames) ? raw.lineage.parentNames : [])
+              .map((name: unknown) => cleanText(name, 180))
+              .filter(Boolean)
+              .slice(0, 6),
+            generation: Math.max(0, Math.min(99, Math.round(Number(raw.lineage.generation) || 0))),
+            breedingSeed: cleanText(raw.lineage.breedingSeed, 240),
+            inheritedTraitIdsByParent:
+              raw.lineage.inheritedTraitIdsByParent && typeof raw.lineage.inheritedTraitIdsByParent === 'object'
+                ? Object.fromEntries(
+                    Object.entries(raw.lineage.inheritedTraitIdsByParent as Record<string, unknown>)
+                      .slice(0, 6)
+                      .map(([parentId, ids]) => [
+                        cleanText(parentId, 180),
+                        Array.from(
+                          new Set<string>(
+                            (Array.isArray(ids) ? ids : [])
+                              .map((id: unknown) => String(id))
+                              .filter((id: string) => Boolean(getMouthTrait(id))),
+                          ),
+                        ).slice(0, 16),
+                      ]),
+                  )
+                : {},
+            inheritedQuirkIdsByParent:
+              raw.lineage.inheritedQuirkIdsByParent && typeof raw.lineage.inheritedQuirkIdsByParent === 'object'
+                ? Object.fromEntries(
+                    Object.entries(raw.lineage.inheritedQuirkIdsByParent as Record<string, unknown>)
+                      .slice(0, 6)
+                      .map(([parentId, ids]) => [
+                        cleanText(parentId, 180),
+                        Array.from(
+                          new Set<string>(
+                            (Array.isArray(ids) ? ids : [])
+                              .map((id: unknown) => String(id))
+                              .filter((id: string) => Boolean(getMouthQuirkDefinition(id))),
+                          ),
+                        ).slice(0, 16),
+                      ]),
+                  )
+                : {},
+            specimenIds: Array.from(
+              new Set<string>(
+                (Array.isArray(raw.lineage.specimenIds) ? raw.lineage.specimenIds : [])
+                  .map((id: unknown) => cleanText(id, 180))
+                  .filter(Boolean),
+              ),
+            ).slice(0, 16),
+            mutationTraitIds: Array.from(
+              new Set<string>(
+                (Array.isArray(raw.lineage.mutationTraitIds) ? raw.lineage.mutationTraitIds : [])
+                  .map((id: unknown) => String(id))
+                  .filter((id: string) => Boolean(getMouthTrait(id))),
+              ),
+            ).slice(0, 16),
+            mutationQuirkIds: Array.from(
+              new Set<string>(
+                (Array.isArray(raw.lineage.mutationQuirkIds) ? raw.lineage.mutationQuirkIds : [])
+                  .map((id: unknown) => String(id))
+                  .filter((id: string) => Boolean(getMouthQuirkDefinition(id))),
+              ),
+            ).slice(0, 16),
+            noveltyPenaltyTraitIds: Array.from(
+              new Set<string>(
+                (Array.isArray(raw.lineage.noveltyPenaltyTraitIds) ? raw.lineage.noveltyPenaltyTraitIds : [])
+                  .map((id: unknown) => String(id))
+                  .filter((id: string) => Boolean(getMouthTrait(id))),
+              ),
+            ).slice(0, 16),
+          }
+        : undefined,
     createdAt: Number.isFinite(raw.createdAt) ? Number(raw.createdAt) : Date.now(),
   };
 }

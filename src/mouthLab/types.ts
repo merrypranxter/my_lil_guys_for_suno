@@ -144,6 +144,55 @@ export interface MouthDynamics {
 }
 
 
+export interface MouthSpeciesLineage {
+  parentGenomeIds: string[];
+  parentNames: string[];
+  generation: number;
+  breedingSeed: string;
+  inheritedTraitIdsByParent: Record<string, string[]>;
+  inheritedQuirkIdsByParent: Record<string, string[]>;
+  specimenIds: string[];
+  mutationTraitIds: string[];
+  mutationQuirkIds: string[];
+  noveltyPenaltyTraitIds: string[];
+}
+
+export interface MouthFitnessRecord {
+  phenotypeSignature: string;
+  genomeIds: string[];
+  approved: boolean;
+  approvalCount: number;
+  likedTraitIds: string[];
+  dislikedTraitIds: string[];
+  likedQuirkIds: string[];
+  dislikedQuirkIds: string[];
+  sourceRunIds: string[];
+  note: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface MouthEvolutionRequest {
+  parentA: MouthGenome;
+  parentB: MouthGenome;
+  breedingSeed: string;
+  requestedName?: string;
+  specimenAssist?: MouthSpecimen[];
+  fitnessRecords?: MouthFitnessRecord[];
+  recentGenomes?: MouthGenome[];
+  mutationChance?: number;
+  preserveDynamicsChance?: number;
+}
+
+export interface MouthEvolutionResult {
+  genome: MouthGenome;
+  phenotype: MouthPhenotype;
+  lineage: MouthSpeciesLineage;
+  warnings: string[];
+  noveltyPenalties: string[];
+}
+
+
 export type MouthPromptMode = 'compact' | 'bracketed' | 'descriptive';
 
 export type MouthSemanticMode = 'inherit' | 'englishMeaningAlienMouth';
@@ -368,6 +417,7 @@ export interface MouthGenome {
   mutationScars: MouthMutationScar[];
   linkedGeneBundles: MouthLinkedGeneBundle[];
   dynamics?: MouthDynamics;
+  lineage?: MouthSpeciesLineage;
   createdAt: number;
 }
 

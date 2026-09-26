@@ -27,6 +27,7 @@ import {
   RealityChaosLevel,
 } from '../types';
 import { MUSIC_SEED_RECIPES, normalizeMusicControls } from '../data/musicSeedSystem';
+import type { MouthGenome, MouthPromptMode, MouthSemanticMode } from '../mouthLab/types';
 import { chooseDiverseFingerprint } from '../data/musicTaxonomy';
 import {
   breedMusicGenome,
@@ -67,6 +68,9 @@ interface PetriDishPanelProps {
   energy: number;
   musicStack: MusicStackItem[];
   musicControls: MusicControls;
+  mouthGenome?: MouthGenome;
+  mouthPromptMode: MouthPromptMode;
+  mouthSemanticMode: MouthSemanticMode;
   onOpenSibling: (experiment: PetriDishExperiment, sibling: PetriDishSibling) => void;
   onStackSibling: (genome: MusicBredGenome) => void;
 }
@@ -131,6 +135,9 @@ export function PetriDishPanel({
   energy,
   musicStack,
   musicControls,
+  mouthGenome,
+  mouthPromptMode,
+  mouthSemanticMode,
   onOpenSibling,
   onStackSibling,
 }: PetriDishPanelProps) {
@@ -219,6 +226,9 @@ export function PetriDishPanel({
         recentFingerprints: frozenRecentFingerprints,
         forcedFingerprint: frozenFingerprint,
         likedSignals: challengeLikedSignals,
+        mouthGenome,
+        mouthPromptMode,
+        mouthSemanticMode,
       },
     });
 
@@ -282,6 +292,9 @@ export function PetriDishPanel({
           energy: activeDish.challenge.energy,
           recentFingerprints: activeDish.challenge.recentFingerprints,
           forcedFingerprint: activeDish.challenge.forcedFingerprint,
+          mouthGenome: activeDish.challenge.mouthGenome,
+          mouthPromptMode: activeDish.challenge.mouthPromptMode,
+          mouthSemanticMode: activeDish.challenge.mouthSemanticMode,
         });
         next = updateDishSiblingResult(next, sibling.id, resultFromProcedural(output));
         commitDish(next);
@@ -343,6 +356,9 @@ export function PetriDishPanel({
               recentFingerprints: activeDish.challenge.recentFingerprints,
               forcedFingerprint: activeDish.challenge.forcedFingerprint,
               likedSignals: activeDish.challenge.likedSignals,
+              mouthGenome: activeDish.challenge.mouthGenome,
+              mouthPromptMode: activeDish.challenge.mouthPromptMode,
+              mouthSemanticMode: activeDish.challenge.mouthSemanticMode,
             }),
           });
           const raw = await response.text();
@@ -670,7 +686,7 @@ export function PetriDishPanel({
                       {activeDish.parentA.ref.name} × {activeDish.parentB.ref.name} • family seed {activeDish.familySeed}
                     </div>
                     <div className="mt-1 text-[10px] font-mono text-[#687b70]">
-                      Challenge: {activeDish.challenge.guyIds.length} Minds • {activeDish.challenge.realityEngineIds.length} Reality • {activeDish.challenge.compositionEngineIds.length} Composition • {activeDish.challenge.baseMusicStack.length} manual music mechanisms • energy {activeDish.challenge.energy} • seed “{activeDish.challenge.seed || '(blank)'}”
+                      Challenge: {activeDish.challenge.guyIds.length} Minds • {activeDish.challenge.realityEngineIds.length} Reality • {activeDish.challenge.compositionEngineIds.length} Composition • {activeDish.challenge.baseMusicStack.length} manual music mechanisms • {activeDish.challenge.mouthGenome ? 'Mouth Lab frozen: ' + activeDish.challenge.mouthGenome.name : 'no Mouth Lab'} • energy {activeDish.challenge.energy} • seed “{activeDish.challenge.seed || '(blank)'}”
                     </div>
                     <div className="mt-1 text-[10px] font-mono text-[#7d9185]">
                       Frozen musical fingerprint: {activeDish.challenge.forcedFingerprint.genreFamily} • {activeDish.challenge.forcedFingerprint.rhythm} • {activeDish.challenge.forcedFingerprint.vocal}
