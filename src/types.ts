@@ -1,4 +1,4 @@
-import type { MouthFitnessRecord, MouthGenome, MouthPromptMode, MouthSemanticMode } from './mouthLab/types';
+import type { MouthGenome, MouthPromptMode, MouthSemanticMode } from './mouthLab/types';
 
 export interface LittleGuy {
   id: string;
