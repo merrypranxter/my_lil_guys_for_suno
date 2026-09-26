@@ -18,6 +18,8 @@ export type StarterSeedJurisdiction =
   | 'vocalBehavior'
   | 'socialBehavior'
   | 'form'
+  | 'arrangement'
+  | 'performance'
   | 'timbre'
   | 'production'
   | 'temporalPerception'
