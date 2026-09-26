@@ -50,7 +50,7 @@ export function createStarterSeedStackItem(seedId: string): StarterSeedStackItem
     seedId,
     intensity: seed.defaultIntensity,
     muted: false,
-    locked: seed.category === 'worldPackage',
+    locked: false,
   };
 }
 
@@ -137,7 +137,7 @@ export function applyStarterSeedStackToLab(
     })),
   ];
 
-  const musicControls: MusicControls = { ...current.musicControls };
+  const musicControls: MusicControls = { ...DEFAULT_MUSIC_CONTROLS };
   (Object.keys(compiled.musicControlDeltas) as Array<keyof MusicControls>).forEach((key) => {
     const delta = compiled.musicControlDeltas[key];
     if (typeof delta !== 'number') return;
