@@ -18,6 +18,8 @@ import { getCompositionEngine, normalizeCompositionEngineIds } from '../data/com
 import { DEFAULT_MUSIC_CONTROLS, compileMusicStack, getMusicMechanism, musicGenomePhenotypeSignature, normalizeMusicControls, normalizeMusicGenome, normalizeMusicStack, summarizeMusicStack } from '../data/musicSeedSystem';
 import { normalizePetriDishExperiment } from './petriDish';
 import { applySuccessSaturation, buildMechanismNoveltySignals, buildSemanticNoveltySignals, mechanismSaturationMap } from './noveltyPressure';
+import { STARTER_SEEDS } from '../starterSeeds/library';
+import { normalizeStarterSeedStack } from '../starterSeeds/runtime';
 
 const STORAGE_KEYS = {
   SAVED_STACKS: 'lgm_saved_stacks_v1',
@@ -57,6 +59,7 @@ export function getSavedStacks(): SavedStack[] {
       compositionEngineIds: Array.isArray(stack?.compositionEngineIds) ? stack.compositionEngineIds : [],
       musicStack: normalizeMusicStack(stack?.musicStack),
       musicControls: normalizeMusicControls(stack?.musicControls),
+      starterSeedStack: normalizeStarterSeedStack(stack?.starterSeedStack),
       mouthGenome: normalizeMouthGenomeForGeneration(stack?.mouthGenome),
       mouthPromptMode:
         stack?.mouthPromptMode === 'compact' || stack?.mouthPromptMode === 'descriptive'
@@ -83,7 +86,8 @@ export function saveStackToFavorites(
   musicControls: MusicControls = DEFAULT_MUSIC_CONTROLS,
   mouthGenome?: MouthGenome,
   mouthPromptMode: MouthPromptMode = 'bracketed',
-  mouthSemanticMode: MouthSemanticMode = 'inherit'
+  mouthSemanticMode: MouthSemanticMode = 'inherit',
+  starterSeedStack: any[] = []
 ): SavedStack[] {
   try {
     const current = getSavedStacks();
@@ -95,6 +99,7 @@ export function saveStackToFavorites(
       compositionEngineIds,
       musicStack: normalizeMusicStack(musicStack),
       musicControls: normalizeMusicControls(musicControls),
+      starterSeedStack: normalizeStarterSeedStack(starterSeedStack),
       realityChaos,
       mouthGenome: normalizeMouthGenomeForGeneration(mouthGenome),
       mouthPromptMode,
@@ -298,6 +303,30 @@ function validMouthQuirkIds(value: unknown): string[] {
         .filter((id: string) => Boolean(getMouthQuirkDefinition(id))),
     ),
   ).slice(0, 40);
+}
+
+function validStarterSeedIds(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  const known = new Set(STARTER_SEEDS.map((seed) => seed.id));
+  return Array.from(
+    new Set<string>(
+      value.filter((item: unknown): item is string => typeof item === 'string' && known.has(item))
+    )
+  ).slice(0, 40);
+}
+
+function summarizeStarterSeedStack(value: unknown): string {
+  const stack = normalizeStarterSeedStack(value);
+  if (!stack.length) return '(none)';
+  return stack
+    .filter((item) => !item.muted)
+    .map((item) => {
+      const seed = STARTER_SEEDS.find((candidate) => candidate.id === item.seedId);
+      return (seed?.name || item.seedId) + ' ' + item.intensity + '/100' +
+        (item.locked ? ' LOCKED' : '') +
+        (item.eventBridgeEnabled === false ? ' EVENTS→MUSIC OFF' : '');
+    })
+    .join(' > ') || '(none)';
 }
 
 function validMechanismIds(value: unknown): string[] {
@@ -1039,6 +1068,7 @@ export function getRunArchive(): ArchivedRun[] {
       compositionEngineIds: Array.isArray(run?.compositionEngineIds) ? run.compositionEngineIds : [],
       musicStack: normalizeMusicStack(run?.musicStack),
       musicControls: normalizeMusicControls(run?.musicControls),
+      starterSeedStack: normalizeStarterSeedStack(run?.starterSeedStack),
       mouthGenome: normalizeMouthGenomeForGeneration(run?.mouthGenome),
       mouthPromptMode:
         run?.mouthPromptMode === 'compact' || run?.mouthPromptMode === 'descriptive'
@@ -1049,6 +1079,8 @@ export function getRunArchive(): ArchivedRun[] {
           ? 'englishMeaningAlienMouth'
           : 'inherit',
       feedbackTags: Array.isArray(run?.feedbackTags) ? run.feedbackTags.filter((tag: unknown) => typeof tag === 'string') : [],
+      likedStarterSeedIds: validStarterSeedIds(run?.likedStarterSeedIds),
+      dislikedStarterSeedIds: validStarterSeedIds(run?.dislikedStarterSeedIds),
       likedMechanismIds: validMechanismIds(run?.likedMechanismIds),
       dislikedMechanismIds: validMechanismIds(run?.dislikedMechanismIds),
       likedMouthTraitIds: validMouthTraitIds(run?.likedMouthTraitIds),
@@ -1121,9 +1153,59 @@ export function getLikedPreferenceSignals(limit = 10): string[] {
       const reality = run.realityEngineIds.length ? run.realityEngineIds.join(' > ') : '(none)';
       const composition = run.compositionEngineIds.length ? run.compositionEngineIds.join(' > ') : '(none)';
       const music = summarizeMusicStack(run.musicStack || [], run.musicControls);
+      const starter = summarizeStarterSeedStack(run.starterSeedStack);
       const tags = run.feedbackTags?.length ? ' Feedback tags: ' + run.feedbackTags.join(', ') + '.' : '';
-      const context = 'stack=' + run.guyIds.join(' > ') + ' | reality=' + reality + ' | composition=' + composition + ' | music=' + music + ' | realityChaos=' + (run.realityChaos || 2) + ' | seed=' + (run.seed || '(none)') + ' | ';
+      const context = 'stack=' + run.guyIds.join(' > ') + ' | starter=' + starter + ' | reality=' + reality + ' | composition=' + composition + ' | music=' + music + ' | realityChaos=' + (run.realityChaos || 2) + ' | seed=' + (run.seed || '(none)') + ' | ';
       return 'POSITIVE EXAMPLE — ' + context + fingerprint + '.' + tags + note;
+    });
+}
+
+export function getStarterSeedPreferenceWeights(limit = 60): Record<string, number> {
+  const scores: Record<string, number> = {};
+  const starred = getRunArchive().filter((run) => run.starred).slice(0, limit);
+
+  for (const run of starred) {
+    const active = normalizeStarterSeedStack(run.starterSeedStack)
+      .filter((item) => !item.muted)
+      .map((item) => item.seedId);
+    const liked = validStarterSeedIds(run.likedStarterSeedIds).filter((id) => active.includes(id));
+    const disliked = validStarterSeedIds(run.dislikedStarterSeedIds).filter((id) => active.includes(id));
+    const explicit = liked.length > 0 || disliked.length > 0;
+
+    if (explicit) {
+      for (const id of liked) scores[id] = (scores[id] || 0) + 2;
+      for (const id of disliked) scores[id] = (scores[id] || 0) - 2.5;
+      continue;
+    }
+
+    // A star with no starter-specific vote is only weak evidence that the
+    // active starter recipe contributed to the success.
+    for (const id of active) scores[id] = (scores[id] || 0) + 0.2;
+  }
+
+  const maxAbs = Math.max(0, ...Object.values(scores).map((value) => Math.abs(value)));
+  if (maxAbs <= 0) return scores;
+  for (const id of Object.keys(scores)) {
+    scores[id] = Math.round((scores[id] / maxAbs) * 100) / 100;
+  }
+  return scores;
+}
+
+export function getStarterPreferenceSignals(limit = 8): string[] {
+  return getRunArchive()
+    .filter((run) => run.starred && normalizeStarterSeedStack(run.starterSeedStack).length > 0)
+    .slice(0, limit)
+    .map((run) => {
+      const starter = summarizeStarterSeedStack(run.starterSeedStack);
+      const liked = validStarterSeedIds(run.likedStarterSeedIds);
+      const disliked = validStarterSeedIds(run.dislikedStarterSeedIds);
+      const likedLabels = liked.map((id) => STARTER_SEEDS.find((seed) => seed.id === id)?.name || id);
+      const dislikedLabels = disliked.map((id) => STARTER_SEEDS.find((seed) => seed.id === id)?.name || id);
+      const explicit =
+        (likedLabels.length ? ' Explicitly liked starter seeds: ' + likedLabels.join(', ') + '.' : '') +
+        (dislikedLabels.length ? ' Explicitly suppress these starter seeds: ' + dislikedLabels.join(', ') + '.' : '');
+      const note = run.feedback.trim() ? ' User note: ' + run.feedback.trim() : '';
+      return 'STARTER STACK FITNESS SIGNAL — ' + starter + '.' + explicit + note;
     });
 }
 
@@ -1275,6 +1357,7 @@ export function runToMarkdown(run: ArchivedRun): string {
     '**Reality engines:** ' + (run.realityEngineIds.length ? run.realityEngineIds.join(' → ') : '(none)'),
     '**Reality chaos:** ' + (run.realityChaos || 2),
     '**Composition engines:** ' + (run.compositionEngineIds.length ? run.compositionEngineIds.join(' → ') : '(none)'),
+    '**Starter seed stack:** ' + summarizeStarterSeedStack(run.starterSeedStack),
     '**Music seed stack:** ' + summarizeMusicStack(run.musicStack || [], run.musicControls),
     '**Mouth Lab genome:** ' + (run.mouthGenome
       ? run.mouthGenome.name + ' [' + run.mouthGenome.parentDonorIds.join(' × ') + ']'
@@ -1287,6 +1370,8 @@ export function runToMarkdown(run: ArchivedRun): string {
     '**Starred:** ' + (run.starred ? 'YES ★' : 'No'),
     '**Feedback:** ' + feedback,
     '**Feedback tags:** ' + (run.feedbackTags?.length ? run.feedbackTags.join(', ') : 'None'),
+    '**Liked starter seeds:** ' + (run.likedStarterSeedIds?.length ? run.likedStarterSeedIds.join(', ') : 'None'),
+    '**Suppress starter seeds:** ' + (run.dislikedStarterSeedIds?.length ? run.dislikedStarterSeedIds.join(', ') : 'None'),
     '**Breed-positive mechanisms:** ' + (run.likedMechanismIds?.length ? run.likedMechanismIds.join(', ') : 'None'),
     '**Suppress-inheritance mechanisms:** ' + (run.dislikedMechanismIds?.length ? run.dislikedMechanismIds.join(', ') : 'None'),
     '**Breed-positive mouth traits:** ' + (run.likedMouthTraitIds?.length ? run.likedMouthTraitIds.join(', ') : 'None'),

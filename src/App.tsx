@@ -56,6 +56,8 @@ import {
   getLikedMusicMechanismWeights,
   getLikedMindWeights,
   getLikedRealityWeights,
+  getStarterSeedPreferenceWeights,
+  getStarterPreferenceSignals,
   getNoveltyPressureSignals,
   getMouthNoveltyPressureSignals,
   getRecentMechanismSaturation,
@@ -69,6 +71,7 @@ import type { MouthGenome, MouthPromptMode, MouthSemanticMode } from './mouthLab
 import { getMouthQuirkDefinition } from './mouthLab/quirks';
 import { getMouthTrait } from './mouthLab/traits';
 import type { StarterSeedStackItem } from './starterSeeds/types';
+import { STARTER_SEEDS } from './starterSeeds/library';
 import { applyStarterSeedStackToLab, getLastStarterSeedStack, setLastStarterSeedStack } from './starterSeeds/runtime';
 
 const UI_MODULES: ModuleNavItem[] = [
@@ -133,6 +136,8 @@ export default function App() {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedbackDraft, setFeedbackDraft] = useState('');
   const [feedbackTagsDraft, setFeedbackTagsDraft] = useState<string[]>([]);
+  const [likedStarterSeedIdsDraft, setLikedStarterSeedIdsDraft] = useState<string[]>([]);
+  const [dislikedStarterSeedIdsDraft, setDislikedStarterSeedIdsDraft] = useState<string[]>([]);
   const [likedMechanismIdsDraft, setLikedMechanismIdsDraft] = useState<string[]>([]);
   const [dislikedMechanismIdsDraft, setDislikedMechanismIdsDraft] = useState<string[]>([]);
   const [likedMouthTraitIdsDraft, setLikedMouthTraitIdsDraft] = useState<string[]>([]);
@@ -346,7 +351,8 @@ export default function App() {
         musicControls,
         mouthGenome,
         mouthPromptMode,
-        mouthSemanticMode
+        mouthSemanticMode,
+        starterSeedStack
       )
     );
   };
@@ -356,6 +362,7 @@ export default function App() {
     setRealityEngineIds(saved.realityEngineIds || []);
     setCompositionEngineIds(saved.compositionEngineIds || []);
     setMusicStack(saved.musicStack || []);
+    setStarterSeedStack((saved.starterSeedStack || []) as StarterSeedStackItem[]);
     if (saved.musicControls) setMusicControls(saved.musicControls);
     if (saved.realityChaos) setRealityChaos(saved.realityChaos);
     setMouthGenome(saved.mouthGenome);
@@ -437,6 +444,7 @@ export default function App() {
       compositionEngineIds: [...compositionEngineIds],
       musicStack: [...musicStack],
       musicControls: { ...musicControls },
+      starterSeedStack: starterSeedStack.map((item) => ({ ...item })),
       realityChaos,
       mouthGenome,
       mouthPromptMode,
@@ -480,10 +488,11 @@ export default function App() {
 
     const recentFingerprints = getRecentFingerprints(12);
     const likedSignals = [
-      ...getCompositionFavoriteSignals(4),
-      ...getMusicPreferenceSignals(4),
-      ...getLikedPreferenceSignals(5),
-    ].slice(0, 10);
+      ...getCompositionFavoriteSignals(3),
+      ...getStarterPreferenceSignals(3),
+      ...getMusicPreferenceSignals(3),
+      ...getLikedPreferenceSignals(4),
+    ].slice(0, 12);
     const noveltySignals = [
       ...getNoveltyPressureSignals(8),
       ...getMouthNoveltyPressureSignals(5),
@@ -688,6 +697,8 @@ export default function App() {
     if (!currentRun) return;
     setFeedbackDraft(currentRun.feedback || '');
     setFeedbackTagsDraft(currentRun.feedbackTags || []);
+    setLikedStarterSeedIdsDraft(currentRun.likedStarterSeedIds || []);
+    setDislikedStarterSeedIdsDraft(currentRun.dislikedStarterSeedIds || []);
     setLikedMechanismIdsDraft(currentRun.likedMechanismIds || []);
     setDislikedMechanismIdsDraft(currentRun.dislikedMechanismIds || []);
     setLikedMouthTraitIdsDraft(currentRun.likedMouthTraitIds || []);
@@ -703,6 +714,8 @@ export default function App() {
       starred: true,
       feedback: feedbackDraft.trim(),
       feedbackTags: feedbackTagsDraft,
+      likedStarterSeedIds: likedStarterSeedIdsDraft,
+      dislikedStarterSeedIds: dislikedStarterSeedIdsDraft,
       likedMechanismIds: likedMechanismIdsDraft,
       dislikedMechanismIds: dislikedMechanismIdsDraft,
       likedMouthTraitIds: likedMouthTraitIdsDraft,
@@ -751,9 +764,16 @@ export default function App() {
     .map((id) => LITTLE_GUYS.find((g) => g.id === id))
     .filter((g): g is LittleGuy => Boolean(g));
 
+  const currentFeedbackStarterSeeds = currentRun
+    ? (currentRun.starterSeedStack || [])
+        .filter((item) => !item.muted)
+        .map((item) => STARTER_SEEDS.find((seed) => seed.id === item.seedId))
+        .filter((seed): seed is NonNullable<typeof seed> => Boolean(seed))
+    : [];
   const currentFeedbackMechanisms = currentRun
     ? compileMusicStack(currentRun.musicStack || [], currentRun.musicControls).mechanisms.map((entry) => entry.mechanism)
     : [];
+  const starterPreferenceWeights = getStarterSeedPreferenceWeights();
   const currentFeedbackMouthTraits = currentRun?.mouthGenome
     ? Array.from(
         new Set(currentRun.mouthGenome.assignments.flatMap((assignment) => assignment.traitIds)),
@@ -910,6 +930,7 @@ export default function App() {
             stack={starterSeedStack}
             onChange={setStarterSeedStack}
             onBuild={handleBuildStarterStack}
+            preferenceWeights={starterPreferenceWeights}
           />
         </ModuleSection>
 
@@ -1220,7 +1241,7 @@ export default function App() {
                   TEACH THE LITTLE BASTARD
                 </h3>
                 <p className="mt-1 text-xs font-mono text-[#8d99aa]">
-                  Tell it what worked — and what should NOT inherit. A star is weak whole-run evidence; explicit trait votes control reproductive pressure.
+                  Tell it what worked — and what should NOT inherit. A star is weak whole-run evidence; explicit votes teach starter rerolls, music breeding, and Mouth Lab which parts actually earned the love.
                 </p>
               </div>
               <button
@@ -1262,6 +1283,65 @@ export default function App() {
                   Tags describe the overall result. The gene controls below decide what should actually reproduce.
                 </p>
               </div>
+
+              {currentFeedbackStarterSeeds.length > 0 && (
+                <div className="rounded-xl border border-[#38515b] bg-[#081116] p-3">
+                  <div className="text-xs font-mono text-[#8ff8ff] mb-1">STARTER FITNESS — WHAT PART OF THE STARTING STATE WORKED?</div>
+                  <div className="text-[10px] font-mono text-[#66838b] mb-3">
+                    Explicit votes softly bias future category rerolls. They never auto-select, ban, or override a manual choice. No vote means the whole-song star counts only as weak evidence.
+                  </div>
+                  <div className="space-y-2">
+                    {currentFeedbackStarterSeeds.map((starter) => {
+                      const liked = likedStarterSeedIdsDraft.includes(starter.id);
+                      const disliked = dislikedStarterSeedIdsDraft.includes(starter.id);
+                      return (
+                        <div key={starter.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-lg border border-[#17313a] bg-[#0a1015] px-3 py-2">
+                          <div className="min-w-0">
+                            <div className="text-[10px] font-mono font-black text-white">{starter.name}</div>
+                            <div className="text-[9px] text-[#5f7c84] line-clamp-2">{starter.description}</div>
+                          </div>
+                          <div className="flex shrink-0 gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setLikedStarterSeedIdsDraft((current) =>
+                                  liked ? current.filter((id) => id !== starter.id) : [...current.filter((id) => id !== starter.id), starter.id]
+                                );
+                                setDislikedStarterSeedIdsDraft((current) => current.filter((id) => id !== starter.id));
+                              }}
+                              className={
+                                'rounded border px-2 py-1 text-[9px] font-mono font-black ' +
+                                (liked
+                                  ? 'border-[#39ff14] bg-[#102417] text-[#a7ff9f]'
+                                  : 'border-[#334155] bg-[#111827] text-[#7d8ba1] hover:text-white')
+                              }
+                            >
+                              ★ MORE LIKE THIS
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setDislikedStarterSeedIdsDraft((current) =>
+                                  disliked ? current.filter((id) => id !== starter.id) : [...current.filter((id) => id !== starter.id), starter.id]
+                                );
+                                setLikedStarterSeedIdsDraft((current) => current.filter((id) => id !== starter.id));
+                              }}
+                              className={
+                                'rounded border px-2 py-1 text-[9px] font-mono font-black ' +
+                                (disliked
+                                  ? 'border-[#ef4444] bg-[#2b1216] text-[#fca5a5]'
+                                  : 'border-[#334155] bg-[#111827] text-[#7d8ba1] hover:text-white')
+                              }
+                            >
+                              ✕ LESS OF THIS
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
 
               {currentFeedbackMechanisms.length > 0 && (
                 <div className="rounded-xl border border-[#3f3546] bg-[#0a0b10] p-3">
