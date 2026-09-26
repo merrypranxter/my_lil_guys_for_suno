@@ -5,6 +5,7 @@ import { COMPOSITION_DIMENSION_JURISDICTIONS, COMPOSITION_DIMENSION_LABELS, getC
 import { compileMusicStack, musicControlsToDirectives } from '../data/musicSeedSystem';
 import { BoxType, CompositionEngine, LittleGuy, MusicControls, MusicFingerprint, MusicStackItem, RealityChaosLevel, RealityEngine } from '../types';
 import type { MouthGenome, MouthPromptMode, MouthSemanticMode } from '../mouthLab/types';
+import type { StarterSeedStackItem } from '../starterSeeds/types';
 import { compileMouthPrompt, normalizeMouthGenomeForGeneration } from '../mouthLab/promptCompiler';
 import { REALITY_CHAOS_LABELS, analyzeRealityChemistry } from './realityChemistry';
 
@@ -14,6 +15,7 @@ export interface ProceduralTrackParams {
   compositionEngineIds?: string[];
   musicStack?: MusicStackItem[];
   musicControls?: MusicControls;
+  starterSeedStack?: StarterSeedStackItem[];
   realityChaos?: RealityChaosLevel;
   seed?: string;
   energy: number;
