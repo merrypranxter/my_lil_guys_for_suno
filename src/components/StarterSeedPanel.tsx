@@ -31,9 +31,10 @@ interface StarterSeedPanelProps {
   stack: StarterSeedStackItem[];
   onChange: (stack: StarterSeedStackItem[]) => void;
   onBuild: () => void;
+  preferenceWeights?: Record<string, number>;
 }
 
-export function StarterSeedPanel({ stack, onChange, onBuild }: StarterSeedPanelProps) {
+export function StarterSeedPanel({ stack, onChange, onBuild, preferenceWeights = {} }: StarterSeedPanelProps) {
   const [category, setCategory] = useState<StarterSeedCategory>('affect');
   const compiled = useMemo(() => compileStarterSeedStackV2(STARTER_SEEDS, stack), [stack]);
   const eventBridge = useMemo(() => compileStarterEventBridge(compiled, stack), [compiled, stack]);
@@ -69,7 +70,25 @@ export function StarterSeedPanel({ stack, onChange, onBuild }: StarterSeedPanelP
     const candidates = visible.filter((seed) => !activeIds.has(seed.id));
     const pool = candidates.length ? candidates : visible;
     if (!pool.length) return;
-    const pick = pool[Math.floor(Math.random() * pool.length)];
+
+    // Learned preference is a soft nudge, never a command. Positive feedback
+    // raises reroll probability; negative feedback lowers it without banning
+    // the seed. Manual clicks always remain fully sovereign.
+    const weighted = pool.map((seed) => {
+      const learned = preferenceWeights[seed.id] || 0;
+      const weight = learned >= 0 ? 1 + learned * 1.5 : Math.max(0.25, 1 + learned * 0.65);
+      return { seed, weight };
+    });
+    const total = weighted.reduce((sum, item) => sum + item.weight, 0);
+    let cursor = Math.random() * total;
+    let pick = weighted[weighted.length - 1].seed;
+    for (const item of weighted) {
+      cursor -= item.weight;
+      if (cursor <= 0) {
+        pick = item.seed;
+        break;
+      }
+    }
     const retained = stack.filter((item) => {
       if (item.locked) return true;
       const seed = STARTER_SEEDS.find((candidate) => candidate.id === item.seedId);
@@ -138,7 +157,25 @@ export function StarterSeedPanel({ stack, onChange, onBuild }: StarterSeedPanelP
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs font-mono font-black text-white">{seed.name}</span>
-                <span className="text-[9px] font-mono text-[#7c8aa0]">{seed.defaultIntensity}/100</span>
+                <div className="flex items-center gap-1.5">
+                  {(preferenceWeights[seed.id] || 0) > 0 && (
+                    <span
+                      className="rounded border border-[#665817] bg-[#2a2408] px-1.5 py-0.5 text-[8px] font-mono font-black text-[#ffe680]"
+                      title="Soft preference learned from your starred runs; this only nudges rerolls."
+                    >
+                      ★ LEARNED
+                    </span>
+                  )}
+                  {(preferenceWeights[seed.id] || 0) < 0 && (
+                    <span
+                      className="rounded border border-[#5a2630] bg-[#241015] px-1.5 py-0.5 text-[8px] font-mono font-black text-[#ff9aaa]"
+                      title="You previously suppressed this starter seed. It remains selectable; rerolls simply choose it less often."
+                    >
+                      ↓ LESS
+                    </span>
+                  )}
+                  <span className="text-[9px] font-mono text-[#7c8aa0]">{seed.defaultIntensity}/100</span>
+                </div>
               </div>
               <div className="mt-1.5 text-[10px] font-mono leading-relaxed text-[#91a0b6]">{seed.description}</div>
               <div className="mt-2 flex flex-wrap gap-1">
@@ -162,7 +199,7 @@ export function StarterSeedPanel({ stack, onChange, onBuild }: StarterSeedPanelP
             </div>
           </div>
           <div className="flex gap-2">
-            <button type="button" onClick={rerollCategory} className="inline-flex items-center gap-1.5 rounded-lg border border-[#42506a] px-2.5 py-1.5 text-[9px] font-mono font-bold text-[#b9c5d8] hover:text-white">
+            <button type="button" onClick={rerollCategory} className="inline-flex items-center gap-1.5 rounded-lg border border-[#42506a] px-2.5 py-1.5 text-[9px] font-mono font-bold text-[#b9c5d8] hover:text-white" title="Rerolls are softly biased by your explicit star feedback, but nothing is banned or forced.">
               <Shuffle className="h-3.5 w-3.5" /> REROLL THIS CATEGORY
             </button>
             <button type="button" onClick={clearUnlocked} className="inline-flex items-center gap-1.5 rounded-lg border border-[#5a2c39] px-2.5 py-1.5 text-[9px] font-mono font-bold text-[#ff9daf] hover:text-white">
