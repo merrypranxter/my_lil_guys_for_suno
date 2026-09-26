@@ -107,6 +107,30 @@ export interface StarterSeedStackItem {
   intensity: number;
   muted: boolean;
   locked: boolean;
+
+  /**
+   * World packages expose semantic event cues. When enabled, the bridge
+   * deterministically binds those cues to active musical mechanisms so
+   * "shit happening in the world" audibly changes the arrangement.
+   * Non-world seeds ignore this field.
+   */
+  eventBridgeEnabled?: boolean;
+}
+
+export interface StarterSeedEventBinding {
+  worldSeedId: string;
+  worldName: string;
+  cue: string;
+  mechanismId: string;
+  mechanismName: string;
+  directive: string;
+  source: 'active-stack' | 'fallback';
+}
+
+export interface StarterSeedEventBridgePlan {
+  enabledWorldSeedIds: string[];
+  availableMechanismIds: string[];
+  bindings: StarterSeedEventBinding[];
 }
 
 export interface StarterSeedCollision {
