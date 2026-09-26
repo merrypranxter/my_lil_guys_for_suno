@@ -430,6 +430,7 @@ export interface ArchivedRun {
   compositionEngineIds: string[];
   musicStack?: MusicStackItem[];
   musicControls?: MusicControls;
+  starterSeedStack?: StarterSeedStackSnapshotItem[];
   realityChaos?: RealityChaosLevel;
   mouthGenome?: MouthGenome;
   mouthPromptMode?: MouthPromptMode;
