@@ -712,6 +712,378 @@ export const STARTER_SEEDS: StarterSeedDefinition[] = [
   },
 
   // ---------------------------------------------------------------------------
+  // TEXTURE / SENSORY STATES — adjectives translated into actual audio physics
+  // ---------------------------------------------------------------------------
+  {
+    schemaVersion: 1,
+    id: 'texture-glittering',
+    name: 'GLITTERING',
+    category: 'texture',
+    description: 'Thousands of tiny bright points flash around the arrangement without becoming one smeared sparkle pad.',
+    defaultIntensity: 82,
+    tags: ['texture', 'sparkle', 'transients', 'bright'],
+    owns: ['timbre', 'production', 'spatialPerception'],
+    biases: ['short high-frequency attacks', 'micro-events', 'scattered register points', 'clean local ambience'],
+    protects: ['individual glitter events remain discrete enough to perceive as particles'],
+    forbids: ['continuous shimmer wash', 'giant dreamy reverb cloud', 'harmless background sparkle'],
+    operators: [
+      'Create many brief bright attacks with short decays; distribute them across time, register, and stereo position instead of sustaining one glossy pad.',
+      'Let glitter particles answer important beats, syllables, or gestures, then vanish before they mask the next event.',
+      'At high intensity, increase particle rate before increasing tail length.',
+    ],
+    outputs: {
+      musicMechanismRefs: [
+        { id: 'dry-separation', strength: 78 },
+        { id: 'exposure-windows', strength: 48 },
+      ],
+      musicControlDeltas: { stemminess: 18, kineticDensity: 10 },
+      promptDirectives: [
+        'TEXTURE PHYSICS: bright micro-transients, fast decay, discrete stereo scattering, little shared wash.',
+      ],
+    },
+  },
+  {
+    schemaVersion: 1,
+    id: 'texture-rubbery',
+    name: 'RUBBERY',
+    category: 'texture',
+    description: 'Sounds compress, bend, snap back, and wobble like elastic material under tension.',
+    defaultIntensity: 82,
+    tags: ['texture', 'elastic', 'bounce', 'pitch'],
+    owns: ['timbre', 'production', 'performance'],
+    biases: ['pitch scoops', 'damped bounce', 'elastic envelopes', 'short rebounds'],
+    protects: ['elastic deformation remains tied to note attacks and releases'],
+    forbids: ['random pitch wobble', 'slow seasick chorus effect', 'generic squelchy synth preset'],
+    operators: [
+      'Give selected attacks a fast compression followed by a pitch or filter rebound, as if the sound were physically stretched and released.',
+      'Use short damped oscillations after impact; each successive rebound should lose energy.',
+      'Keep at least one dry reference layer so the deformation is heard as material behavior, not tuning failure.',
+    ],
+    outputs: {
+      musicMechanismRefs: [
+        { id: 'false-resolution', strength: 56 },
+        { id: 'dry-separation', strength: 62 },
+      ],
+      musicControlDeltas: { kineticDensity: 8, stemminess: 10 },
+      promptDirectives: [
+        'TEXTURE PHYSICS: elastic pitch/filter envelopes, damped rebounds, tacky close articulation, controlled snap-back.',
+      ],
+    },
+  },
+  {
+    schemaVersion: 1,
+    id: 'texture-effervescent',
+    name: 'EFFERVESCENT',
+    category: 'texture',
+    description: 'Tiny buoyant attacks keep appearing, rising, popping, and being replaced like sonic carbonation.',
+    defaultIntensity: 84,
+    tags: ['texture', 'bubbles', 'bright', 'kinetic'],
+    owns: ['timbre', 'kineticDensity', 'production'],
+    biases: ['tiny rising figures', 'short pops', 'irregular streams', 'light attack density'],
+    protects: ['the base groove stays legible beneath the surface activity'],
+    forbids: ['ambient underwater wash', 'continuous white-noise fizz', 'soft spa-music bubbling'],
+    operators: [
+      'Layer short upward micro-figures and pops above a stable rhythmic substrate.',
+      'Vary event spacing so bubbles arrive in little clusters rather than a machine-gun grid.',
+      'When intensity rises, increase the number of independent small events rather than simply adding brightness EQ.',
+    ],
+    outputs: {
+      musicMechanismRefs: [
+        { id: 'double-time-activity', strength: 64 },
+        { id: 'dry-separation', strength: 58 },
+      ],
+      musicControlDeltas: { kineticDensity: 22, stemminess: 10 },
+      promptDirectives: [
+        'TEXTURE PHYSICS: clustered micro-attacks, fast upward contours, brief pops, light high-frequency activity around a stable pulse.',
+      ],
+    },
+  },
+  {
+    schemaVersion: 1,
+    id: 'texture-chrome',
+    name: 'CHROME',
+    category: 'texture',
+    description: 'Hard reflective surfaces: brilliant edges, compact metallic reflections, and polished impact without mush.',
+    defaultIntensity: 80,
+    tags: ['texture', 'metallic', 'reflective', 'polished'],
+    owns: ['timbre', 'production', 'spatialPerception'],
+    biases: ['hard transients', 'bright reflections', 'short metallic tails', 'high contrast'],
+    protects: ['the mix keeps sharp edges and dark negative space around reflective events'],
+    forbids: ['lush cinematic metal pad', 'endless plate reverb', 'muddy distortion'],
+    operators: [
+      'Use hard bright attacks followed by short dense reflections that terminate clearly.',
+      'Create metallic shine through transient contrast and compact resonances rather than constant high-frequency boost.',
+      'Leave clean gaps around major chrome events so their reflective tails can be heard.',
+    ],
+    outputs: {
+      musicMechanismRefs: [
+        { id: 'dry-separation', strength: 90 },
+        { id: 'hard-interrupts', strength: 52 },
+      ],
+      musicControlDeltas: { stemminess: 24, interruption: 8 },
+      promptDirectives: [
+        'TEXTURE PHYSICS: hard polished attacks, compact metallic reflections, sharp contrast, controlled high-frequency shine.',
+      ],
+    },
+  },
+  {
+    schemaVersion: 1,
+    id: 'texture-sticky',
+    name: 'STICKY',
+    category: 'texture',
+    description: 'Certain sounds cling to the next event, drag behind it, or reattach after they should have let go.',
+    defaultIntensity: 78,
+    tags: ['texture', 'viscous', 'drag', 'tails'],
+    owns: ['timbre', 'production', 'temporalPerception'],
+    biases: ['dragging releases', 'short retriggers', 'clinging delays', 'selective overlap'],
+    protects: ['the underlying pulse remains clean enough to measure the drag'],
+    forbids: ['whole-mix reverb smear', 'indistinct legato everywhere', 'slow tempo as a substitute for viscosity'],
+    operators: [
+      'Choose a few sources whose releases overstay into the next event while other sources remain clipped and dry.',
+      'Use short repeats or pitch-stable residue that seems to stick to the following attack before peeling away.',
+      'Alternate sticky and non-sticky actors so viscosity has a reference contrast.',
+    ],
+    outputs: {
+      musicMechanismRefs: [
+        { id: 'exposure-windows', strength: 54 },
+        { id: 'dry-separation', strength: 52 },
+      ],
+      musicControlDeltas: { stemminess: 10, anchorStrength: 6 },
+      promptDirectives: [
+        'TEXTURE PHYSICS: selective viscous releases, residue crossing event boundaries, tacky retriggers against dry reference parts.',
+      ],
+    },
+  },
+  {
+    schemaVersion: 1,
+    id: 'texture-crunchy',
+    name: 'CRUNCHY',
+    category: 'texture',
+    description: 'Attacks fracture into grit, clipped edges, and coarse midrange detail while the source stays identifiable.',
+    defaultIntensity: 84,
+    tags: ['texture', 'grit', 'clipped', 'coarse'],
+    owns: ['timbre', 'production'],
+    biases: ['transient grit', 'controlled clipping', 'grain', 'midrange edge'],
+    protects: ['the original source identity survives the damage'],
+    forbids: ['flat wall of distortion', 'low-resolution mush', 'master-bus destruction'],
+    operators: [
+      'Apply damage locally to attacks, edges, or selected bands rather than flattening the entire mix.',
+      'Alternate clean and crushed versions of the same source so the texture reads as fracture.',
+      'Preserve low-end timing and primary pitch information even when the surface becomes coarse.',
+    ],
+    outputs: {
+      musicMechanismRefs: [
+        { id: 'dry-separation', strength: 74 },
+        { id: 'anchor-survival', strength: 48 },
+      ],
+      musicControlDeltas: { stemminess: 18, interruption: 6 },
+      promptDirectives: [
+        'TEXTURE PHYSICS: local saturation, clipped transient edges, coarse grain, intact source identity and low-end timing.',
+      ],
+    },
+  },
+  {
+    schemaVersion: 1,
+    id: 'texture-bubbling',
+    name: 'BUBBLING',
+    category: 'texture',
+    description: 'Rounded pitch cells rise, wobble, pop, and hand off like pressure pockets moving through fluid.',
+    defaultIntensity: 80,
+    tags: ['texture', 'bubble', 'rounded', 'fluid'],
+    owns: ['timbre', 'melodicBehavior', 'production'],
+    biases: ['rounded envelopes', 'small glissandi', 'popping releases', 'irregular low-to-high motion'],
+    protects: ['bubble gestures remain musical cells with pitch or rhythm function'],
+    forbids: ['aquarium ambience', 'literal water Foley as the whole trick', 'ambient drift'],
+    operators: [
+      'Use short rounded pitch cells with small glissandi and abrupt pop-like releases.',
+      'Let bubble cells rise through register or transfer between instruments as if pressure is moving through a tube.',
+      'Keep the cells attached to pulse, harmony, or call-response instead of floating as ambience.',
+    ],
+    outputs: {
+      musicMechanismRefs: [
+        { id: 'role-migration', strength: 62 },
+        { id: 'false-resolution', strength: 52 },
+      ],
+      musicControlDeltas: { kineticDensity: 10, coupling: 6 },
+      promptDirectives: [
+        'TEXTURE PHYSICS: rounded attack envelopes, compact glissandi, pressure-like register movement, abrupt pop releases.',
+      ],
+    },
+  },
+  {
+    schemaVersion: 1,
+    id: 'texture-prismatic',
+    name: 'PRISMATIC',
+    category: 'texture',
+    description: 'One sound refracts into several colored spectral relatives that stay traceable to the original.',
+    defaultIntensity: 88,
+    tags: ['texture', 'prismatic', 'spectral', 'refraction'],
+    owns: ['timbre', 'production', 'spatialPerception'],
+    biases: ['spectral splitting', 'micro-delay', 'register duplication', 'recombination'],
+    protects: ['every refracted layer remains audibly descended from one source'],
+    forbids: ['generic chorus pad', 'random rainbow adjectives with no sonic mechanism', 'featureless stereo widening'],
+    operators: [
+      'Split important attacks or motifs into two to four related spectral copies that differ in register, filtering, micro-delay, or articulation.',
+      'Pan or spatially separate the copies enough to hear refraction, then periodically recombine them into one source.',
+      'Preserve a dry or central parent image so the listener can hear what was refracted.',
+    ],
+    outputs: {
+      musicMechanismRefs: [
+        { id: 'role-migration', strength: 70 },
+        { id: 'anchor-survival', strength: 72 },
+        { id: 'dry-separation', strength: 66 },
+      ],
+      musicControlDeltas: { stemminess: 20, anchorStrength: 14 },
+      promptDirectives: [
+        'TEXTURE PHYSICS: traceable spectral copies, micro-delay/register/filter separation, periodic recombination around a dry parent source.',
+      ],
+    },
+  },
+  {
+    schemaVersion: 1,
+    id: 'texture-wet',
+    name: 'WET / VISCOUS',
+    category: 'texture',
+    description: 'Close, glossy, liquid articulation: slaps, suction, drips, and resonant smears used as musical envelope behavior.',
+    defaultIntensity: 80,
+    tags: ['texture', 'wet', 'viscous', 'close'],
+    owns: ['timbre', 'production', 'performance'],
+    biases: ['close transients', 'suction releases', 'glossy resonance', 'short smears'],
+    protects: ['wetness comes from articulation and envelope behavior, not a giant reverb send'],
+    forbids: ['underwater ambient wash', 'bathroom reverb', 'literal Foley-only arrangement'],
+    operators: [
+      'Favor close-miked slap, suction, drip, squish, and glossy resonant envelopes on selected musical parts.',
+      'Pair wet attacks with dry surrounding layers so the tactile surface reads immediately.',
+      'Use short pitch or filter smears after impact; keep tails local and finite.',
+    ],
+    outputs: {
+      musicMechanismRefs: [
+        { id: 'dry-separation', strength: 76 },
+        { id: 'body-percussion', strength: 44 },
+      ],
+      musicControlDeltas: { stemminess: 18 },
+      promptDirectives: [
+        'TEXTURE PHYSICS: close wet attacks, suction-like releases, glossy local resonance, tactile finite smears against dry layers.',
+      ],
+    },
+  },
+  {
+    schemaVersion: 1,
+    id: 'texture-spring-loaded',
+    name: 'SPRING-LOADED / BOING PHYSICS',
+    category: 'texture',
+    description: 'Impacts excite dispersive springs that boing, chirp, wobble, and decay into metallic recoil.',
+    defaultIntensity: 84,
+    tags: ['texture', 'spring', 'boing', 'metal'],
+    owns: ['timbre', 'production', 'eventLogic'],
+    biases: ['spring resonance', 'impact excitation', 'dispersive chirps', 'recoil'],
+    protects: ['spring behavior is triggered by specific impacts or events'],
+    forbids: ['continuous sci-fi reverb bed', 'cartoon boing pasted randomly', 'generic retro effect'],
+    operators: [
+      'Let selected impacts excite audible spring-like resonances with pitch-smearing metallic recoil.',
+      'Use different excitation strengths to create short chirps, medium boings, and occasional explosive spring crashes.',
+      'Tie every major spring event to a visible musical cause such as a hit, cutoff, reveal, or interruption.',
+    ],
+    outputs: {
+      musicMechanismRefs: [
+        { id: 'event-driven-form', strength: 58 },
+        { id: 'hard-interrupts', strength: 58 },
+      ],
+      musicControlDeltas: { interruption: 12, stemminess: 8 },
+      promptDirectives: [
+        'TEXTURE PHYSICS: impact-excited dispersive spring resonance, metallic recoil, short chirps and boings with finite decay.',
+      ],
+    },
+  },
+  {
+    schemaVersion: 1,
+    id: 'texture-toybox-physical',
+    name: 'TOYBOX PHYSICAL',
+    category: 'texture',
+    description: 'Tiny mechanical objects click, squeak, rattle, wind up, snap, and become real arrangement parts.',
+    defaultIntensity: 86,
+    tags: ['texture', 'toy', 'mechanical', 'physical'],
+    owns: ['timbre', 'production', 'arrangement'],
+    biases: ['clicks', 'ratchets', 'squeaks', 'wind-up motion', 'small resonators'],
+    protects: ['toy-like noises perform musical jobs instead of appearing as one-off jokes'],
+    forbids: ['nursery-music sweetness', 'random novelty SFX pileup', 'all toys playing constantly'],
+    operators: [
+      'Assign small mechanical noises explicit jobs: pulse, pickup, accent, transition, counterline, or anchor.',
+      'Keep sources close, dry, and tactile enough to hear mechanisms moving.',
+      'Rotate toy-scale sounds through the arrangement rather than stacking every tiny object at once.',
+    ],
+    outputs: {
+      musicMechanismRefs: [
+        { id: 'dry-separation', strength: 88 },
+        { id: 'role-migration', strength: 64 },
+        { id: 'exposure-windows', strength: 62 },
+      ],
+      musicControlDeltas: { stemminess: 28, kineticDensity: 10 },
+      promptDirectives: [
+        'TEXTURE PHYSICS: close mechanical clicks, ratchets, squeaks, wind-up motion, small resonances, explicit musical roles.',
+      ],
+    },
+  },
+  {
+    schemaVersion: 1,
+    id: 'texture-cheap-analog',
+    name: 'CHEAP ANALOG',
+    category: 'texture',
+    description: 'Consumer-grade circuitry, tape, spring, hiss, overload, and unstable pitch — cheap in a useful physical way.',
+    defaultIntensity: 84,
+    tags: ['texture', 'analog', 'cassette', 'spring-reverb'],
+    owns: ['timbre', 'production', 'temporalPerception'],
+    biases: ['tape saturation', 'local hiss', 'wow/flutter', 'spring resonance', 'cheap circuitry'],
+    protects: ['the arrangement remains intelligible beneath the equipment damage'],
+    forbids: ['nostalgia-only lo-fi filter', 'everything muffled equally', 'giant vintage reverb wash'],
+    operators: [
+      'Apply hiss, saturation, pitch drift, bandwidth limits, or spring resonance selectively by source or section rather than to the whole master.',
+      'Let transport instability create brief measurable timing or pitch deviations while the main pulse survives.',
+      'Expose equipment noise during gaps and transitions so it behaves like a physical system, not a preset.',
+    ],
+    outputs: {
+      musicMechanismRefs: [
+        { id: 'dry-separation', strength: 70 },
+        { id: 'exposure-windows', strength: 56 },
+        { id: 'anchor-survival', strength: 46 },
+      ],
+      musicControlDeltas: { stemminess: 16, anchorStrength: 8 },
+      promptDirectives: [
+        'TEXTURE PHYSICS: selective cassette/tape instability, cheap circuitry, local hiss, spring resonance, source-specific bandwidth and saturation.',
+      ],
+    },
+  },
+  {
+    schemaVersion: 1,
+    id: 'texture-hyper-clean-impossible-object',
+    name: 'HYPER-CLEAN IMPOSSIBLE OBJECT',
+    category: 'texture',
+    description: 'Every component is surgically isolated and unnaturally perfect, yet the object itself behaves in physically impossible ways.',
+    defaultIntensity: 90,
+    tags: ['texture', 'clean', 'impossible', 'precision'],
+    owns: ['timbre', 'production', 'spatialPerception'],
+    biases: ['zero smear', 'impossible attack shapes', 'precise isolation', 'high contrast'],
+    protects: ['every important component can be heard as a distinct object'],
+    forbids: ['sterile corporate polish', 'generic hi-fi sheen', 'reverb glue'],
+    operators: [
+      'Use extremely clean transients, low noise floor, minimal shared ambience, and hard separation between important sources.',
+      'Make one or more envelopes physically impossible: instantaneous attack with long crystalline decay, reverse-like emergence without masking the hit, or abrupt timbral transformation with no crossfade.',
+      'Preserve precision while the object violates ordinary acoustic expectations.',
+    ],
+    outputs: {
+      musicMechanismRefs: [
+        { id: 'dry-separation', strength: 100 },
+        { id: 'exposure-windows', strength: 78 },
+        { id: 'role-migration', strength: 48 },
+      ],
+      musicControlDeltas: { stemminess: 36, anchorStrength: 10 },
+      promptDirectives: [
+        'TEXTURE PHYSICS: surgical isolation, almost no shared wash, impossible but crisp envelope geometry, extreme transient definition.',
+      ],
+    },
+  },
+
+  // ---------------------------------------------------------------------------
   // WORLD PACKAGES — coherent semantic handholds for otherwise insane music
   // ---------------------------------------------------------------------------
   {

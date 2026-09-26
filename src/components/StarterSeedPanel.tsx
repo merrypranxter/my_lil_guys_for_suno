@@ -11,6 +11,7 @@ const CATEGORY_ORDER: StarterSeedCategory[] = [
   'psychedelic',
   'motion',
   'social',
+  'texture',
   'worldPackage',
   'instrumentPack',
 ];
@@ -107,7 +108,7 @@ export function StarterSeedPanel({ stack, onChange, onBuild, preferenceWeights =
           <div>
             <div className="text-[10px] font-mono font-black tracking-[0.18em] text-[#ff9bea]">FAST START / INITIAL CONDITIONS</div>
             <div className="mt-1 max-w-3xl text-xs font-mono leading-relaxed text-[#aeb8c8]">
-              Stack a feeling, altered-perception law, motion system, social behavior, one coherent world frame, and one eight-source instrument catastrophe. Then BUILD ME copies the emitted engines and music genes into the actual labs. The starter laws stay active so their operators and protected invariants survive generation.
+              Stack a feeling, altered-perception law, motion system, social behavior, tactile texture physics, one coherent world frame, and one eight-source instrument catastrophe. Then BUILD ME copies the emitted engines and music genes into the actual labs. The starter laws stay active so their operators and protected invariants survive generation.
             </div>
           </div>
           <button

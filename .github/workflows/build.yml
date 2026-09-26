@@ -42,6 +42,9 @@ jobs:
       - name: Starter favorites intelligence smoke
         run: npm run verify:starter-favorites
 
+      - name: Starter texture sensory smoke
+        run: npm run verify:starter-textures
+
       - name: Scientist Reality roles smoke
         run: npm run verify:scientist-roles
 
