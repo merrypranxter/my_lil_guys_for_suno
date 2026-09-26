@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
-import { Lock, Shuffle, Sparkles, Trash2, Unlock, Volume2, VolumeX, X } from 'lucide-react';
+import { Lock, Shuffle, Sparkles, Trash2, Unlock, Volume2, VolumeX, X, Zap } from 'lucide-react';
 import { STARTER_SEEDS, STARTER_SEEDS_BY_CATEGORY } from '../starterSeeds/library';
 import { compileStarterSeedStackV2 } from '../starterSeeds/compilerV2';
+import { compileStarterEventBridge } from '../starterSeeds/eventBridge';
 import { createStarterSeedStackItem } from '../starterSeeds/runtime';
 import type { StarterSeedCategory, StarterSeedStackItem } from '../starterSeeds/types';
 
@@ -35,6 +36,7 @@ interface StarterSeedPanelProps {
 export function StarterSeedPanel({ stack, onChange, onBuild }: StarterSeedPanelProps) {
   const [category, setCategory] = useState<StarterSeedCategory>('affect');
   const compiled = useMemo(() => compileStarterSeedStackV2(STARTER_SEEDS, stack), [stack]);
+  const eventBridge = useMemo(() => compileStarterEventBridge(compiled, stack), [compiled, stack]);
   const visible = STARTER_SEEDS_BY_CATEGORY[category] || [];
   const activeIds = new Set(stack.map((item) => item.seedId));
 
@@ -203,12 +205,52 @@ export function StarterSeedPanel({ stack, onChange, onBuild }: StarterSeedPanelP
                     />
                     <span className="w-12 text-right text-[9px] font-mono font-bold text-[#ffb1ed]">{item.intensity}/100</span>
                   </div>
+                  {seed.category === 'worldPackage' && (
+                    <button
+                      type="button"
+                      onClick={() => updateItem(item.instanceId, { eventBridgeEnabled: item.eventBridgeEnabled === false })}
+                      className={
+                        'mt-2 inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-[9px] font-mono font-black transition-all ' +
+                        (item.eventBridgeEnabled === false
+                          ? 'border-[#3a4352] bg-[#0a0d12] text-[#687589] hover:text-white'
+                          : 'border-[#00f0ff]/55 bg-[#072026] text-[#8ff8ff] shadow-[0_0_12px_rgba(0,240,255,0.08)]')
+                      }
+                      title="Make semantic events in this world trigger audible musical changes"
+                    >
+                      <Zap className="h-3 w-3" />
+                      EVENTS → MUSIC {item.eventBridgeEnabled === false ? 'OFF' : 'ON'}
+                    </button>
+                  )}
                 </div>
               );
             })}
           </div>
         )}
       </div>
+
+      {eventBridge.bindings.length > 0 && (
+        <div className="rounded-xl border border-[#00f0ff]/35 bg-[#07161b] p-3 font-mono">
+          <div className="flex items-center gap-2 text-[10px] font-black tracking-[0.14em] text-[#8ff8ff]">
+            <Zap className="h-3.5 w-3.5" />
+            WORLD → MUSIC EVENT BRIDGE
+          </div>
+          <div className="mt-1 text-[9px] leading-relaxed text-[#6f9ca5]">
+            The world supplies the event. The active musical machinery supplies the consequence. These are causal arrangement triggers, not decorative sound effects.
+          </div>
+          <div className="mt-2 grid grid-cols-1 gap-1.5 md:grid-cols-2">
+            {eventBridge.bindings.map((binding, index) => (
+              <div key={binding.worldSeedId + ':' + binding.cue + ':' + index} className="rounded-lg border border-[#12333b] bg-[#081116] px-2.5 py-2">
+                <div className="text-[9px] font-bold text-white">
+                  {binding.cue} <span className="text-[#4c8490]">→</span> <span className="text-[#8ff8ff]">{binding.mechanismName}</span>
+                </div>
+                <div className="mt-0.5 text-[8px] text-[#536f77]">
+                  {binding.source === 'active-stack' ? 'using machinery already active in this stack' : 'using bridge fallback machinery'}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {compiled.collisions.length > 0 && (
         <div className="rounded-xl border border-[#6c4c1a] bg-[#171207] p-3 text-[10px] font-mono leading-relaxed text-[#e8cb86]">
