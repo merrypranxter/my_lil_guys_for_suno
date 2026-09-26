@@ -4,6 +4,7 @@ import { getCompositionEngine } from '../data/compositionEngines';
 import type { MusicControls, MusicStackItem, RealityChaosLevel } from '../types';
 import { STARTER_SEEDS } from './library';
 import { compileStarterSeedStackV2 } from './compilerV2';
+import { compileStarterEventBridge } from './eventBridge';
 import type { CompiledStarterSeedStack, StarterSeedStackItem } from './types';
 
 const STORAGE_KEY = 'lgm_starter_seed_stack_v1';
@@ -33,6 +34,10 @@ export function normalizeStarterSeedStack(value: unknown): StarterSeedStackItem[
       intensity: clamp100(Number(raw.intensity)),
       muted: Boolean(raw.muted),
       locked: Boolean(raw.locked),
+      eventBridgeEnabled:
+        STARTER_SEEDS.find((seed) => seed.id === seedId)?.category === 'worldPackage'
+          ? raw.eventBridgeEnabled !== false
+          : undefined,
     };
 
     const current = strongest.get(seedId);
@@ -51,6 +56,7 @@ export function createStarterSeedStackItem(seedId: string): StarterSeedStackItem
     intensity: seed.defaultIntensity,
     muted: false,
     locked: false,
+    eventBridgeEnabled: seed.category === 'worldPackage' ? true : undefined,
   };
 }
 
@@ -158,6 +164,7 @@ export function starterSeedPromptBlock(stackValue: StarterSeedStackItem[]): stri
   const stack = normalizeStarterSeedStack(stackValue);
   if (!stack.length) return 'NO STARTER SEED STACK ACTIVE.';
   const compiled = compileStarterSeedStackV2(STARTER_SEEDS, stack);
+  const eventBridge = compileStarterEventBridge(compiled, stack);
   const lines = [
     'STARTER SEEDS ARE INITIAL-CONDITION LAWS. They may shape affect, perception, motion, social behavior, instrumentation roles, or semantic world framing, but they may not replace the sovereign user subject.',
     ...compiled.activeSeeds.map(({ seed, intensity, locked }) =>
@@ -172,6 +179,23 @@ export function starterSeedPromptBlock(stackValue: StarterSeedStackItem[]): stri
       : []),
     ...(compiled.eventCues.length
       ? ['WORLD EVENT CUES:', ...compiled.eventCues.map((line) => '- ' + line)]
+      : []),
+    ...(eventBridge.bindings.length
+      ? [
+          'WORLD → MUSIC EVENT BRIDGE:',
+          'These are causal triggers. The named world event must create the named audible structural response; do not reduce the mapping to narration or sound-effect decoration.',
+          ...eventBridge.bindings.map(
+            (binding) =>
+              '- ' +
+              binding.cue +
+              ' → ' +
+              binding.mechanismName +
+              ' [' +
+              binding.source +
+              ']: ' +
+              binding.directive,
+          ),
+        ]
       : []),
   ];
   return lines.join('\n');
