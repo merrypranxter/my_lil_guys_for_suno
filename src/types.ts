@@ -348,12 +348,22 @@ export interface MusicStackItem {
   genome?: MusicBredGenome;
 }
 
+export interface StarterSeedStackSnapshotItem {
+  instanceId: string;
+  seedId: string;
+  intensity: number;
+  muted: boolean;
+  locked: boolean;
+  eventBridgeEnabled?: boolean;
+}
+
 export interface GenerationRequest {
   guyIds: string[];
   realityEngineIds?: string[];
   compositionEngineIds?: string[];
   musicStack?: MusicStackItem[];
   musicControls?: MusicControls;
+  starterSeedStack?: StarterSeedStackSnapshotItem[];
   realityChaos?: RealityChaosLevel;
   seed?: string;
   energy: number;
@@ -389,6 +399,7 @@ export interface RepairRequest {
   compositionEngineIds?: string[];
   musicStack?: MusicStackItem[];
   musicControls?: MusicControls;
+  starterSeedStack?: StarterSeedStackSnapshotItem[];
   realityChaos?: RealityChaosLevel;
   mouthGenome?: MouthGenome;
   mouthPromptMode?: MouthPromptMode;
@@ -403,6 +414,7 @@ export interface SavedStack {
   compositionEngineIds: string[];
   musicStack?: MusicStackItem[];
   musicControls?: MusicControls;
+  starterSeedStack?: StarterSeedStackSnapshotItem[];
   realityChaos?: RealityChaosLevel;
   mouthGenome?: MouthGenome;
   mouthPromptMode?: MouthPromptMode;
@@ -437,6 +449,8 @@ export interface ArchivedRun {
   starred: boolean;
   feedback: string;
   feedbackTags?: string[];
+  likedStarterSeedIds?: string[];
+  dislikedStarterSeedIds?: string[];
   likedMechanismIds?: string[];
   dislikedMechanismIds?: string[];
   likedMouthTraitIds?: string[];
