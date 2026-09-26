@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { LittleGuy, SavedStack } from '../types';
 import { ArrowUp, ArrowDown, X, Trash2, Bookmark, Dices, Flame, Sparkles, FolderHeart, FlaskConical } from 'lucide-react';
 import { ACTIVE_GUY_MAX, getStackChemistry, STACK_RECIPES } from '../lib/mindStacking';
+import { ALTERED_STATE_RECIPES } from '../data/alteredStateRecipes';
 
 interface StackPanelProps {
   stackGuys: LittleGuy[];
@@ -132,12 +133,42 @@ export function StackPanel({
         <div className="p-3 bg-[#0a0c12] border border-[#40203d] rounded-lg space-y-2">
           <div className="flex items-center justify-between gap-2">
             <div>
-              <div className="text-xs font-mono font-bold text-[#ff9dea]">CURATED MIND RECIPES</div>
-              <div className="text-[10px] font-mono text-[#6f7890]">Hand-built combinations with productive friction instead of random brain soup.</div>
+              <div className="text-xs font-mono font-bold text-[#ff9dea]">CURATED RECIPES</div>
+              <div className="text-[10px] font-mono text-[#6f7890]">Whole-stack altered-state machines plus hand-built mind combinations. The drug recipes deliberately leave WORLD blank.</div>
             </div>
             <button type="button" onClick={() => setShowRecipes(false)} className="text-[#7d8ba1] hover:text-white">
               <X className="w-4 h-4" />
             </button>
+          </div>
+          <div className="space-y-2">
+            <div className="text-[10px] font-mono font-bold tracking-wider text-[#00f0ff]">ALTERED-STATE WHOLE-STACK RECIPES</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-80 overflow-y-auto pr-1">
+              {ALTERED_STATE_RECIPES.map((recipe) => (
+                <button
+                  key={recipe.id}
+                  type="button"
+                  onClick={() => {
+                    onLoadSavedStack(recipe);
+                    setShowRecipes(false);
+                  }}
+                  className="text-left p-2.5 rounded-lg bg-[#0d1619] border border-[#17414b] hover:border-[#00f0ff] transition-colors"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-mono font-bold text-white">{recipe.name}</span>
+                    <span className="text-[9px] font-mono text-[#7ff7ff]">WORLD: OPEN</span>
+                  </div>
+                  <div className="text-[10px] text-[#8e99aa] mt-1 leading-snug">{recipe.description}</div>
+                  <div className="text-[9px] font-mono text-[#d1a8ff] mt-1.5 leading-snug">
+                    SOUND: {recipe.instrumentSummary}
+                  </div>
+                  <div className="text-[9px] font-mono text-[#6f7890] mt-1">
+                    {recipe.guyIds.length} minds • {recipe.realityEngineIds.length} reality layers • {recipe.compositionEngineIds.length} composition engines
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <div className="pt-1 text-[10px] font-mono font-bold tracking-wider text-[#ff9dea]">MIND-ONLY RECIPES</div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto pr-1">
             {STACK_RECIPES.map((recipe) => (
