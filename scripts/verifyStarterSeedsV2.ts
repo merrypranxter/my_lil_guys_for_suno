@@ -10,12 +10,12 @@ import type { StarterSeedDefinition } from '../src/starterSeeds';
 const validation = validateStarterSeedRegistryV2(STARTER_SEEDS);
 assert.equal(validation.valid, true, validation.errors.join('\n'));
 
-assert(STARTER_SEEDS.length >= 38, 'Expected a substantial starter seed library');
+assert(STARTER_SEEDS.length >= 40, 'Expected a substantial starter seed library');
 assert.equal(STARTER_SEEDS_BY_CATEGORY.affect.length, 8);
 assert.equal(STARTER_SEEDS_BY_CATEGORY.psychedelic.length, 8);
 assert.equal(STARTER_SEEDS_BY_CATEGORY.motion.length, 6);
 assert.equal(STARTER_SEEDS_BY_CATEGORY.social.length, 6);
-assert.equal(STARTER_SEEDS_BY_CATEGORY.worldPackage.length, 6);
+assert.equal(STARTER_SEEDS_BY_CATEGORY.worldPackage.length, 8);
 assert.equal(STARTER_SEEDS_BY_CATEGORY.instrumentPack.length, 4);
 
 const stack = compileStarterSeedStackV2(STARTER_SEEDS, [
