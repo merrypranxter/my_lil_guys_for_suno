@@ -11,6 +11,7 @@ import { normalizeCompositionEngineIds } from './src/data/compositionEngines';
 import { normalizeMusicControls, normalizeMusicStack } from './src/data/musicSeedSystem';
 import { planGuyActivation } from './src/lib/mindStacking';
 import { evaluateLiteralSeedCoverage } from './src/lib/generationJurisdictions';
+import { normalizeStarterSeedStack } from './src/starterSeeds/runtime';
 
 const app = express();
 const PORT = 3000;
@@ -178,6 +179,7 @@ app.post('/api/generate', async (req, res) => {
   const compositionEngineIds = normalizeCompositionEngineIds(sanitizeIdList(req.body?.compositionEngineIds, 64));
   const musicStack = normalizeMusicStack(req.body?.musicStack);
   const musicControls = normalizeMusicControls(req.body?.musicControls);
+  const starterSeedStack = normalizeStarterSeedStack(req.body?.starterSeedStack);
   const realityChaos = sanitizeRealityChaos(req.body?.realityChaos);
   const seed = typeof req.body?.seed === 'string' ? req.body.seed : '';
   const recentFingerprints = sanitizeFingerprints(req.body?.recentFingerprints);
@@ -195,6 +197,7 @@ app.post('/api/generate', async (req, res) => {
       compositionEngineIds,
       musicStack,
       musicControls,
+      starterSeedStack,
       realityChaos,
       seed,
       energy,
@@ -301,6 +304,7 @@ app.post('/api/generate', async (req, res) => {
         compositionEngineIds,
         musicStack,
         musicControls,
+        starterSeedStack,
         realityChaos,
         seed,
         energy,
