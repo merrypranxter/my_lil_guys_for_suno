@@ -1,6 +1,6 @@
 # Mouth Lab — implementation plan
 
-Status: JOB 6 DYNAMIC MOUTHS IMPLEMENTED
+Status: MOUTH LAB JOBS 1–7 COMPLETE
 
 Mouth Lab turns language profiles into transferable vocal machinery.
 
@@ -108,7 +108,7 @@ Deliver:
 - breeding-objective buttons;
 - genome/phenotype inspection.
 
-### Job 6 — DYNAMIC MOUTHS — IMPLEMENTED
+### Job 6 — DYNAMIC MOUTHS — COMPLETE
 
 Deliver:
 
@@ -120,7 +120,7 @@ Deliver:
 - music-to-language reverse transduction;
 - conditional phonetics.
 
-### Job 7 — EVOLUTION + QA
+### Job 7 — EVOLUTION + QA — COMPLETE
 
 Deliver:
 
@@ -181,3 +181,14 @@ That is the planned ENGLISH MEANING / ALIEN MOUTH mode.
 ## Job 1 branch
 
 mouth-lab/job-01-foundation
+
+
+## Completion
+
+The planned Mouth Lab architecture is complete through Job 7.
+
+The production path now spans:
+
+> DONOR / TRAIT VAULT → BREEDING → QUIRKS / SPECIMENS → PROMPT COMPILATION → UI → DYNAMIC CAST / TIMELINE / TRANSDUCTION → SPECIES EVOLUTION / FITNESS / ASSAY
+
+Further work should be treated as optional expansion rather than unfinished core architecture.
