@@ -36,6 +36,9 @@ jobs:
       - name: Starter Seed UI/runtime smoke
         run: npm run verify:starter-ui
 
+      - name: Starter world event bridge smoke
+        run: npm run verify:starter-event-bridge
+
       - name: Scientist Reality roles smoke
         run: npm run verify:scientist-roles
 
