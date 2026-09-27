@@ -5,7 +5,7 @@ import { GoogleGenAI, Type } from '@google/genai';
 import { buildMasterPrompt, buildRepairPrompt } from './src/lib/buildGenerationPrompt';
 import { generateProceduralTrack } from './src/lib/proceduralGenerator';
 import { BoxType, MusicFingerprint, RealityChaosLevel } from './src/types';
-import type { MouthPromptMode, MouthSemanticMode } from './src/mouthLab/types';
+import { normalizeMouthSemanticMode, type MouthPromptMode, type MouthSemanticMode } from './src/mouthLab/types';
 import { normalizeMouthGenomeForGeneration } from './src/mouthLab/promptCompiler';
 import { normalizeCompositionEngineIds } from './src/data/compositionEngines';
 import { normalizeMusicControls, normalizeMusicStack } from './src/data/musicSeedSystem';
@@ -116,7 +116,7 @@ function sanitizeMouthPromptMode(value: any): MouthPromptMode {
 }
 
 function sanitizeMouthSemanticMode(value: any): MouthSemanticMode {
-  return value === 'englishMeaningAlienMouth' ? value : 'inherit';
+  return normalizeMouthSemanticMode(value);
 }
 
 async function generateWithResilience(

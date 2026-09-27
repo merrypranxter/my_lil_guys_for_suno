@@ -195,7 +195,22 @@ export interface MouthEvolutionResult {
 
 export type MouthPromptMode = 'compact' | 'bracketed' | 'descriptive';
 
-export type MouthSemanticMode = 'inherit' | 'englishMeaningAlienMouth';
+export const MOUTH_SEMANTIC_MODES = [
+  'inherit',
+  'englishMeaningAlienMouth',
+  'mixed',
+  'decay',
+  'nonsemantic',
+  'evolving',
+] as const;
+
+export type MouthSemanticMode = (typeof MOUTH_SEMANTIC_MODES)[number];
+
+export function normalizeMouthSemanticMode(value: unknown): MouthSemanticMode {
+  return MOUTH_SEMANTIC_MODES.includes(value as MouthSemanticMode)
+    ? (value as MouthSemanticMode)
+    : 'inherit';
+}
 
 export interface MouthPromptCompileOptions {
   mode?: MouthPromptMode;

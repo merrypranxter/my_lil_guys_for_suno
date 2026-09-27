@@ -35,6 +35,7 @@ import {
   MOUTH_MUTATION_ACTIONS,
   MOUTH_MUTATION_CURVE_SHAPES,
   MOUTH_QUIRKS,
+  MOUTH_SEMANTIC_MODES,
   MOUTH_TRANSDUCTION_PRESETS,
   applyMouthQuirk,
   applyMouthSpecimen,
@@ -87,6 +88,33 @@ interface MouthLabPanelProps {
 type MouthTab = 'breed' | 'quirks' | 'inspect' | 'dynamics' | 'evolve' | 'specimens';
 
 const PRESSURES: MouthTraitPressure[] = ['low', 'medium', 'high', 'obsessive'];
+
+const SEMANTIC_MODE_META: Record<MouthSemanticMode, { label: string; help: string }> = {
+  inherit: {
+    label: 'INHERIT SEMANTICS',
+    help: 'Use the genome semantic anchor normally; mouth traits alter only the jurisdictions they own.',
+  },
+  englishMeaningAlienMouth: {
+    label: 'ENGLISH MEANING / ALIEN MOUTH',
+    help: 'Keep the propositions intelligible in English while donor genetics control the physical mouth.',
+  },
+  mixed: {
+    label: 'MIXED',
+    help: 'Keep a clear semantic spine, but let bounded regions fracture into vocables, fragments, and mouth-events.',
+  },
+  decay: {
+    label: 'DECAY',
+    help: 'Start intelligible and progressively lose sentence → fragment → pseudo-word → phoneme → gesture.',
+  },
+  nonsemantic: {
+    label: 'NONSEMANTIC',
+    help: 'Treat the voice as pure organized mouth-music; no lexical proposition is required.',
+  },
+  evolving: {
+    label: 'EVOLVING',
+    help: 'Let words and vocal tokens gain, lose, split, or exchange meaning when structural triggers occur.',
+  },
+};
 
 const TAB_META: Record<MouthTab, { label: string; subtitle: string }> = {
   breed: { label: 'BREED LANGUAGES', subtitle: '2–6 parents • assign jurisdictions' },
@@ -1130,22 +1158,20 @@ export function MouthLabPanel({
 
                 <div className="rounded-2xl border border-[#293246] bg-[#090d14] p-3">
                   <div className="text-[9px] font-mono font-bold text-[#657187]">SEMANTIC MODE</div>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      onSemanticModeChange(
-                        semanticMode === 'englishMeaningAlienMouth' ? 'inherit' : 'englishMeaningAlienMouth'
-                      )
-                    }
-                    className={
-                      'mt-2 w-full rounded-lg border px-3 py-2 text-[10px] font-mono font-black ' +
-                      (semanticMode === 'englishMeaningAlienMouth'
-                        ? 'border-[#00f0ff] bg-[#0c2027] text-[#9bf8ff]'
-                        : 'border-[#334155] bg-[#111827] text-[#94a3b8]')
-                    }
+                  <select
+                    value={semanticMode}
+                    onChange={(event) => onSemanticModeChange(event.target.value as MouthSemanticMode)}
+                    className="mt-2 w-full rounded-lg border border-[#00f0ff]/35 bg-[#0c151d] px-2.5 py-2 text-[10px] font-mono font-black text-[#9bf8ff]"
                   >
-                    {semanticMode === 'englishMeaningAlienMouth' ? 'ENGLISH MEANING / ALIEN MOUTH: ON' : 'INHERIT SEMANTICS'}
-                  </button>
+                    {MOUTH_SEMANTIC_MODES.map((mode) => (
+                      <option key={mode} value={mode}>
+                        {SEMANTIC_MODE_META[mode].label}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="mt-2 rounded-lg border border-[#233044] bg-[#0b1018] px-2.5 py-2 text-[9px] font-mono leading-relaxed text-[#7d8ba1]">
+                    {SEMANTIC_MODE_META[semanticMode].help}
+                  </div>
 
                   <div className="mt-3 text-[9px] font-mono font-bold text-[#657187]">COMPILER VIEW</div>
                   <select

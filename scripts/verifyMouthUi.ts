@@ -75,7 +75,7 @@ const genome = applyMouthQuirk(base, quirk);
 
 setLastMouthGenome(genome);
 setSavedMouthPromptMode('descriptive');
-setSavedMouthSemanticMode('englishMeaningAlienMouth');
+setSavedMouthSemanticMode('decay');
 
 const restored = getLastMouthGenome();
 assert.ok(restored, 'Active Mouth Lab genome should persist.');
@@ -83,8 +83,15 @@ assert.equal(restored!.id, genome.id, 'Persisted active genome identity should s
 assert.equal(getSavedMouthPromptMode(), 'descriptive', 'Prompt mode should persist.');
 assert.equal(
   getSavedMouthSemanticMode(),
-  'englishMeaningAlienMouth',
-  'Semantic mode should persist.',
+  'decay',
+  'Expanded semantic mode should persist.',
+);
+
+setSavedMouthSemanticMode('evolving');
+assert.equal(
+  getSavedMouthSemanticMode(),
+  'evolving',
+  'A second expanded semantic mode should round-trip through storage.',
 );
 
 saveStackToFavorites(
@@ -105,7 +112,7 @@ saveStackToFavorites(
   },
   genome,
   'bracketed',
-  'englishMeaningAlienMouth',
+  'mixed',
 );
 
 const stacks = getSavedStacks();
@@ -114,8 +121,8 @@ assert.equal(stacks[0].mouthGenome?.id, genome.id, 'Saved stack should carry the
 assert.equal(stacks[0].mouthPromptMode, 'bracketed', 'Saved stack should carry compiler mode.');
 assert.equal(
   stacks[0].mouthSemanticMode,
-  'englishMeaningAlienMouth',
-  'Saved stack should carry semantic mode.',
+  'mixed',
+  'Saved stack should carry expanded semantic mode.',
 );
 
 const run = saveGeneratedRun({
@@ -135,7 +142,7 @@ const run = saveGeneratedRun({
   realityChaos: 2,
   mouthGenome: genome,
   mouthPromptMode: 'compact',
-  mouthSemanticMode: 'englishMeaningAlienMouth',
+  mouthSemanticMode: 'nonsemantic',
   seed: 'RRRR vocal organism',
   energy: 4,
   model: 'qa',
@@ -151,15 +158,15 @@ assert.equal(runs[0].mouthGenome?.id, genome.id, 'Archived run should retain mou
 assert.equal(runs[0].mouthPromptMode, 'compact', 'Archived run should retain prompt mode.');
 assert.equal(
   runs[0].mouthSemanticMode,
-  'englishMeaningAlienMouth',
-  'Archived run should retain semantic mode.',
+  'nonsemantic',
+  'Archived run should retain expanded semantic mode.',
 );
 
 const markdown = runToMarkdown(run);
 assert.ok(markdown.includes('Mouth Lab genome:'), 'Run export should document Mouth Lab.');
 assert.ok(markdown.includes(genome.name), 'Run export should name the active mouth genome.');
 assert.ok(
-  markdown.includes('englishMeaningAlienMouth'),
+  markdown.includes('nonsemantic'),
   'Run export should preserve Mouth Lab semantic mode.',
 );
 

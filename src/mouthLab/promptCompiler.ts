@@ -5,6 +5,7 @@ import {
   MouthPromptMode,
   MouthQuirkInstance,
   MouthSemanticMode,
+  normalizeMouthSemanticMode,
   MouthTraitPressure,
 } from './types';
 import { getMouthDonor } from './donors';
@@ -330,11 +331,10 @@ export function normalizeMouthGenomeForGeneration(value: unknown): MouthGenome |
 }
 
 function semanticModeFor(
-  genome: MouthGenome,
+  _genome: MouthGenome,
   requested: MouthSemanticMode | undefined,
 ): MouthSemanticMode {
-  if (requested === 'englishMeaningAlienMouth') return requested;
-  return 'inherit';
+  return normalizeMouthSemanticMode(requested);
 }
 
 function semanticPolicy(genome: MouthGenome, mode: MouthSemanticMode): string {
@@ -344,9 +344,49 @@ function semanticPolicy(genome: MouthGenome, mode: MouthSemanticMode): string {
       'Keep semantic propositions and lexical targets in intelligible English.',
       'English owns meaning, not mouth mechanics.',
       'Pronunciation, consonants, vowels, timing, tone, phonation, phonotactics, and morphology may be governed by the selected Mouth Lab traits.',
-      'Do not translate the lyrics into donor languages merely because their traits are active.',
-      'Do not fabricate fluent-looking donor-language words or claim the hybrid output is authentic speech in a donor language.',
-      'When a morphology trait acts on English, treat it as a structural mutation pressure on English material.',
+      'Do not translate into donor languages or fabricate fluent-looking donor-language text.',
+      'When morphology acts on English, treat it as structural mutation pressure on English material.',
+    ].join(' ');
+  }
+
+  if (mode === 'mixed') {
+    return [
+      'MIXED SEMANTICS:',
+      'Keep a clearly intelligible semantic spine, but permit bounded regions where lexical material fractures into vocables, partial words, repeated morpheme-like fragments, and nonlexical mouth events.',
+      'Meaning and nonmeaning may alternate, overlap, or be assigned to different cast roles.',
+      'At least one recurring anchor phrase must remain intelligible enough to orient the listener.',
+      'Do not present invented material as authentic donor-language speech.',
+    ].join(' ');
+  }
+
+  if (mode === 'decay') {
+    return [
+      'SEMANTIC DECAY:',
+      'Begin with clear propositions and recognizable lexical targets, then progressively erode semantics in a one-way trajectory.',
+      'Sentence structure may collapse into fragments, fragments into pseudo-words, pseudo-words into phonemes, and phonemes into articulatory gestures.',
+      'Preserve one or two semantic fossils as recurring anchors so the loss of meaning is audible rather than random.',
+      'Do not reset to full clarity unless an explicit structural event commands it.',
+    ].join(' ');
+  }
+
+  if (mode === 'nonsemantic') {
+    return [
+      'NONSEMANTIC MOUTH:',
+      'The voice is not required to communicate lexical propositions.',
+      'Use phonemes, vocables, breaths, clicks, trills, vowels, consonant bursts, hocketed fragments, and other mouth events as musical material.',
+      'Phonetic organization must still obey the selected Mouth Lab genome and remain structurally purposeful.',
+      'Do not fabricate or imply fluent speech in any donor language.',
+    ].join(' ');
+  }
+
+  if (mode === 'evolving') {
+    return [
+      'EVOLVING SEMANTICS:',
+      'Meaning itself is a stateful musical variable.',
+      'Begin with a stable semantic mapping, then let repeated words, phrases, or vocal tokens acquire, lose, split, or exchange meanings only when explicit musical or structural triggers occur.',
+      'Track those changes consistently after each trigger so semantic mutation has memory and ancestry.',
+      'Retain at least one invariant referent so the listener can perceive the semantic evolution.',
+      'Do not use arbitrary surreal substitution as a shortcut.',
     ].join(' ');
   }
 
@@ -356,7 +396,6 @@ function semanticPolicy(genome: MouthGenome, mode: MouthSemanticMode): string {
 
   return anchor + ' Mouth mechanics may transform pronunciation and structure only within the genome jurisdictions.';
 }
-
 function takeoverText(instance: MouthQuirkInstance): string {
   const curve = instance.takeover;
   if (curve.mode === 'constant') return 'active throughout';
@@ -680,9 +719,7 @@ function compactText(genome: MouthGenome, mode: MouthSemanticMode): string {
     .join('; ');
 
   return [
-    mode === 'englishMeaningAlienMouth'
-      ? 'ENGLISH MEANING / ALIEN MOUTH: English semantics remain intelligible; donor languages control mouth mechanics only.'
-      : semanticPolicy(genome, mode),
+    semanticPolicy(genome, mode),
     assignments,
     quirks ? 'QUIRKS: ' + quirks : '',
     dynamicLines(genome).length
