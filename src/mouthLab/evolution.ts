@@ -2,6 +2,7 @@ import {
   MouthEvolutionRequest,
   MouthEvolutionResult,
   MouthFitnessRecord,
+  MouthSelfEvolutionRequest,
   MouthGenome,
   MouthJurisdictionAssignment,
   MouthQuirkInstance,
@@ -842,5 +843,285 @@ export function breedMouthSpecies(request: MouthEvolutionRequest): MouthEvolutio
     lineage,
     warnings,
     noveltyPenalties,
+  };
+}
+
+
+function selfEvolutionCandidateTraits(parent: MouthGenome, specimens: MouthSpecimen[]): Array<{ traitId: string; donorId: string }> {
+  const active = new Set(activeTraitIds(parent));
+  const candidates: Array<{ traitId: string; donorId: string }> = [];
+
+  for (const donorId of parent.parentDonorIds) {
+    const donor = getMouthDonor(donorId);
+    if (!donor) continue;
+    for (const traitId of donor.traitIds) {
+      if (!active.has(traitId) && getMouthTrait(traitId)) {
+        candidates.push({ traitId, donorId });
+      }
+    }
+  }
+
+  const environment = parent.environment;
+  if (environment?.sourceDonorId) {
+    for (const traitId of environment.adaptationTraitIds) {
+      if (!active.has(traitId) && getMouthTrait(traitId)) {
+        candidates.push({ traitId, donorId: environment.sourceDonorId });
+      }
+    }
+  }
+
+  for (const specimen of specimens) {
+    for (const traitId of specimen.linkedTraitIds) {
+      if (active.has(traitId)) continue;
+      const donorId = parent.parentDonorIds.find((id) => getMouthDonor(id)?.traitIds.includes(traitId));
+      if (donorId && getMouthTrait(traitId)) candidates.push({ traitId, donorId });
+    }
+  }
+
+  return candidates.filter(
+    (candidate, index, all) =>
+      all.findIndex((item) => item.traitId === candidate.traitId && item.donorId === candidate.donorId) === index,
+  );
+}
+
+function driftPressure(
+  pressure: MouthTraitPressure,
+  mutationChance: number,
+  rng: () => number,
+): MouthTraitPressure {
+  if (rng() > mutationChance) return pressure;
+  const roll = rng();
+  const delta = roll < 0.42 ? -1 : roll > 0.58 ? 1 : 0;
+  return pressureFromRank(Math.max(1, Math.min(4, pressureRank(pressure) + delta)));
+}
+
+function mutateQuirkInstance(
+  quirk: MouthQuirkInstance,
+  mutationChance: number,
+  rng: () => number,
+): MouthQuirkInstance {
+  if (!quirk.enabled || rng() > mutationChance) return { ...quirk, takeover: { ...quirk.takeover } };
+
+  const nudge = (value: number, amplitude: number) =>
+    clampMouthControl(value + Math.round((rng() * 2 - 1) * amplitude), value);
+
+  return {
+    ...quirk,
+    frequency: nudge(quirk.frequency, 18),
+    consistency: nudge(quirk.consistency, 14),
+    exaggeration: nudge(quirk.exaggeration, 20),
+    takeover: { ...quirk.takeover },
+  };
+}
+
+export function evolveMouthSpecies(request: MouthSelfEvolutionRequest): MouthEvolutionResult {
+  const parent = request.parent;
+  if (!parent?.id) throw new Error('Mouth self-evolution requires one valid parent genome.');
+
+  const evolutionSeed = request.evolutionSeed.trim() || 'mouth-self-evolution';
+  const mutationChance =
+    clampMouthControl(request.mutationChance, parent.mutation) / 100;
+  const rng = makeMouthRng(
+    stableStringify({
+      parentId: parent.id,
+      evolutionSeed,
+      specimenIds: (request.specimenAssist || []).map((specimen) => specimen.id).sort(),
+      environment: parent.environment
+        ? {
+            mode: parent.environment.mode,
+            sourceDonorId: parent.environment.sourceDonorId || '',
+            pressure: parent.environment.pressure,
+            generations: parent.environment.generations,
+            adaptationTraitIds: [...parent.environment.adaptationTraitIds].sort(),
+          }
+        : undefined,
+    }),
+  );
+
+  const inheritedTraitIds = activeTraitIds(parent);
+  const assignments = parent.assignments.map((assignment) => ({
+    ...assignment,
+    traitIds: [...assignment.traitIds],
+    pressure:
+      assignment.axis === 'semantics' || assignment.locked
+        ? assignment.pressure
+        : driftPressure(assignment.pressure, mutationChance, rng),
+  }));
+
+  const mutationTraitIds: string[] = [];
+  const candidates = rankedShuffle(
+    selfEvolutionCandidateTraits(parent, request.specimenAssist || []),
+    rng,
+  );
+
+  if (candidates.length && rng() < Math.min(0.8, mutationChance + ((parent.environment?.pressure || 0) / 250))) {
+    const candidate = candidates[0];
+    const trait = getMouthTrait(candidate.traitId);
+    if (trait) {
+      const occupiedAxes = new Set(assignments.map((assignment) => assignment.axis));
+      const axis =
+        trait.axes.find((item) => !occupiedAxes.has(item)) ||
+        trait.axes.find((item) => item !== 'semantics' && item !== 'lexicon') ||
+        trait.axes[0];
+
+      if (axis) {
+        assignments.push({
+          axis,
+          donorId: candidate.donorId,
+          traitIds: [candidate.traitId],
+          pressure: trait.defaultPressure,
+          locked: false,
+        });
+        mutationTraitIds.push(candidate.traitId);
+      }
+    }
+  }
+
+  const quirks = parent.quirks.map((quirk) =>
+    mutateQuirkInstance(quirk, mutationChance, rng),
+  );
+  const mutationQuirkIds = quirks
+    .filter((quirk, index) => {
+      const previous = parent.quirks[index];
+      return previous && (
+        quirk.frequency !== previous.frequency ||
+        quirk.consistency !== previous.consistency ||
+        quirk.exaggeration !== previous.exaggeration
+      );
+    })
+    .map((quirk) => quirk.quirkId);
+
+  const generation = (parent.lineage?.generation || 0) + 1;
+  const lineage: MouthSpeciesLineage = {
+    parentGenomeIds: [parent.id],
+    parentNames: [parent.name],
+    generation,
+    breedingSeed: evolutionSeed,
+    inheritedTraitIdsByParent: {
+      [parent.id]: inheritedTraitIds,
+    },
+    inheritedQuirkIdsByParent: {
+      [parent.id]: activeQuirkIds(parent),
+    },
+    specimenIds: (request.specimenAssist || []).map((specimen) => specimen.id).sort(),
+    mutationTraitIds,
+    mutationQuirkIds,
+    noveltyPenaltyTraitIds: [],
+  };
+
+  const driftedAssignments = assignments.sort(
+    (a, b) =>
+      a.axis.localeCompare(b.axis) ||
+      (a.donorId || '').localeCompare(b.donorId || '') ||
+      a.traitIds.join(',').localeCompare(b.traitIds.join(',')),
+  );
+
+  const changeNotes: string[] = [];
+  for (const assignment of driftedAssignments) {
+    const before = parent.assignments.find((item) =>
+      item.axis === assignment.axis &&
+      item.donorId === assignment.donorId &&
+      item.traitIds.join('|') === assignment.traitIds.join('|')
+    );
+    if (before && before.pressure !== assignment.pressure) {
+      changeNotes.push(
+        (assignment.traitIds.map((id) => getMouthTrait(id)?.name || id).join(' + ') || assignment.axis) +
+        ' pressure ' + before.pressure + '→' + assignment.pressure,
+      );
+    }
+  }
+
+  if (mutationTraitIds.length) {
+    changeNotes.push(
+      'activated dormant/available gene ' +
+      mutationTraitIds.map((id) => getMouthTrait(id)?.name || id).join(', '),
+    );
+  }
+  if (mutationQuirkIds.length) {
+    changeNotes.push(
+      'mutated quirk expression ' +
+      mutationQuirkIds.map((id) => getMouthQuirkDefinition(id)?.name || id).join(', '),
+    );
+  }
+
+  const evolutionScar = changeNotes.length
+    ? {
+        id: 'mouth_scar_evolve_' + hashMouthString(
+          stableStringify({ parentId: parent.id, evolutionSeed, generation, changeNotes }),
+        ).toString(36),
+        sourceOperation: 'manual' as const,
+        removedTraitIds: [],
+        removedQuirkIds: [],
+        residualRule:
+          'SELF-EVOLUTION G' + generation + ': ' + changeNotes.join('; ') +
+          '. Preserve true donor ancestry; these changes arose by lineage drift, not a new parent.',
+        strength: clampMouthControl(request.mutationChance, parent.mutation),
+        createdAt: Date.now(),
+      }
+    : undefined;
+
+  const signature = stableStringify({
+    lineage,
+    assignments: driftedAssignments,
+    quirks: quirks.map(({ createdAt, ...quirk }) => quirk),
+    environment: parent.environment
+      ? { ...parent.environment, createdAt: undefined }
+      : undefined,
+  });
+  const hash = hashMouthString(signature).toString(36);
+  const baseName = parent.name.replace(/\s+G\d+.*$/i, '').slice(0, 42);
+
+  const genome: MouthGenome = {
+    ...parent,
+    id: 'mouth_self_' + hash,
+    name: request.requestedName?.trim() || baseName + ' G' + generation + ' / ' + hash.toUpperCase(),
+    parentDonorIds: [...parent.parentDonorIds],
+    assignments: driftedAssignments,
+    breedingSeed: evolutionSeed,
+    quirks,
+    mutationScars: [
+      ...parent.mutationScars,
+      ...(evolutionScar ? [evolutionScar] : []),
+    ].slice(-12),
+    linkedGeneBundles: parent.linkedGeneBundles
+      .filter((bundle) =>
+        bundle.traitIds.some((id) => driftedAssignments.some((assignment) => assignment.traitIds.includes(id))) ||
+        bundle.quirkIds.some((id) => quirks.some((quirk) => quirk.quirkId === id)),
+      ),
+    dynamics: parent.dynamics ? normalizeMouthDynamics(parent.dynamics) : undefined,
+    environment: parent.environment
+      ? {
+          ...parent.environment,
+          generations: Math.min(24, parent.environment.generations + 1),
+          createdAt: parent.environment.createdAt,
+        }
+      : undefined,
+    lineage,
+    createdAt: Date.now(),
+  };
+
+  const identified = reidentifyMouthGenome(genome);
+  const phenotype = projectMouthPhenotype(identified);
+  const warnings = [...phenotype.warnings];
+
+  if (!changeNotes.length) {
+    warnings.push(
+      'This generation stayed phenotypically conservative. Same lineage, one generation older, no forced novelty.',
+    );
+  } else {
+    warnings.push('Self-evolution changes: ' + changeNotes.join('; ') + '.');
+  }
+  if (parent.environment) {
+    warnings.push(
+      'Current environment advanced with the lineage for one generation; it remained environment, not ancestry.',
+    );
+  }
+
+  return {
+    genome: identified,
+    phenotype,
+    lineage,
+    warnings,
+    noveltyPenalties: [],
   };
 }
