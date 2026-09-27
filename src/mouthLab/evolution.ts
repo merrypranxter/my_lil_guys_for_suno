@@ -164,6 +164,7 @@ export function mouthGenomePhenotypeSignature(genome: MouthGenome): string {
     environment: genome.environment ? { ...genome.environment, createdAt: undefined } : undefined,
     intelligibility: genome.intelligibility,
     stability: genome.stability,
+    musicalExpression: genome.musicalExpression,
   });
 
   return 'mouth_pheno_' + hashMouthString(signature).toString(36);
@@ -794,6 +795,10 @@ export function breedMouthSpecies(request: MouthEvolutionRequest): MouthEvolutio
     mutation: clampMouthControl(
       Math.round((parentA.mutation + parentB.mutation) / 2),
       35,
+    ),
+    musicalExpression: clampMouthControl(
+      Math.round((parentA.musicalExpression + parentB.musicalExpression) / 2),
+      0,
     ),
     breedingSeed,
     quirks: quirkSelection.quirks,
