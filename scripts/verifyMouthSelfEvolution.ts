@@ -6,7 +6,7 @@ import {
 } from '../src/mouthLab';
 
 const base = breedMouthGenome({
-  parentDonorIds: ['mouth-donor-english', 'mouth-donor-hungarian'],
+  parentDonorIds: ['mouth-donor-english', 'mouth-donor-navajo'],
   breedingSeed: 'self-evolution-base',
   objectiveId: 'mouth-objective-pathological-consistency',
   semanticAnchorLanguageProfileId: 'lang-english',
@@ -16,8 +16,8 @@ const base = breedMouthGenome({
   manualAssignments: [
     {
       axis: 'vowels',
-      donorId: 'mouth-donor-hungarian',
-      traitIds: ['mouth-trait-vowel-harmony'],
+      donorId: 'mouth-donor-navajo',
+      traitIds: ['mouth-trait-ejective-attack'],
       pressure: 'high',
     },
   ],
