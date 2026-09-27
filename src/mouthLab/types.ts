@@ -60,6 +60,7 @@ export interface MouthCastProfile {
   sourceGenomeId?: string;
   parentDonorIds: string[];
   assignments: MouthJurisdictionAssignment[];
+  environmentExposures: MouthEnvironmentExposure[];
   quirks: MouthQuirkInstance[];
   intelligibility: number;
   stability: number;
@@ -195,7 +196,13 @@ export interface MouthEvolutionResult {
 
 export type MouthPromptMode = 'compact' | 'bracketed' | 'descriptive';
 
-export type MouthSemanticMode = 'inherit' | 'englishMeaningAlienMouth';
+export type MouthSemanticMode =
+  | 'inherit'
+  | 'englishMeaningAlienMouth'
+  | 'mixedSemanticInheritance'
+  | 'semanticDecay'
+  | 'nonsemantic'
+  | 'evolvingSemantics';
 
 export interface MouthPromptCompileOptions {
   mode?: MouthPromptMode;
@@ -400,6 +407,17 @@ export interface MouthJurisdictionAssignment {
   traitIds: string[];
   pressure: MouthTraitPressure;
   locked: boolean;
+}
+
+export interface MouthEnvironmentExposure {
+  id: string;
+  donorId: string;
+  generations: number;
+  pressure: MouthTraitPressure;
+  scarTraitIds: string[];
+  seed: string;
+  note?: string;
+  createdAt: number;
 }
 
 export interface MouthGenome {
