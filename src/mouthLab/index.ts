@@ -15,3 +15,5 @@ export * from './dynamics';
 export * from './evolution';
 
 export * from './environment';
+
+export * from './expression';
