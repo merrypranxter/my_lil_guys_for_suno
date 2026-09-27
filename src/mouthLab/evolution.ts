@@ -861,15 +861,6 @@ function selfEvolutionCandidateTraits(parent: MouthGenome, specimens: MouthSpeci
     }
   }
 
-  const environment = parent.environment;
-  if (environment?.sourceDonorId) {
-    for (const traitId of environment.adaptationTraitIds) {
-      if (!active.has(traitId) && getMouthTrait(traitId)) {
-        candidates.push({ traitId, donorId: environment.sourceDonorId });
-      }
-    }
-  }
-
   for (const specimen of specimens) {
     for (const traitId of specimen.linkedTraitIds) {
       if (active.has(traitId)) continue;
