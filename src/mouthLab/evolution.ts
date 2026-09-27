@@ -160,6 +160,7 @@ export function mouthGenomePhenotypeSignature(genome: MouthGenome): string {
       .sort((a, b) => a.quirkId.localeCompare(b.quirkId)),
     dynamics: canonicalDynamics(genome),
     semanticAnchorLanguageProfileId: genome.semanticAnchorLanguageProfileId || '',
+    environment: genome.environment ? { ...genome.environment, createdAt: undefined } : undefined,
     intelligibility: genome.intelligibility,
     stability: genome.stability,
   });
