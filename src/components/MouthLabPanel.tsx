@@ -18,6 +18,7 @@ import type {
   MouthCastRole,
   MouthExpressionState,
   MouthEvolutionResult,
+  MouthEnvironmentMode,
   MouthGenome,
   MouthLabArchive,
   MouthMutationAction,
@@ -37,11 +38,13 @@ import {
   MOUTH_QUIRKS,
   MOUTH_SEMANTIC_MODES,
   MOUTH_TRANSDUCTION_PRESETS,
+  applyMouthEnvironment,
   applyMouthQuirk,
   applyMouthSpecimen,
   breedMouthGenome,
   breedMouthSpecies,
   captureMouthSpecimen,
+  clearMouthEnvironment,
   compileMouthPrompt,
   createExpressionRule,
   createMouthCastProfile,
@@ -195,6 +198,13 @@ export function MouthLabPanel({
   const [timelineTargetRole, setTimelineTargetRole] = useState<MouthCastRole>('crowd');
   const [timelineAmount, setTimelineAmount] = useState(80);
   const [timelineTrigger, setTimelineTrigger] = useState('');
+  const [environmentMode, setEnvironmentMode] = useState<MouthEnvironmentMode>(() => genome?.environment?.mode || 'exposure');
+  const [environmentDonorId, setEnvironmentDonorId] = useState(
+    () => genome?.environment?.sourceDonorId || MOUTH_DONORS.find((donor) => donor.id === 'mouth-donor-tashlhiyt')?.id || MOUTH_DONORS[1]?.id || ''
+  );
+  const [environmentPressure, setEnvironmentPressure] = useState(() => genome?.environment?.pressure ?? 70);
+  const [environmentGenerations, setEnvironmentGenerations] = useState(() => genome?.environment?.generations ?? 4);
+  const [environmentSeed, setEnvironmentSeed] = useState(() => genome?.environment?.seed || randomSeed('ecology'));
   const [evolutionParentAId, setEvolutionParentAId] = useState('');
   const [evolutionParentBId, setEvolutionParentBId] = useState('');
   const [evolutionSeed, setEvolutionSeed] = useState(() => randomSeed('species'));
@@ -309,7 +319,50 @@ export function MouthLabPanel({
     setIntelligibility(genome.intelligibility);
     setStability(genome.stability);
     setMutation(genome.mutation);
+    setEnvironmentMode(genome.environment?.mode || 'exposure');
+    setEnvironmentDonorId(
+      genome.environment?.sourceDonorId ||
+      MOUTH_DONORS.find((donor) => donor.id === 'mouth-donor-tashlhiyt')?.id ||
+      MOUTH_DONORS[1]?.id ||
+      ''
+    );
+    setEnvironmentPressure(genome.environment?.pressure ?? 70);
+    setEnvironmentGenerations(genome.environment?.generations ?? 4);
+    setEnvironmentSeed(genome.environment?.seed || randomSeed('ecology'));
   }, [genome?.id]);
+
+  const applyEnvironmentToActive = () => {
+    if (!genome) {
+      announce('Breed or load a mouth before giving it an environment.');
+      return;
+    }
+
+    try {
+      const next = applyMouthEnvironment(genome, {
+        mode: environmentMode,
+        sourceDonorId: environmentMode === 'isolation' ? undefined : environmentDonorId,
+        pressure: environmentPressure,
+        generations: environmentGenerations,
+        seed: environmentSeed,
+      });
+      onGenomeChange(next);
+      const source = next.environment?.sourceDonorId
+        ? getMouthDonor(next.environment.sourceDonorId)?.name || next.environment.sourceDonorId
+        : 'isolation';
+      announce(
+        'Ecology applied: ' + environmentMode.toUpperCase() + ' under ' + source +
+        '. Parent ancestry stayed unchanged; the lived effect was stored as a scar.'
+      );
+    } catch (error: any) {
+      announce(error?.message || 'Could not apply language ecology.');
+    }
+  };
+
+  const clearEnvironmentFromActive = () => {
+    if (!genome?.environment) return;
+    onGenomeChange(clearMouthEnvironment(genome));
+    announce('Current environment cleared. Existing environmental scar remains as lived history.');
+  };
 
   const announce = (message: string) => {
     setNotice(message);
@@ -1584,6 +1637,114 @@ export function MouthLabPanel({
 
       {tab === 'evolve' && (
         <div className="space-y-4">
+          <div className="rounded-2xl border border-[#00f0ff]/30 bg-[#081319] p-3">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <div className="text-xs font-mono font-black text-[#9bf8ff]">LANGUAGE ECOLOGY</div>
+                <div className="mt-1 max-w-3xl text-[10px] font-mono leading-relaxed text-[#718998]">
+                  Raise the current mouth under outside linguistic pressure without rewriting its ancestry. Environment can leave adaptations and heritable scars; it is never silently added as a parent.
+                </div>
+              </div>
+              {genome?.environment && (
+                <button
+                  type="button"
+                  onClick={clearEnvironmentFromActive}
+                  className="rounded-lg border border-[#415167] bg-[#0d131b] px-2.5 py-1.5 text-[9px] font-mono font-black text-[#9ba9bb] hover:text-white"
+                >
+                  CLEAR CURRENT ENVIRONMENT
+                </button>
+              )}
+            </div>
+
+            {genome ? (
+              <>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                  <label>
+                    <div className="mb-1 text-[9px] font-mono font-black text-[#7d8ba1]">PRESSURE TYPE</div>
+                    <select
+                      value={environmentMode}
+                      onChange={(event) => setEnvironmentMode(event.target.value as MouthEnvironmentMode)}
+                      className="w-full rounded-lg border border-[#28414d] bg-[#0b1116] px-2.5 py-2 text-[10px] font-mono text-white"
+                    >
+                      <option value="exposure">EXPOSURE</option>
+                      <option value="infection">INFECTION</option>
+                      <option value="isolation">ISOLATION</option>
+                    </select>
+                  </label>
+
+                  <label>
+                    <div className="mb-1 text-[9px] font-mono font-black text-[#7d8ba1]">SURROUNDING LANGUAGE</div>
+                    <select
+                      value={environmentDonorId}
+                      disabled={environmentMode === 'isolation'}
+                      onChange={(event) => setEnvironmentDonorId(event.target.value)}
+                      className="w-full rounded-lg border border-[#28414d] bg-[#0b1116] px-2.5 py-2 text-[10px] font-mono text-white disabled:opacity-35"
+                    >
+                      {MOUTH_DONORS.map((donor) => (
+                        <option key={'environment-' + donor.id} value={donor.id}>
+                          {donor.name}{genome.parentDonorIds.includes(donor.id) ? ' • ALSO A TRUE PARENT' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label>
+                    <div className="mb-1 text-[9px] font-mono font-black text-[#7d8ba1]">GENERATIONS</div>
+                    <input
+                      type="number"
+                      min={1}
+                      max={24}
+                      value={environmentGenerations}
+                      onChange={(event) => setEnvironmentGenerations(Math.max(1, Math.min(24, Number(event.target.value) || 1)))}
+                      className="w-full rounded-lg border border-[#28414d] bg-[#0b1116] px-2.5 py-2 text-[10px] font-mono text-white"
+                    />
+                  </label>
+
+                  <label>
+                    <div className="mb-1 text-[9px] font-mono font-black text-[#7d8ba1]">PRESSURE {environmentPressure}/100</div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      value={environmentPressure}
+                      onChange={(event) => setEnvironmentPressure(clamp(Number(event.target.value)))}
+                      className="w-full accent-cyan-400"
+                    />
+                  </label>
+                </div>
+
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <input
+                    value={environmentSeed}
+                    onChange={(event) => setEnvironmentSeed(event.target.value)}
+                    className="min-w-[220px] flex-1 rounded-lg border border-[#28414d] bg-[#0b1116] px-2.5 py-2 text-[10px] font-mono text-[#b8cad4]"
+                    placeholder="ecology seed"
+                  />
+                  <button
+                    type="button"
+                    onClick={applyEnvironmentToActive}
+                    className="rounded-lg border border-[#00f0ff] bg-[#0c2027] px-3 py-2 text-[10px] font-mono font-black text-[#9bf8ff] hover:bg-[#10303a]"
+                  >
+                    APPLY ENVIRONMENT
+                  </button>
+                </div>
+
+                {genome.environment && (
+                  <div className="mt-3 rounded-xl border border-[#244451] bg-[#09171d] p-2.5 text-[9px] font-mono leading-relaxed text-[#85aebb]">
+                    CURRENT: {genome.environment.mode.toUpperCase()} • {genome.environment.generations} generation(s) • {genome.environment.pressure}/100
+                    {genome.environment.sourceDonorId
+                      ? ' • source=' + (getMouthDonor(genome.environment.sourceDonorId)?.name || genome.environment.sourceDonorId)
+                      : ' • source=ISOLATION'}
+                    {genome.environment.adaptationTraitIds.length
+                      ? ' • adaptations=' + genome.environment.adaptationTraitIds.map((id) => getMouthTrait(id)?.name || id).join(', ')
+                      : ''}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="mt-3 text-[10px] font-mono text-[#617989]">No active mouth yet. Breed one first, then ruin its childhood.</div>
+            )}
+          </div>
           {evolutionParentOptions.length < 2 ? (
             <div className="rounded-2xl border border-dashed border-[#39445a] p-8 text-center text-xs font-mono text-[#718096]">
               Evolution needs two mouth species. Save the active mouth plus at least one other species in the Specimen Archive first.
