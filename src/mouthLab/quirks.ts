@@ -538,6 +538,7 @@ export function reidentifyMouthGenome(genome: MouthGenome): MouthGenome {
     breedingSeed: genome.breedingSeed,
     quirks: canonicalQuirkInstances(genome.quirks).map(({ createdAt, ...item }) => item),
     mutationScars: genome.mutationScars.map(({ createdAt, ...item }) => item),
+    environment: genome.environment ? { ...genome.environment, createdAt: undefined } : undefined,
     linkedGeneBundles: genome.linkedGeneBundles.map(({ createdAt, ...item }) => item),
     dynamics: genome.dynamics || undefined,
     lineage: genome.lineage || undefined,
