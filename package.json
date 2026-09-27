@@ -9,6 +9,7 @@
     "start": "node dist/server.cjs",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
+    "verify:sessions": "tsx scripts/verifySessionHygiene.ts",
     "verify:composition": "tsx scripts/verifyCompositionLab.ts",
     "verify:seed": "tsx scripts/verifyMusicSeedLab.ts",
     "verify:breeding": "tsx scripts/verifyMusicBreeding.ts",
