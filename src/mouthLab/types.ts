@@ -60,7 +60,7 @@ export interface MouthCastProfile {
   sourceGenomeId?: string;
   parentDonorIds: string[];
   assignments: MouthJurisdictionAssignment[];
-  environmentExposures: MouthEnvironmentExposure[];
+  environmentExposures?: MouthEnvironmentExposure[];
   quirks: MouthQuirkInstance[];
   intelligibility: number;
   stability: number;
