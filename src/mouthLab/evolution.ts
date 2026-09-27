@@ -945,7 +945,9 @@ export function evolveMouthSpecies(request: MouthSelfEvolutionRequest): MouthEvo
     rng,
   );
 
-  if (candidates.length && rng() < Math.min(0.8, mutationChance + ((parent.environment?.pressure || 0) / 250))) {
+  const ecologyMutationMultiplier = 1 + ((parent.environment?.pressure || 0) / 200);
+  const effectiveMutationChance = Math.min(0.8, mutationChance * ecologyMutationMultiplier);
+  if (candidates.length && mutationChance > 0 && rng() < effectiveMutationChance) {
     const candidate = candidates[0];
     const trait = getMouthTrait(candidate.traitId);
     if (trait) {
