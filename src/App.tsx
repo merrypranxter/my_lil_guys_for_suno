@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { LITTLE_GUYS } from './data/littleGuys';
-import { ArchivedRun, LittleGuy, BoxType, SavedStack, GenerationResponse, MusicBredGenome, MusicControls, MusicStackItem, PetriDishExperiment, PetriDishSibling, RealityChaosLevel } from './types';
+import { ArchivedRun, RunSession, LittleGuy, BoxType, SavedStack, GenerationResponse, MusicBredGenome, MusicControls, MusicStackItem, PetriDishExperiment, PetriDishSibling, RealityChaosLevel } from './types';
 import { generateProceduralTrack, clampAndPad, TARGETS } from './lib/proceduralGenerator';
 import { ACTIVE_GUY_MAX, buildSmartStack, planGuyActivation, resolveRecipe } from './lib/mindStacking';
 import { getMindMetadata } from './data/mindMetadata';
@@ -16,7 +16,7 @@ import { PetriDishPanel } from './components/PetriDishPanel';
 import { StarterSeedPanel } from './components/StarterSeedPanel';
 import { genomeToStackItem } from './lib/musicBreeding';
 import { blendSiblingControls, buildSiblingMusicStack } from './lib/petriDish';
-import { MUSIC_FEEDBACK_TAGS, compileMusicStack, musicGenomePhenotypeSignature } from './data/musicSeedSystem';
+import { DEFAULT_MUSIC_CONTROLS, MUSIC_FEEDBACK_TAGS, compileMusicStack, musicGenomePhenotypeSignature } from './data/musicSeedSystem';
 import { OutputBox } from './components/OutputBox';
 import { ModuleDock, ModuleSection } from './components/ModuleShell';
 import type { ModuleNavItem } from './components/ModuleShell';
@@ -47,6 +47,11 @@ import {
   saveStackToFavorites,
   deleteSavedStack,
   getRunArchive,
+  getRunSessions,
+  getActiveRunSession,
+  getCurrentSessionRuns,
+  startNewRunSession,
+  resumeRunSession,
   saveGeneratedRun,
   updateArchivedRun,
   getRecentFingerprints,
@@ -64,6 +69,7 @@ import {
   promoteGenomesFromRun,
   promoteMouthGenomeFromRun,
   runToMarkdown,
+  sessionToMarkdown,
   archiveToMarkdown,
 } from './lib/localStorage';
 import { AlertCircle, Archive, Download, Layers, MessageSquare, Sparkles, Star, X } from 'lucide-react';
@@ -88,6 +94,7 @@ const UI_MODULES: ModuleNavItem[] = [
 ];
 
 const DEFAULT_MODULE_OPEN = Object.fromEntries(UI_MODULES.map((item) => [item.id, true])) as Record<string, boolean>;
+const DEFAULT_STACK_GUY_IDS = ['taxonomy-goblin', 'recall-mold', 'cosmic-clerk'];
 
 function downloadText(filename: string, text: string) {
   const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
@@ -109,7 +116,7 @@ export default function App() {
   const [stackGuyIds, setStackGuyIds] = useState<string[]>(() => {
     const saved = getLastStack();
     if (saved && saved.length > 0) return saved;
-    return ['taxonomy-goblin', 'recall-mold', 'cosmic-clerk'];
+    return [...DEFAULT_STACK_GUY_IDS];
   });
 
   const [realityEngineIds, setRealityEngineIds] = useState<string[]>(() => getLastRealityEngineIds());
@@ -132,6 +139,10 @@ export default function App() {
   });
 
   const [currentRun, setCurrentRun] = useState<ArchivedRun | null>(null);
+  const [activeSession, setActiveSession] = useState<RunSession>(() => getActiveRunSession());
+  const [runSessions, setRunSessions] = useState<RunSession[]>(() => getRunSessions());
+  const [resumeSessionId, setResumeSessionId] = useState(() => getActiveRunSession().id);
+  const [sessionRunCount, setSessionRunCount] = useState(() => getCurrentSessionRuns().length);
   const [archiveCount, setArchiveCount] = useState(() => getRunArchive().length);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedbackDraft, setFeedbackDraft] = useState('');
@@ -464,6 +475,9 @@ export default function App() {
     });
     setCurrentRun(run);
     setArchiveCount(getRunArchive().length);
+    setSessionRunCount(getCurrentSessionRuns().length);
+    setActiveSession(getActiveRunSession());
+    setRunSessions(getRunSessions());
   };
 
   const handleGenerate = async () => {
@@ -746,6 +760,93 @@ export default function App() {
     const updated = updateArchivedRun(currentRun.id, { starred: false });
     if (updated) setCurrentRun(updated);
     setFeedbackOpen(false);
+  };
+
+  const resetSessionWorkspace = () => {
+    setStackGuyIds([...DEFAULT_STACK_GUY_IDS]);
+    setRealityEngineIds([]);
+    setCompositionEngineIds([]);
+    setMusicStack([]);
+    setMusicControls({ ...DEFAULT_MUSIC_CONTROLS });
+    setStarterSeedStack([]);
+    setRealityChaos(2);
+    setMouthGenome(undefined);
+    setMouthPromptMode('bracketed');
+    setMouthSemanticMode('inherit');
+    handleSeedChange('');
+    handleEnergyChange(4);
+    setOutputs({ style: '', lyrics: '', caption: '' });
+    setCurrentRun(null);
+    setFeedbackOpen(false);
+    setFeedbackDraft('');
+    setFeedbackTagsDraft([]);
+    setLikedStarterSeedIdsDraft([]);
+    setDislikedStarterSeedIdsDraft([]);
+    setLikedMechanismIdsDraft([]);
+    setDislikedMechanismIdsDraft([]);
+    setLikedMouthTraitIdsDraft([]);
+    setDislikedMouthTraitIdsDraft([]);
+    setLikedMouthQuirkIdsDraft([]);
+    setDislikedMouthQuirkIdsDraft([]);
+    setErrorMessage(null);
+  };
+
+  const startFreshSession = () => {
+    const session = startNewRunSession();
+    setActiveSession(session);
+    setRunSessions(getRunSessions());
+    setResumeSessionId(session.id);
+    setSessionRunCount(0);
+    resetSessionWorkspace();
+    setNoticeMessage('Fresh session started. Old runs are still safe in the archive.');
+  };
+
+  const resumeSelectedSession = () => {
+    const session = resumeRunSession(resumeSessionId);
+    if (!session) {
+      setErrorMessage('That session is no longer available.');
+      return;
+    }
+
+    const runs = getRunArchive().filter((run) => run.sessionId === session.id);
+    const latest = runs[0];
+    setActiveSession(session);
+    setRunSessions(getRunSessions());
+    setSessionRunCount(runs.length);
+    setErrorMessage(null);
+
+    if (!latest) {
+      resetSessionWorkspace();
+      setNoticeMessage('Resumed an empty session.');
+      return;
+    }
+
+    setStackGuyIds(latest.guyIds.length ? [...latest.guyIds] : [...DEFAULT_STACK_GUY_IDS]);
+    setRealityEngineIds([...(latest.realityEngineIds || [])]);
+    setCompositionEngineIds([...(latest.compositionEngineIds || [])]);
+    setMusicStack([...(latest.musicStack || [])]);
+    setMusicControls(latest.musicControls ? { ...latest.musicControls } : { ...DEFAULT_MUSIC_CONTROLS });
+    setStarterSeedStack((latest.starterSeedStack || []).map((item) => ({ ...item })));
+    setRealityChaos(latest.realityChaos || 2);
+    setMouthGenome(latest.mouthGenome);
+    setMouthPromptMode(latest.mouthPromptMode || 'bracketed');
+    setMouthSemanticMode(latest.mouthSemanticMode || 'inherit');
+    handleSeedChange(latest.seed || '');
+    handleEnergyChange(latest.energy || 4);
+    setOutputs({
+      style: latest.style || '',
+      lyrics: latest.lyrics || '',
+      caption: latest.caption || '',
+    });
+    setCurrentRun(latest);
+    setFeedbackOpen(false);
+    setNoticeMessage('Session resumed from its latest archived run.');
+  };
+
+  const exportSession = () => {
+    const runs = getRunArchive().filter((run) => run.sessionId === activeSession.id);
+    const stamp = new Date(activeSession.startedAt).toISOString().replace(/[:.]/g, '-');
+    downloadText('little-guy-session-' + stamp + '.md', sessionToMarkdown(activeSession, runs));
   };
 
   const exportCurrent = () => {
@@ -1055,6 +1156,63 @@ export default function App() {
           onToggle={() => toggleModule('output')}
         >
           <div id="output-section" className="space-y-4">
+            <div className="rounded-xl border border-[#263349] bg-[#0b111c] px-3 py-3 md:px-4">
+              <div className="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-3">
+                <div className="font-mono">
+                  <div className="text-[10px] uppercase tracking-[0.22em] text-[#7d8ba1]">ACTIVE SESSION</div>
+                  <div className="text-xs text-[#a8d8ff] mt-1">
+                    {new Date(activeSession.startedAt).toLocaleString()} • {sessionRunCount} run{sessionRunCount === 1 ? '' : 's'}
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 text-xs font-mono">
+                  <button
+                    type="button"
+                    onClick={startFreshSession}
+                    className="px-3 py-2 rounded-lg border border-[#ff4fd8] bg-[#251020] text-[#ff9dea] font-bold hover:bg-[#35152d]"
+                  >
+                    NEW SESSION
+                  </button>
+                  <button
+                    type="button"
+                    onClick={exportSession}
+                    disabled={sessionRunCount === 0}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#334155] bg-[#111827] text-[#cbd5e1] hover:border-[#39ff14] hover:text-white disabled:opacity-40"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    EXPORT SESSION .MD ({sessionRunCount})
+                  </button>
+                  {runSessions.length > 1 && (
+                    <>
+                      <select
+                        value={resumeSessionId}
+                        onChange={(event) => setResumeSessionId(event.target.value)}
+                        className="max-w-[240px] px-2 py-2 rounded-lg border border-[#334155] bg-[#090d14] text-[#cbd5e1]"
+                        aria-label="Choose a previous session"
+                      >
+                        {runSessions.map((session) => (
+                          <option key={session.id} value={session.id}>
+                            {session.id === activeSession.id ? 'CURRENT • ' : ''}
+                            {new Date(session.startedAt).toLocaleString()}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={resumeSelectedSession}
+                        disabled={resumeSessionId === activeSession.id}
+                        className="px-3 py-2 rounded-lg border border-[#7c3aed] bg-[#171025] text-[#c4a7ff] font-bold hover:border-[#a78bfa] disabled:opacity-40"
+                      >
+                        RESUME
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+              <div className="mt-2 text-[10px] font-mono text-[#617089]">
+                New Session clears the current experiment only. Stars, feedback, saved genomes, recipes, favorites, and old archive runs stay intact.
+              </div>
+            </div>
+
             <div className="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-3">
               <div>
                 <h2 className="text-base md:text-lg font-bold font-mono tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-[#00f0ff] to-[#39ff14] flex items-center gap-2">
@@ -1085,7 +1243,7 @@ export default function App() {
                       className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#334155] bg-[#111827] text-[#cbd5e1] hover:border-[#39ff14] hover:text-white"
                     >
                       <Download className="w-3.5 h-3.5" />
-                      EXPORT CURRENT .MD
+                      EXPORT CURRENT RUN .MD
                     </button>
 
                     <button
