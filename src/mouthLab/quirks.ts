@@ -530,6 +530,7 @@ export function reidentifyMouthGenome(genome: MouthGenome): MouthGenome {
   const signature = stableStringify({
     parentDonorIds: genome.parentDonorIds,
     assignments: genome.assignments,
+    environmentExposures: genome.environmentExposures || [],
     objectiveId: genome.objectiveId,
     semanticAnchorLanguageProfileId: genome.semanticAnchorLanguageProfileId,
     intelligibility: genome.intelligibility,
