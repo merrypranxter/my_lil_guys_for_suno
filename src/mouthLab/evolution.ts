@@ -776,6 +776,7 @@ export function breedMouthSpecies(request: MouthEvolutionRequest): MouthEvolutio
       request.requestedName?.trim() ||
       generatedName(parentA, parentB, generation, hash),
     parentDonorIds: selectedDonors,
+    environmentExposures: [],
     assignments: traitSelection.assignments.sort(
       (a, b) =>
         a.axis.localeCompare(b.axis) ||
