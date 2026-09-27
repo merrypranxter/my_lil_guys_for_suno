@@ -1,5 +1,5 @@
 import { ArchivedRun, RunSession, CompositionFavorite, CompositionPreset, GenomeFitnessRecord, GenomePromotionReason, MusicBredGenome, MusicControls, MusicFingerprint, MusicStackItem, PetriDishExperiment, RealityChaosLevel, RecentCompositionBuild, SavedStack } from '../types';
-import type { MouthFitnessRecord, MouthGenome, MouthPromptMode, MouthSemanticMode } from '../mouthLab/types';
+import { normalizeMouthSemanticMode, type MouthFitnessRecord, type MouthGenome, type MouthPromptMode, type MouthSemanticMode } from '../mouthLab/types';
 import { normalizeMouthGenomeForGeneration } from '../mouthLab/promptCompiler';
 import { getMouthQuirkDefinition } from '../mouthLab/quirks';
 import { getMouthTrait } from '../mouthLab/traits';
@@ -68,10 +68,7 @@ export function getSavedStacks(): SavedStack[] {
         stack?.mouthPromptMode === 'compact' || stack?.mouthPromptMode === 'descriptive'
           ? stack.mouthPromptMode
           : 'bracketed',
-      mouthSemanticMode:
-        stack?.mouthSemanticMode === 'englishMeaningAlienMouth'
-          ? 'englishMeaningAlienMouth'
-          : 'inherit',
+      mouthSemanticMode: normalizeMouthSemanticMode(stack?.mouthSemanticMode),
     }));
   } catch (e) {
     console.error('Failed to load saved stacks from localStorage', e);
@@ -250,9 +247,7 @@ export function setSavedMouthPromptMode(mode: MouthPromptMode): void {
 
 export function getSavedMouthSemanticMode(): MouthSemanticMode {
   try {
-    return localStorage.getItem(STORAGE_KEYS.MOUTH_SEMANTIC_MODE) === 'englishMeaningAlienMouth'
-      ? 'englishMeaningAlienMouth'
-      : 'inherit';
+    return normalizeMouthSemanticMode(localStorage.getItem(STORAGE_KEYS.MOUTH_SEMANTIC_MODE));
   } catch {
     return 'inherit';
   }
@@ -1182,10 +1177,7 @@ export function getRunArchive(): ArchivedRun[] {
         run?.mouthPromptMode === 'compact' || run?.mouthPromptMode === 'descriptive'
           ? run.mouthPromptMode
           : 'bracketed',
-      mouthSemanticMode:
-        run?.mouthSemanticMode === 'englishMeaningAlienMouth'
-          ? 'englishMeaningAlienMouth'
-          : 'inherit',
+      mouthSemanticMode: normalizeMouthSemanticMode(run?.mouthSemanticMode),
       feedbackTags: Array.isArray(run?.feedbackTags) ? run.feedbackTags.filter((tag: unknown) => typeof tag === 'string') : [],
       likedStarterSeedIds: validStarterSeedIds(run?.likedStarterSeedIds),
       dislikedStarterSeedIds: validStarterSeedIds(run?.dislikedStarterSeedIds),
