@@ -39,7 +39,7 @@ export function normalizeMouthEnvironment(value: unknown): MouthEnvironment | un
   if (mode !== 'isolation' && !sourceDonorId) return undefined;
 
   const donor = sourceDonorId ? getMouthDonor(sourceDonorId) : undefined;
-  const adaptationTraitIds = unique(
+  const adaptationTraitIds = unique<string>(
     (Array.isArray(raw.adaptationTraitIds) ? raw.adaptationTraitIds : [])
       .map((id: unknown) => String(id))
       .filter((id: string) => Boolean(getMouthTrait(id)) && (!donor || donor.traitIds.includes(id))),
