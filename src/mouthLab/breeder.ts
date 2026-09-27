@@ -509,6 +509,7 @@ export function breedMouthGenome(request: MouthBreedingRequest): MouthBreedingRe
     name: request.requestedName?.trim() || generatedName(donors, hash),
     parentDonorIds,
     assignments: orderedAssignments,
+    environmentExposures: [],
     objectiveId: objective.id,
     semanticAnchorLanguageProfileId,
     intelligibility,
