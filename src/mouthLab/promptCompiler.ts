@@ -14,6 +14,7 @@ import { getMouthQuirkDefinition } from './quirks';
 import { projectMouthPhenotype } from './phenotype';
 import { normalizeMouthDynamics, mouthCastLabel } from './dynamics';
 import { clampMouthControl } from './determinism';
+import { normalizeMouthEnvironment } from './environment';
 
 const VALID_AXES = new Set([
   'semantics',
@@ -183,7 +184,7 @@ export function normalizeMouthGenomeForGeneration(value: unknown): MouthGenome |
     .slice(0, 16)
     .map((scar: any) => ({
       id: cleanText(scar?.id, 140) || 'mouth_scar_external',
-      sourceOperation: ['gene-knockout', 'quirk-removal', 'specimen-application', 'manual'].includes(scar?.sourceOperation)
+      sourceOperation: ['gene-knockout', 'quirk-removal', 'specimen-application', 'environment-exposure', 'manual'].includes(scar?.sourceOperation)
         ? scar.sourceOperation
         : 'manual',
       removedTraitIds: Array.from(
@@ -244,6 +245,7 @@ export function normalizeMouthGenomeForGeneration(value: unknown): MouthGenome |
     breedingSeed: cleanText(raw.breedingSeed, 240) || 'normalized-mouth-seed',
     quirks,
     mutationScars: mutationScars as MouthGenome['mutationScars'],
+    environment: normalizeMouthEnvironment(raw.environment),
     linkedGeneBundles: linkedGeneBundles as MouthGenome['linkedGeneBundles'],
     dynamics: normalizeMouthDynamics(raw.dynamics),
     lineage:
@@ -498,6 +500,40 @@ function linkedBundleLines(genome: MouthGenome): string[] {
     });
 }
 
+function environmentLines(genome: MouthGenome): string[] {
+  const environment = genome.environment;
+  if (!environment) return [];
+
+  if (environment.mode === 'isolation') {
+    return [
+      'LANGUAGE ECOLOGY — ISOLATION: ' +
+        environment.generations +
+        ' generation(s) without outside donor pressure at ' +
+        environment.pressure +
+        '/100. Treat resulting drift as lived history, not new ancestry.',
+    ];
+  }
+
+  const donor = environment.sourceDonorId ? getMouthDonor(environment.sourceDonorId) : undefined;
+  const adaptations = environment.adaptationTraitIds
+    .map((id) => traitName(id))
+    .join(', ');
+
+  return [
+    'LANGUAGE ECOLOGY — ' +
+      environment.mode.toUpperCase() +
+      ': surrounding ' +
+      (donor?.name || environment.sourceDonorId || 'unknown source') +
+      ' pressure=' +
+      environment.pressure +
+      '/100 for ' +
+      environment.generations +
+      ' generation(s). Adaptation targets: ' +
+      (adaptations || 'general surrounding phonology') +
+      '. ENVIRONMENT IS NOT ANCESTRY: do not add this source to parent donors unless it is already a true parent.',
+  ];
+}
+
 function scarLines(genome: MouthGenome): string[] {
   return genome.mutationScars
     .filter((scar) => scar.strength > 0 && scar.residualRule)
@@ -684,6 +720,7 @@ function dynamicLines(genome: MouthGenome): string[] {
     ...mutationCurveLines(genome),
     ...mutationTimelineLines(genome),
     ...transductionLines(genome),
+    ...environmentLines(genome),
   ];
 }
 
@@ -788,6 +825,10 @@ function bracketedText(genome: MouthGenome, mode: MouthSemanticMode): string {
   }
 
   for (const line of linkedBundleLines(genome)) {
+    lines.push('[' + line + ']');
+  }
+
+  for (const line of environmentLines(genome)) {
     lines.push('[' + line + ']');
   }
 
@@ -905,6 +946,7 @@ function lyricsDirectives(genome: MouthGenome, mode: MouthSemanticMode): string 
       .map((quirk) => '[QUIRK: ' + quirkDirective(quirk) + ']'),
     ...pressureReinforcementLines(genome).map((line) => '[ENFORCEMENT: ' + line + ']'),
     ...interactionLines(genome).map((line) => '[NEGOTIATION: ' + line + ']'),
+    ...environmentLines(genome).map((line) => '[' + line + ']'),
     ...scarLines(genome).map((line) => '[' + line + ']'),
     ...castProfileLine(genome).map((line) => '[CAST GENETICS: ' + line + ']'),
     ...expressionLines(genome).map((line) => '[CONDITIONAL PHONETICS: ' + line + ']'),
