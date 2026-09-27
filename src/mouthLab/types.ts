@@ -346,9 +346,29 @@ export interface MouthLinkedGeneBundle {
   createdAt: number;
 }
 
+export type MouthEnvironmentMode = 'exposure' | 'infection' | 'isolation';
+
+export interface MouthEnvironment {
+  mode: MouthEnvironmentMode;
+  sourceDonorId?: string;
+  pressure: number;
+  generations: number;
+  adaptationTraitIds: string[];
+  seed: string;
+  createdAt: number;
+}
+
+export interface MouthEnvironmentRequest {
+  mode: MouthEnvironmentMode;
+  sourceDonorId?: string;
+  pressure?: number;
+  generations?: number;
+  seed?: string;
+}
+
 export interface MouthMutationScar {
   id: string;
-  sourceOperation: 'gene-knockout' | 'quirk-removal' | 'specimen-application' | 'manual';
+  sourceOperation: 'gene-knockout' | 'quirk-removal' | 'specimen-application' | 'environment-exposure' | 'manual';
   removedTraitIds: string[];
   removedQuirkIds: string[];
   residualRule: string;
@@ -430,6 +450,7 @@ export interface MouthGenome {
   breedingSeed: string;
   quirks: MouthQuirkInstance[];
   mutationScars: MouthMutationScar[];
+  environment?: MouthEnvironment;
   linkedGeneBundles: MouthLinkedGeneBundle[];
   dynamics?: MouthDynamics;
   lineage?: MouthSpeciesLineage;
