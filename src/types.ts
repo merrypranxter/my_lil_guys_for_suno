@@ -422,9 +422,17 @@ export interface SavedStack {
   createdAt: number;
 }
 
+export interface RunSession {
+  id: string;
+  startedAt: number;
+  updatedAt: number;
+  label?: string;
+}
+
 export interface ArchivedRun {
   id: string;
   createdAt: number;
+  sessionId?: string;
   guyIds: string[];
   realityEngineIds: string[];
   compositionEngineIds: string[];
