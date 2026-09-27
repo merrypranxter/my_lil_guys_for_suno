@@ -33,6 +33,7 @@ function reidentify(genome: MouthGenome): MouthGenome {
     intelligibility: genome.intelligibility,
     stability: genome.stability,
     mutation: genome.mutation,
+    musicalExpression: genome.musicalExpression,
     breedingSeed: genome.breedingSeed,
     quirks: genome.quirks.map(({ createdAt, ...item }) => item),
     mutationScars: genome.mutationScars.map(({ createdAt, ...item }) => item),
