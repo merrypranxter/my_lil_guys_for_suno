@@ -398,9 +398,9 @@ app.post('/api/generate', async (req, res) => {
         mouthSemanticMode,
       });
       const fallbackCalibrated = enforceOutputContracts({
-        style: fallbackCalibrated.style,
-        lyrics: fallbackCalibrated.lyrics,
-        caption: fallbackCalibrated.caption,
+        style: fallback.style,
+        lyrics: fallback.lyrics,
+        caption: fallback.caption,
       }).boxes;
       const fallbackSeedCoverage = evaluateLiteralSeedCoverage(seed, [fallbackCalibrated.style, fallbackCalibrated.lyrics, fallbackCalibrated.caption]);
       const fallbackSeedNotice =
@@ -409,9 +409,9 @@ app.post('/api/generate', async (req, res) => {
           : undefined;
 
       res.json({
-        style: fallback.style,
-        lyrics: fallback.lyrics,
-        caption: fallback.caption,
+        style: fallbackCalibrated.style,
+        lyrics: fallbackCalibrated.lyrics,
+        caption: fallbackCalibrated.caption,
         fingerprint: fallback.fingerprint,
         model: 'procedural-synthesizer',
         charCounts: {
