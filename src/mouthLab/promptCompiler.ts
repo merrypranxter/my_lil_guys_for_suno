@@ -15,6 +15,7 @@ import { projectMouthPhenotype } from './phenotype';
 import { normalizeMouthDynamics, mouthCastLabel } from './dynamics';
 import { clampMouthControl } from './determinism';
 import { normalizeMouthEnvironment } from './environment';
+import { compileMouthMusicalExpression, normalizeMouthMusicalExpression } from './expression';
 
 const VALID_AXES = new Set([
   'semantics',
@@ -242,6 +243,7 @@ export function normalizeMouthGenomeForGeneration(value: unknown): MouthGenome |
     intelligibility: clampMouthControl(raw.intelligibility, 82),
     stability: clampMouthControl(raw.stability, 72),
     mutation: clampMouthControl(raw.mutation, 35),
+    musicalExpression: normalizeMouthMusicalExpression(raw.musicalExpression),
     breedingSeed: cleanText(raw.breedingSeed, 240) || 'normalized-mouth-seed',
     quirks,
     mutationScars: mutationScars as MouthGenome['mutationScars'],
@@ -908,6 +910,7 @@ function descriptiveText(genome: MouthGenome, mode: MouthSemanticMode): string {
 
 function styleDirectives(genome: MouthGenome, mode: MouthSemanticMode): string {
   const phenotype = projectMouthPhenotype(genome);
+  const musicalExpression = compileMouthMusicalExpression(genome);
   const priorities = phenotype.audiblePriority.slice(0, 5).map((id) =>
     id.startsWith('quirk:')
       ? quirkName(id.slice('quirk:'.length))
@@ -918,6 +921,7 @@ function styleDirectives(genome: MouthGenome, mode: MouthSemanticMode): string {
     '[MOUTH LAB STYLE PRIORITY: ' + (priorities.join(' > ') || 'none') + ']',
     '[MOUTH LAB SEMANTICS: ' + semanticPolicy(genome, mode) + ']',
     '[MOUTH LAB PERFORMANCE: preserve separate mouth jurisdictions; high/obsessive traits must remain audible across section changes; conflict rules create events rather than mush.]',
+    musicalExpression.styleDirectives,
     ...(genome.dynamics?.castProfiles.length
       ? ['[CAST MOUTHS: ' + genome.dynamics.castProfiles.map((profile) => mouthCastLabel(profile.role) + '=' + profile.label).join(' | ') + ']']
       : []),
@@ -928,8 +932,10 @@ function styleDirectives(genome: MouthGenome, mode: MouthSemanticMode): string {
 }
 
 function lyricsDirectives(genome: MouthGenome, mode: MouthSemanticMode): string {
+  const musicalExpression = compileMouthMusicalExpression(genome);
   const parts = [
     '[MOUTH LAB CONTROL]',
+    musicalExpression.lyricsDirectives,
     '[' + semanticPolicy(genome, mode) + ']',
     ...genome.assignments.flatMap((assignment) =>
       assignment.traitIds.map(

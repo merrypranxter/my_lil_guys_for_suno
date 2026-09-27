@@ -29,6 +29,7 @@
     "verify:mouth-evolution": "tsx scripts/verifyMouthEvolution.ts",
     "verify:mouth-ecology": "tsx scripts/verifyMouthEcology.ts",
     "verify:mouth-self-evolution": "tsx scripts/verifyMouthSelfEvolution.ts",
+    "verify:mouth-expression": "tsx scripts/verifyMouthExpression.ts",
     "verify:starter-seeds": "tsx scripts/verifyStarterSeedsV2.ts",
     "verify:starter-ui": "tsx scripts/verifyStarterSeedUi.ts",
     "verify:scientist-roles": "tsx scripts/verifyScientistRoles.ts",

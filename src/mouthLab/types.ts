@@ -457,6 +457,7 @@ export interface MouthGenome {
   intelligibility: number;
   stability: number;
   mutation: number;
+  musicalExpression: number;
   breedingSeed: string;
   quirks: MouthQuirkInstance[];
   mutationScars: MouthMutationScar[];

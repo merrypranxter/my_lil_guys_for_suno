@@ -431,6 +431,7 @@ export function breedMouthGenome(request: MouthBreedingRequest): MouthBreedingRe
     intelligibility,
     stability,
     mutation,
+    musicalExpression: 0,
     breedingSeed,
     manualAssignments,
   };
@@ -514,6 +515,7 @@ export function breedMouthGenome(request: MouthBreedingRequest): MouthBreedingRe
     intelligibility,
     stability,
     mutation,
+    musicalExpression: 0,
     breedingSeed,
     quirks: [],
     mutationScars: [],
