@@ -96,6 +96,9 @@ jobs:
       - name: Mouth Lab evolution/fitness/Petri regression smoke
         run: npm run verify:mouth-evolution
 
+      - name: Mouth Lab language ecology regression smoke
+        run: npm run verify:mouth-ecology
+
       - name: Build
         run: npm run build
 
