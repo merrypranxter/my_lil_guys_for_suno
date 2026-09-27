@@ -24,6 +24,9 @@ jobs:
       - name: Typecheck
         run: npm run lint
 
+      - name: Session hygiene regression smoke
+        run: npm run verify:sessions
+
       - name: Composition Lab regression smoke
         run: npm run verify:composition
 
