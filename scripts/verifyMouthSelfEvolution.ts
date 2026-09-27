@@ -15,7 +15,7 @@ const base = breedMouthGenome({
   mutation: 64,
   manualAssignments: [
     {
-      axis: 'vowels',
+      axis: 'consonants',
       donorId: 'mouth-donor-navajo',
       traitIds: ['mouth-trait-ejective-attack'],
       pressure: 'high',
