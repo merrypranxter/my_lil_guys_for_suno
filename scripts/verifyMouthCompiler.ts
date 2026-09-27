@@ -79,6 +79,34 @@ assert(
   'Compiler must report active quirk IDs.',
 );
 
+const semanticModeExpectations = [
+  ['inherit', 'Semantic anchor profile:'],
+  ['englishMeaningAlienMouth', 'ENGLISH MEANING / ALIEN MOUTH'],
+  ['mixed', 'MIXED SEMANTICS'],
+  ['decay', 'SEMANTIC DECAY'],
+  ['nonsemantic', 'NONSEMANTIC MOUTH'],
+  ['evolving', 'EVOLVING SEMANTICS'],
+] as const;
+
+for (const [semanticMode, expectedText] of semanticModeExpectations) {
+  const compiled = compileMouthPrompt(rGenome, {
+    mode: 'bracketed',
+    semanticMode,
+  });
+  assert(
+    compiled.semanticMode === semanticMode,
+    'Compiler should preserve semantic mode ' + semanticMode + '.',
+  );
+  assert(
+    compiled.text.includes(expectedText),
+    semanticMode + ' should compile its explicit semantic policy.',
+  );
+  assert(
+    compiled.lyricsDirectives.includes(expectedText),
+    semanticMode + ' should reach lyrics/control directives.',
+  );
+}
+
 const compact = compileMouthPrompt(rGenome, {
   mode: 'compact',
   semanticMode: 'englishMeaningAlienMouth',
