@@ -13,3 +13,5 @@ export * from './persistence';
 export * from './promptCompiler';
 export * from './dynamics';
 export * from './evolution';
+
+export * from './environment';
