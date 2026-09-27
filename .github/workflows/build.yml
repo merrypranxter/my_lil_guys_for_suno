@@ -27,6 +27,9 @@ jobs:
       - name: Session hygiene regression smoke
         run: npm run verify:sessions
 
+      - name: Output contract regression smoke
+        run: npm run verify:output-contracts
+
       - name: Composition Lab regression smoke
         run: npm run verify:composition
 

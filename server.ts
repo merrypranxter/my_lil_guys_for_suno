@@ -4,13 +4,14 @@ import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI, Type } from '@google/genai';
 import { buildMasterPrompt, buildRepairPrompt } from './src/lib/buildGenerationPrompt';
 import { generateProceduralTrack } from './src/lib/proceduralGenerator';
-import { MusicFingerprint, RealityChaosLevel } from './src/types';
+import { BoxType, MusicFingerprint, RealityChaosLevel } from './src/types';
 import type { MouthPromptMode, MouthSemanticMode } from './src/mouthLab/types';
 import { normalizeMouthGenomeForGeneration } from './src/mouthLab/promptCompiler';
 import { normalizeCompositionEngineIds } from './src/data/compositionEngines';
 import { normalizeMusicControls, normalizeMusicStack } from './src/data/musicSeedSystem';
 import { planGuyActivation } from './src/lib/mindStacking';
 import { evaluateLiteralSeedCoverage } from './src/lib/generationJurisdictions';
+import { enforceOutputContract, enforceOutputContracts, getOutputContractViolations, type OutputBoxes } from './src/lib/outputContracts';
 import { normalizeStarterSeedStack } from './src/starterSeeds/runtime';
 
 const app = express();
@@ -159,6 +160,84 @@ async function generateWithResilience(
   throw lastError;
 }
 
+async function repairGeneratedOutputContracts(boxes: OutputBoxes): Promise<{
+  boxes: OutputBoxes;
+  notice?: string;
+}> {
+  const violations = getOutputContractViolations(boxes);
+  if (violations.length === 0) return { boxes };
+
+  const invalidTypes = new Set<BoxType>(violations.map((violation) => violation.boxType));
+  let candidate: OutputBoxes = { ...boxes };
+  let aiRepairSucceeded = false;
+
+  try {
+    const violationSummary = violations
+      .map((violation) =>
+        violation.boxType.toUpperCase() + ': ' + violation.length +
+        ' chars; required ' + violation.min + '–' + violation.max
+      )
+      .join('\n');
+
+    const systemInstruction =
+      'YOU ARE THE LITTLE GUY MACHINE OUTPUT CONTRACT REPAIRER.\n' +
+      'Repair only boxes that violate their exact character window. Valid boxes are frozen and must be returned byte-for-byte unchanged.\n' +
+      'STYLE must be 975–999 characters. LYRICS must be 4900–4999 characters. CAPTION must be 490–499 characters.\n' +
+      'Preserve musical mechanisms, semantic subject, Mouth Lab behavior, bracketed control syntax, and tone. ' +
+      'Trim redundancy before substance; expand with operationally meaningful detail rather than filler.\n' +
+      'Return JSON only with style, lyrics, caption.';
+
+    const userPrompt =
+      'OUTPUT CONTRACT VIOLATIONS:\n' + violationSummary + '\n\n' +
+      'CURRENT BOXES:\n' + JSON.stringify(boxes) + '\n\n' +
+      'Repair the violating boxes and return all three keys.';
+
+    const { response } = await generateWithResilience(userPrompt, {
+      systemInstruction,
+      temperature: 0.45,
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: Type.OBJECT,
+        properties: {
+          style: { type: Type.STRING },
+          lyrics: { type: Type.STRING },
+          caption: { type: Type.STRING },
+        },
+        required: ['style', 'lyrics', 'caption'],
+      },
+    });
+
+    const raw = response.text || '{}';
+    const parsed = JSON.parse(raw);
+
+    candidate = {
+      style: invalidTypes.has('style') && typeof parsed.style === 'string' ? parsed.style : boxes.style,
+      lyrics: invalidTypes.has('lyrics') && typeof parsed.lyrics === 'string' ? parsed.lyrics : boxes.lyrics,
+      caption: invalidTypes.has('caption') && typeof parsed.caption === 'string' ? parsed.caption : boxes.caption,
+    };
+    aiRepairSucceeded = true;
+  } catch (error: any) {
+    console.warn('Automatic AI contract repair unavailable; using deterministic finalizer:', error?.message || error);
+  }
+
+  const finalized = enforceOutputContracts(candidate);
+  const remaining = getOutputContractViolations(finalized.boxes);
+  if (remaining.length > 0) {
+    throw new Error(
+      'Output contract finalizer failed for: ' +
+      remaining.map((violation) => violation.boxType).join(', ')
+    );
+  }
+
+  const repairedNames = violations.map((violation) => violation.boxType.toUpperCase()).join(', ');
+  return {
+    boxes: finalized.boxes,
+    notice:
+      'Automatic output contract repair applied to ' + repairedNames +
+      (aiRepairSucceeded ? '; deterministic final validation passed.' : '; local deterministic finalizer used.'),
+  };
+}
+
 app.get('/api/info', (_req, res) => {
   res.json({
     status: 'online',
@@ -266,9 +345,13 @@ app.post('/api/generate', async (req, res) => {
       };
     }
 
-    const style = parsed.style || '';
-    const lyrics = parsed.lyrics || '';
-    const caption = parsed.caption || '';
+    const rawBoxes: OutputBoxes = {
+      style: parsed.style || '',
+      lyrics: parsed.lyrics || '',
+      caption: parsed.caption || '',
+    };
+    const calibrated = await repairGeneratedOutputContracts(rawBoxes);
+    const { style, lyrics, caption } = calibrated.boxes;
     const fingerprint = forcedFingerprint || (
       parsed.fingerprint && typeof parsed.fingerprint === 'object'
         ? sanitizeFingerprints([parsed.fingerprint])[0]
@@ -292,7 +375,7 @@ app.post('/api/generate', async (req, res) => {
         lyrics: lyrics.length,
         caption: caption.length,
       },
-      notice: [activationNotice, seedNotice].filter(Boolean).join(' ') || undefined,
+      notice: [activationNotice, seedNotice, calibrated.notice].filter(Boolean).join(' ') || undefined,
     });
   } catch (error: any) {
     console.warn('AI generation unavailable, engaging diverse procedural engine:', error?.message);
@@ -314,22 +397,27 @@ app.post('/api/generate', async (req, res) => {
         mouthPromptMode,
         mouthSemanticMode,
       });
-      const fallbackSeedCoverage = evaluateLiteralSeedCoverage(seed, [fallback.style, fallback.lyrics, fallback.caption]);
+      const fallbackCalibrated = enforceOutputContracts({
+        style: fallback.style,
+        lyrics: fallback.lyrics,
+        caption: fallback.caption,
+      }).boxes;
+      const fallbackSeedCoverage = evaluateLiteralSeedCoverage(seed, [fallbackCalibrated.style, fallbackCalibrated.lyrics, fallbackCalibrated.caption]);
       const fallbackSeedNotice =
         fallbackSeedCoverage.anchors.length > 0 && fallbackSeedCoverage.coverage === 0
           ? 'Seed sovereignty warning: none of the protected literal seed anchors survived into the generated boxes. Review for semantic drift.'
           : undefined;
 
       res.json({
-        style: fallback.style,
-        lyrics: fallback.lyrics,
-        caption: fallback.caption,
+        style: fallbackCalibrated.style,
+        lyrics: fallbackCalibrated.lyrics,
+        caption: fallbackCalibrated.caption,
         fingerprint: fallback.fingerprint,
         model: 'procedural-synthesizer',
         charCounts: {
-          style: fallback.style.length,
-          lyrics: fallback.lyrics.length,
-          caption: fallback.caption.length,
+          style: fallbackCalibrated.style.length,
+          lyrics: fallbackCalibrated.lyrics.length,
+          caption: fallbackCalibrated.caption.length,
         },
         notice: [activationNotice, fallbackSeedNotice, 'Synthesized via diverse procedural engine due to high AI API demand'].filter(Boolean).join(' '),
       });
@@ -349,13 +437,11 @@ app.post('/api/repair', async (req, res) => {
     res.status(400).json({ error: 'Missing boxType or currentText' });
     return;
   }
-
-  const targets: Record<string, { min: number; max: number }> = {
-    style: { min: 975, max: 999 },
-    lyrics: { min: 4900, max: 4999 },
-    caption: { min: 490, max: 499 },
-  };
-  const target = targets[boxType] || { min: 490, max: 499 };
+  if (!['style', 'lyrics', 'caption'].includes(boxType)) {
+    res.status(400).json({ error: 'Invalid boxType' });
+    return;
+  }
+  const boxKey = boxType as BoxType;
 
   try {
     const { systemInstruction, userPrompt } = buildRepairPrompt(boxType, currentText);
@@ -389,6 +475,8 @@ app.post('/api/repair', async (req, res) => {
       }
     }
 
+    repairedText = enforceOutputContract(boxKey, repairedText);
+
     res.json({
       repairedText,
       model: usedModel,
@@ -397,17 +485,7 @@ app.post('/api/repair', async (req, res) => {
   } catch (error: any) {
     console.warn('AI length repair unavailable; applying algorithmic calibration:', error?.message);
 
-    let repairedText = currentText;
-    if (repairedText.length > target.max) {
-      repairedText = repairedText.slice(0, target.max);
-    } else if (repairedText.length < target.min) {
-      const paddingComment = '\n[NOTE: Operational invariant preserved for ' + String(boxType).toUpperCase() + '. Continued procedural dynamics sustained.]';
-      while (repairedText.length < target.min) {
-        const remaining = target.min - repairedText.length;
-        repairedText += remaining <= paddingComment.length ? paddingComment.slice(0, remaining) : paddingComment;
-      }
-      if (repairedText.length > target.max) repairedText = repairedText.slice(0, target.max);
-    }
+    const repairedText = enforceOutputContract(boxKey, currentText);
 
     res.json({
       repairedText,
