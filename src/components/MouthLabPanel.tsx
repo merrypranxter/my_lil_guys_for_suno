@@ -36,6 +36,7 @@ import {
   MOUTH_MUTATION_ACTIONS,
   MOUTH_MUTATION_CURVE_SHAPES,
   MOUTH_QUIRKS,
+  MOUTH_EXPRESSION_BANDS,
   MOUTH_SEMANTIC_MODES,
   MOUTH_TRANSDUCTION_PRESETS,
   applyMouthEnvironment,
@@ -59,6 +60,7 @@ import {
   instantiateMouthQuirk,
   knockoutMouthGenes,
   loadMouthLabArchive,
+  mouthMusicalExpressionBand,
   projectMouthPhenotype,
   reidentifyMouthGenome,
   removeMouthQuirk,
@@ -68,6 +70,7 @@ import {
   searchMouthDonors,
   upsertMouthGeneBundle,
   withMouthDynamics,
+  withMouthMusicalExpression,
   upsertMouthSpecimen,
   upsertMouthSpecies,
 } from '../mouthLab';
@@ -1250,7 +1253,50 @@ export function MouthLabPanel({
                 </div>
 
                 <div className="rounded-2xl border border-[#293246] bg-[#090d14] p-3">
-                  <div className="text-[9px] font-mono font-bold text-[#657187]">SEMANTIC MODE</div>
+                  <div className="text-[9px] font-mono font-bold text-[#657187]">MOUTH EXPRESSION</div>
+                  <div className="mt-1 flex items-end justify-between gap-3">
+                    <div className="text-lg font-mono font-black text-[#ffd84d]">{genome.musicalExpression}/100</div>
+                    <div className="text-[9px] font-mono font-black text-[#ffe995]">
+                      {mouthMusicalExpressionBand(genome.musicalExpression).label}
+                    </div>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={genome.musicalExpression}
+                    onChange={(event) =>
+                      onGenomeChange(withMouthMusicalExpression(genome, Number(event.target.value)))
+                    }
+                    className="mt-2 w-full accent-yellow-300"
+                  />
+                  <div className="mt-1 grid grid-cols-5 gap-1">
+                    {MOUTH_EXPRESSION_BANDS.map((band) => (
+                      <button
+                        key={band.band}
+                        type="button"
+                        onClick={() => onGenomeChange(withMouthMusicalExpression(genome, band.min))}
+                        title={band.help}
+                        className={
+                          'rounded border px-1 py-1 text-[7px] font-mono font-black ' +
+                          (genome.musicalExpression >= band.min && genome.musicalExpression <= band.max
+                            ? 'border-[#ffd84d] bg-[#211b0d] text-[#ffe995]'
+                            : 'border-[#2f394c] bg-[#0b1018] text-[#59687d]')
+                        }
+                      >
+                        {band.min}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="mt-2 rounded-lg border border-[#3b351d] bg-[#151208] px-2.5 py-2 text-[9px] font-mono leading-relaxed text-[#a99d68]">
+                    {mouthMusicalExpressionBand(genome.musicalExpression).help}
+                  </div>
+                  <div className="mt-2 text-[8px] font-mono leading-relaxed text-[#5f5b49]">
+                    0–19 mouth only • 20–39 phrasing/rhythm • 40–59 melody • 60–79 harmony/instruments • 80–100 whole organism
+                  </div>
+
+                  <div className="mt-4 border-t border-[#253044] pt-3">
+                    <div className="text-[9px] font-mono font-bold text-[#657187]">SEMANTIC MODE</div>
                   <select
                     value={semanticMode}
                     onChange={(event) => onSemanticModeChange(event.target.value as MouthSemanticMode)}
@@ -1264,6 +1310,7 @@ export function MouthLabPanel({
                   </select>
                   <div className="mt-2 rounded-lg border border-[#233044] bg-[#0b1018] px-2.5 py-2 text-[9px] font-mono leading-relaxed text-[#7d8ba1]">
                     {SEMANTIC_MODE_META[semanticMode].help}
+                  </div>
                   </div>
 
                   <div className="mt-3 text-[9px] font-mono font-bold text-[#657187]">COMPILER VIEW</div>
