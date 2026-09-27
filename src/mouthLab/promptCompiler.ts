@@ -38,6 +38,21 @@ function cleanText(value: unknown, max = 500): string {
   return value.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, max);
 }
 
+const VALID_SEMANTIC_MODES: MouthSemanticMode[] = [
+  'inherit',
+  'englishMeaningAlienMouth',
+  'mixedSemanticInheritance',
+  'semanticDecay',
+  'nonsemantic',
+  'evolvingSemantics',
+];
+
+export function normalizeMouthSemanticMode(value: unknown): MouthSemanticMode {
+  return VALID_SEMANTIC_MODES.includes(value as MouthSemanticMode)
+    ? (value as MouthSemanticMode)
+    : 'inherit';
+}
+
 function pressureLabel(pressure: MouthTraitPressure): string {
   return pressure === 'obsessive'
     ? 'OBSESSIVE — global law; reinforce repeatedly and do not let it fade into occasional flavor'
@@ -178,6 +193,36 @@ export function normalizeMouthGenomeForGeneration(value: unknown): MouthGenome |
     .map((item: any) => sanitizeQuirk(item))
     .filter((item: MouthQuirkInstance | undefined): item is MouthQuirkInstance => Boolean(item));
 
+  const environmentExposures = (Array.isArray(raw.environmentExposures) ? raw.environmentExposures : [])
+    .slice(0, 8)
+    .map((exposure: any) => {
+      const donorId = String(exposure?.donorId || '');
+      const donor = getMouthDonor(donorId);
+      if (!donor) return undefined;
+      const pressure: MouthTraitPressure = ['low', 'medium', 'high', 'obsessive'].includes(exposure?.pressure)
+        ? exposure.pressure
+        : 'medium';
+      const scarTraitIds = Array.from(
+        new Set<string>(
+          (Array.isArray(exposure?.scarTraitIds) ? exposure.scarTraitIds : [])
+            .map((id: unknown) => String(id))
+            .filter((id: string) => donor.traitIds.includes(id) && Boolean(getMouthTrait(id))),
+        ),
+      ).slice(0, 6);
+      if (!scarTraitIds.length) return undefined;
+      return {
+        id: cleanText(exposure?.id, 160) || 'mouth_env_external',
+        donorId,
+        generations: Math.max(1, Math.min(24, Math.round(Number(exposure?.generations) || 1))),
+        pressure,
+        scarTraitIds,
+        seed: cleanText(exposure?.seed, 240) || 'normalized-environment-seed',
+        note: cleanText(exposure?.note, 320) || undefined,
+        createdAt: Number.isFinite(exposure?.createdAt) ? Number(exposure.createdAt) : Date.now(),
+      };
+    })
+    .filter(Boolean);
+
   const mutationScars = (Array.isArray(raw.mutationScars) ? raw.mutationScars : [])
     .slice(0, 16)
     .map((scar: any) => ({
@@ -235,6 +280,7 @@ export function normalizeMouthGenomeForGeneration(value: unknown): MouthGenome |
     name: cleanText(raw.name, 180) || 'MOUTH LAB GENOME',
     parentDonorIds,
     assignments: assignments as MouthGenome['assignments'],
+    environmentExposures: environmentExposures as MouthGenome['environmentExposures'],
     objectiveId: cleanText(raw.objectiveId, 180) || undefined,
     semanticAnchorLanguageProfileId: cleanText(raw.semanticAnchorLanguageProfileId, 180) || undefined,
     intelligibility: clampMouthControl(raw.intelligibility, 82),
@@ -330,11 +376,10 @@ export function normalizeMouthGenomeForGeneration(value: unknown): MouthGenome |
 }
 
 function semanticModeFor(
-  genome: MouthGenome,
+  _genome: MouthGenome,
   requested: MouthSemanticMode | undefined,
 ): MouthSemanticMode {
-  if (requested === 'englishMeaningAlienMouth') return requested;
-  return 'inherit';
+  return normalizeMouthSemanticMode(requested);
 }
 
 function semanticPolicy(genome: MouthGenome, mode: MouthSemanticMode): string {
@@ -347,6 +392,46 @@ function semanticPolicy(genome: MouthGenome, mode: MouthSemanticMode): string {
       'Do not translate the lyrics into donor languages merely because their traits are active.',
       'Do not fabricate fluent-looking donor-language words or claim the hybrid output is authentic speech in a donor language.',
       'When a morphology trait acts on English, treat it as a structural mutation pressure on English material.',
+    ].join(' ');
+  }
+
+  if (mode === 'mixedSemanticInheritance') {
+    return [
+      'MIXED SEMANTIC INHERITANCE:',
+      'Preserve the user seed and anchor propositions as the recognizable semantic skeleton.',
+      'Permit meaning to be distributed between intelligible lexical material, repeated anchor fragments, and nonlexical vocal material shaped by the mouth genome.',
+      'Donor mechanics may alter word boundaries, morphological packing, repetition, and prosodic emphasis without pretending the result is fluent donor-language speech.',
+      'At least one semantic anchor must remain recoverable throughout.',
+    ].join(' ');
+  }
+
+  if (mode === 'semanticDecay') {
+    return [
+      'SEMANTIC DECAY:',
+      'Begin with clear propositional language, then progressively lose lexical information while preserving recognizable phonetic ancestry.',
+      'Move through sentence → fragments → pseudo-words → phonemes/articulatory gestures.',
+      'Keep one small anchor phrase semantically intact so the loss remains measurable.',
+      'Do not reset to pristine language after decay unless an explicit timeline event commands recovery.',
+    ].join(' ');
+  }
+
+  if (mode === 'nonsemantic') {
+    return [
+      'NONSEMANTIC MOUTH:',
+      'The sung vocal material carries no required propositional meaning.',
+      'Use vocables, phonemes, breaths, clicks, trills, sustained vowels, consonant percussion, and other mouth events as musical material.',
+      'Do not generate fake donor-language sentences or imply that nonsense is authentic speech.',
+      'Bracketed production/control instructions may remain intelligible.',
+    ].join(' ');
+  }
+
+  if (mode === 'evolvingSemantics') {
+    return [
+      'EVOLVING SEMANTICS:',
+      'Begin with one clear anchor meaning and let later sections revise how earlier words are interpreted.',
+      'Every semantic mutation must be traceable to a musical, social, or Mouth Lab event rather than arbitrary retconning.',
+      'Preserve semantic scars: once a phrase changes operational meaning, later returns inherit that changed meaning unless another explicit event mutates it again.',
+      'Keep enough lexical continuity that ancestry remains audible.',
     ].join(' ');
   }
 
@@ -469,6 +554,32 @@ function scarLines(genome: MouthGenome): string[] {
         '/100: ' +
         scar.residualRule,
     );
+}
+
+function environmentLines(genome: MouthGenome): string[] {
+  return (genome.environmentExposures || []).map((exposure) => {
+    const donor = getMouthDonor(exposure.donorId);
+    const traitRules = exposure.scarTraitIds
+      .map((traitId) => {
+        const trait = getMouthTrait(traitId);
+        return trait ? trait.name + ': ' + trait.operation : traitId;
+      })
+      .join(' | ');
+    return (
+      'ENVIRONMENTAL EXPOSURE — ' +
+      (donor?.name || exposure.donorId) +
+      ' for ' +
+      exposure.generations +
+      ' generation' +
+      (exposure.generations === 1 ? '' : 's') +
+      ' at ' +
+      exposure.pressure.toUpperCase() +
+      ' pressure. Acquired scars: ' +
+      traitRules +
+      '. This exposure is NOT ancestry: do not add the environment donor to the parent lineage or describe these traits as inherited genes.' +
+      (exposure.note ? ' Note: ' + exposure.note : '')
+    );
+  });
 }
 
 function interactionLines(genome: MouthGenome): string[] {
@@ -685,6 +796,7 @@ function compactText(genome: MouthGenome, mode: MouthSemanticMode): string {
       : semanticPolicy(genome, mode),
     assignments,
     quirks ? 'QUIRKS: ' + quirks : '',
+    environmentLines(genome).length ? 'ENVIRONMENT: ' + environmentLines(genome).join(' | ') : '',
     dynamicLines(genome).length
       ? 'DYNAMICS: cast=' + (genome.dynamics?.castProfiles.length || 0) +
         '; expression=' + (genome.dynamics?.expressionRules.length || 0) +
@@ -758,6 +870,10 @@ function bracketedText(genome: MouthGenome, mode: MouthSemanticMode): string {
     lines.push('[' + line + ']');
   }
 
+  for (const line of environmentLines(genome)) {
+    lines.push('[ENVIRONMENT / ACQUIRED SCAR: ' + line + ']');
+  }
+
   for (const line of castProfileLine(genome)) {
     lines.push('[CAST GENETICS: ' + line + ']');
   }
@@ -823,6 +939,7 @@ function descriptiveText(genome: MouthGenome, mode: MouthSemanticMode): string {
     ' Build the vocal organism so ' +
     clauses.filter(Boolean).join('; ') +
     (quirkClauses.length ? '. Superimpose these bounded mutations: ' + quirkClauses.join('; ') : '') +
+    (environmentLines(genome).length ? '. Environmental exposure: ' + environmentLines(genome).join(' ') : '') +
     (dynamicLines(genome).length ? '. Dynamic behavior: ' + dynamicLines(genome).join(' ') : '') +
     '. Preserve separate jurisdictions and expose conflicts procedurally instead of averaging them into a generic accent.'
   );
@@ -840,6 +957,7 @@ function styleDirectives(genome: MouthGenome, mode: MouthSemanticMode): string {
     '[MOUTH LAB STYLE PRIORITY: ' + (priorities.join(' > ') || 'none') + ']',
     '[MOUTH LAB SEMANTICS: ' + semanticPolicy(genome, mode) + ']',
     '[MOUTH LAB PERFORMANCE: preserve separate mouth jurisdictions; high/obsessive traits must remain audible across section changes; conflict rules create events rather than mush.]',
+    ...environmentLines(genome).map((line) => '[MOUTH ENVIRONMENT: ' + line + ']'),
     ...(genome.dynamics?.castProfiles.length
       ? ['[CAST MOUTHS: ' + genome.dynamics.castProfiles.map((profile) => mouthCastLabel(profile.role) + '=' + profile.label).join(' | ') + ']']
       : []),
@@ -869,6 +987,7 @@ function lyricsDirectives(genome: MouthGenome, mode: MouthSemanticMode): string 
     ...pressureReinforcementLines(genome).map((line) => '[ENFORCEMENT: ' + line + ']'),
     ...interactionLines(genome).map((line) => '[NEGOTIATION: ' + line + ']'),
     ...scarLines(genome).map((line) => '[' + line + ']'),
+    ...environmentLines(genome).map((line) => '[ENVIRONMENTAL SCAR: ' + line + ']'),
     ...castProfileLine(genome).map((line) => '[CAST GENETICS: ' + line + ']'),
     ...expressionLines(genome).map((line) => '[CONDITIONAL PHONETICS: ' + line + ']'),
     ...mutationCurveLines(genome).map((line) => '[MUTATION CURVE: ' + line + ']'),
