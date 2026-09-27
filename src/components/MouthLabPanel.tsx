@@ -43,6 +43,7 @@ import {
   applyMouthSpecimen,
   breedMouthGenome,
   breedMouthSpecies,
+  evolveMouthSpecies,
   captureMouthSpecimen,
   clearMouthEnvironment,
   compileMouthPrompt,
@@ -205,6 +206,9 @@ export function MouthLabPanel({
   const [environmentPressure, setEnvironmentPressure] = useState(() => genome?.environment?.pressure ?? 70);
   const [environmentGenerations, setEnvironmentGenerations] = useState(() => genome?.environment?.generations ?? 4);
   const [environmentSeed, setEnvironmentSeed] = useState(() => genome?.environment?.seed || randomSeed('ecology'));
+  const [selfEvolutionSeed, setSelfEvolutionSeed] = useState(() => randomSeed('self-evolve'));
+  const [selfMutationChance, setSelfMutationChance] = useState(() => genome?.mutation ?? 42);
+  const [selfEvolutionResult, setSelfEvolutionResult] = useState<MouthEvolutionResult | null>(null);
   const [evolutionParentAId, setEvolutionParentAId] = useState('');
   const [evolutionParentBId, setEvolutionParentBId] = useState('');
   const [evolutionSeed, setEvolutionSeed] = useState(() => randomSeed('species'));
@@ -329,6 +333,7 @@ export function MouthLabPanel({
     setEnvironmentPressure(genome.environment?.pressure ?? 70);
     setEnvironmentGenerations(genome.environment?.generations ?? 4);
     setEnvironmentSeed(genome.environment?.seed || randomSeed('ecology'));
+    setSelfMutationChance(genome.mutation);
   }, [genome?.id]);
 
   const applyEnvironmentToActive = () => {
@@ -717,6 +722,41 @@ export function MouthLabPanel({
         ? current.filter((id) => id !== specimenId)
         : [...current, specimenId].slice(0, 6)
     );
+  };
+
+  const evolveActiveAgain = () => {
+    if (!genome) {
+      announce('Breed or load a mouth before evolving it.');
+      return;
+    }
+
+    try {
+      const specimens = archive.specimens.filter((item) =>
+        evolutionSpecimenIds.includes(item.id)
+      );
+      const result = evolveMouthSpecies({
+        parent: genome,
+        evolutionSeed: selfEvolutionSeed || randomSeed('self-evolve'),
+        mutationChance: selfMutationChance,
+        specimenAssist: specimens,
+        fitnessRecords: getMouthFitnessRecords(),
+        recentGenomes: [
+          ...getRecentMouthGenomes(10),
+          ...archive.species.slice(0, 10),
+        ],
+      });
+      setSelfEvolutionResult(result);
+      setEvolutionResult(result);
+      onGenomeChange(result.genome);
+      setSelfEvolutionSeed(randomSeed('self-evolve'));
+      announce(
+        'Advanced the active mouth to G' +
+          result.lineage.generation +
+          '. Same ancestry, one generation weirder.'
+      );
+    } catch (error: any) {
+      announce(error?.message || 'Self-evolution failed.');
+    }
   };
 
   const breedDescendant = () => {
@@ -1745,6 +1785,83 @@ export function MouthLabPanel({
               <div className="mt-3 text-[10px] font-mono text-[#617989]">No active mouth yet. Breed one first, then ruin its childhood.</div>
             )}
           </div>
+          <div className="rounded-2xl border border-[#ff4fd8]/30 bg-[#160c16] p-3">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <div className="text-xs font-mono font-black text-[#ff9dea]">SELF-EVOLUTION</div>
+                <div className="mt-1 max-w-3xl text-[10px] font-mono leading-relaxed text-[#9a738f]">
+                  Advance the ACTIVE mouth one generation without adding a second parent. Ancestry stays fixed; trait pressure, dormant genes from existing parents, and quirk expression may drift.
+                </div>
+              </div>
+              {genome?.lineage && (
+                <div className="rounded-lg border border-[#4a2744] bg-[#0d0910] px-2.5 py-1.5 text-[9px] font-mono font-black text-[#ffb3ec]">
+                  CURRENT G{genome.lineage.generation}
+                </div>
+              )}
+            </div>
+
+            {genome ? (
+              <>
+                <div className="mt-3 grid gap-3 md:grid-cols-[1fr_0.8fr_auto] md:items-end">
+                  <label>
+                    <div className="mb-1 text-[9px] font-mono font-black text-[#7d687a]">EVOLUTION SEED</div>
+                    <div className="flex gap-2">
+                      <input
+                        value={selfEvolutionSeed}
+                        onChange={(event) => setSelfEvolutionSeed(event.target.value)}
+                        className="min-w-0 flex-1 rounded-lg border border-[#4a2744] bg-[#0d0910] px-2.5 py-2 text-[10px] font-mono text-white"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setSelfEvolutionSeed(randomSeed('self-evolve'))}
+                        className="rounded-lg border border-[#4a2744] px-2.5 text-[#ff9dea]"
+                        title="New deterministic evolution seed"
+                      >
+                        <Shuffle className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </label>
+
+                  <label>
+                    <div className="mb-1 text-[9px] font-mono font-black text-[#7d687a]">
+                      MUTATION PRESSURE {selfMutationChance}/100
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      value={selfMutationChance}
+                      onChange={(event) => setSelfMutationChance(clamp(Number(event.target.value)))}
+                      className="w-full accent-pink-400"
+                    />
+                  </label>
+
+                  <button
+                    type="button"
+                    onClick={evolveActiveAgain}
+                    className="rounded-xl border border-[#ff4fd8] bg-[#ff4fd8] px-4 py-3 text-xs font-mono font-black text-black hover:brightness-110"
+                  >
+                    EVOLVE THIS FUCKER
+                  </button>
+                </div>
+
+                {selfEvolutionResult?.genome.id === genome.id && (
+                  <div className="mt-3 rounded-xl border border-[#4a2744] bg-[#0d0910] p-2.5 text-[9px] font-mono leading-relaxed text-[#c18ab4]">
+                    G{selfEvolutionResult.lineage.generation} • parent={selfEvolutionResult.lineage.parentNames[0]}
+                    {selfEvolutionResult.lineage.mutationTraitIds.length
+                      ? ' • activated=' + selfEvolutionResult.lineage.mutationTraitIds.map((id) => getMouthTrait(id)?.name || id).join(', ')
+                      : ''}
+                    {selfEvolutionResult.lineage.mutationQuirkIds.length
+                      ? ' • quirk drift=' + selfEvolutionResult.lineage.mutationQuirkIds.map((id) => getMouthQuirkDefinition(id)?.name || id).join(', ')
+                      : ''}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="mt-3 text-[10px] font-mono text-[#76586f]">No active mouth yet. Create the creature before demanding descendants.</div>
+            )}
+          </div>
+
           {evolutionParentOptions.length < 2 ? (
             <div className="rounded-2xl border border-dashed border-[#39445a] p-8 text-center text-xs font-mono text-[#718096]">
               Evolution needs two mouth species. Save the active mouth plus at least one other species in the Specimen Archive first.

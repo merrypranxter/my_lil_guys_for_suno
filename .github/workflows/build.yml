@@ -99,6 +99,9 @@ jobs:
       - name: Mouth Lab language ecology regression smoke
         run: npm run verify:mouth-ecology
 
+      - name: Mouth Lab self-evolution regression smoke
+        run: npm run verify:mouth-self-evolution
+
       - name: Build
         run: npm run build
 

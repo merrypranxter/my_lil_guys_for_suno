@@ -184,6 +184,16 @@ export interface MouthEvolutionRequest {
   preserveDynamicsChance?: number;
 }
 
+export interface MouthSelfEvolutionRequest {
+  parent: MouthGenome;
+  evolutionSeed: string;
+  requestedName?: string;
+  mutationChance?: number;
+  specimenAssist?: MouthSpecimen[];
+  fitnessRecords?: MouthFitnessRecord[];
+  recentGenomes?: MouthGenome[];
+}
+
 export interface MouthEvolutionResult {
   genome: MouthGenome;
   phenotype: MouthPhenotype;
