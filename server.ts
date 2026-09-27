@@ -6,7 +6,7 @@ import { buildMasterPrompt, buildRepairPrompt } from './src/lib/buildGenerationP
 import { generateProceduralTrack } from './src/lib/proceduralGenerator';
 import { BoxType, MusicFingerprint, RealityChaosLevel } from './src/types';
 import type { MouthPromptMode, MouthSemanticMode } from './src/mouthLab/types';
-import { normalizeMouthGenomeForGeneration } from './src/mouthLab/promptCompiler';
+import { normalizeMouthGenomeForGeneration, normalizeMouthSemanticMode } from './src/mouthLab/promptCompiler';
 import { normalizeCompositionEngineIds } from './src/data/compositionEngines';
 import { normalizeMusicControls, normalizeMusicStack } from './src/data/musicSeedSystem';
 import { planGuyActivation } from './src/lib/mindStacking';
@@ -116,7 +116,7 @@ function sanitizeMouthPromptMode(value: any): MouthPromptMode {
 }
 
 function sanitizeMouthSemanticMode(value: any): MouthSemanticMode {
-  return value === 'englishMeaningAlienMouth' ? value : 'inherit';
+  return normalizeMouthSemanticMode(value);
 }
 
 async function generateWithResilience(
