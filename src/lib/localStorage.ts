@@ -1,4 +1,4 @@
-import { ArchivedRun, CompositionFavorite, CompositionPreset, GenomeFitnessRecord, GenomePromotionReason, MusicBredGenome, MusicControls, MusicFingerprint, MusicStackItem, PetriDishExperiment, RealityChaosLevel, RecentCompositionBuild, SavedStack } from '../types';
+import { ArchivedRun, RunSession, CompositionFavorite, CompositionPreset, GenomeFitnessRecord, GenomePromotionReason, MusicBredGenome, MusicControls, MusicFingerprint, MusicStackItem, PetriDishExperiment, RealityChaosLevel, RecentCompositionBuild, SavedStack } from '../types';
 import type { MouthFitnessRecord, MouthGenome, MouthPromptMode, MouthSemanticMode } from '../mouthLab/types';
 import { normalizeMouthGenomeForGeneration } from '../mouthLab/promptCompiler';
 import { getMouthQuirkDefinition } from '../mouthLab/quirks';
@@ -38,6 +38,8 @@ const STORAGE_KEYS = {
   ENERGY: 'lgm_energy_v1',
   LAST_SEED: 'lgm_last_seed_v1',
   RUN_ARCHIVE: 'lgm_run_archive_v1',
+  RUN_SESSIONS: 'lgm_run_sessions_v1',
+  ACTIVE_SESSION_ID: 'lgm_active_session_id_v1',
   LAST_MOUTH_GENOME: 'lgm_last_mouth_genome_v1',
   MOUTH_PROMPT_MODE: 'lgm_mouth_prompt_mode_v1',
   MOUTH_SEMANTIC_MODE: 'lgm_mouth_semantic_mode_v1',
@@ -45,6 +47,7 @@ const STORAGE_KEYS = {
 };
 
 const MAX_ARCHIVE_RUNS = 150;
+const MAX_RUN_SESSIONS = 60;
 
 export function getSavedStacks(): SavedStack[] {
   try {
@@ -1055,6 +1058,110 @@ export function setSavedSeed(seed: string): void {
   }
 }
 
+function makeRunSessionId(): string {
+  return 'session_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+}
+
+function normalizeRunSession(raw: any): RunSession | null {
+  if (!raw || typeof raw.id !== 'string' || !raw.id.trim()) return null;
+  const startedAt = Number.isFinite(raw.startedAt) ? raw.startedAt : Date.now();
+  const updatedAt = Number.isFinite(raw.updatedAt) ? raw.updatedAt : startedAt;
+  return {
+    id: raw.id,
+    startedAt,
+    updatedAt,
+    label: typeof raw.label === 'string' && raw.label.trim() ? raw.label.trim() : undefined,
+  };
+}
+
+function writeRunSessions(sessions: RunSession[]): RunSession[] {
+  const unique = Array.from(
+    new Map(sessions.map((session) => [session.id, session])).values(),
+  )
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .slice(0, MAX_RUN_SESSIONS);
+  try {
+    localStorage.setItem(STORAGE_KEYS.RUN_SESSIONS, JSON.stringify(unique));
+  } catch {
+    // Session history is convenience state; generation can continue without it.
+  }
+  return unique;
+}
+
+export function getRunSessions(): RunSession[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.RUN_SESSIONS);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map(normalizeRunSession)
+      .filter((session): session is RunSession => Boolean(session))
+      .sort((a, b) => b.updatedAt - a.updatedAt);
+  } catch {
+    return [];
+  }
+}
+
+function setActiveRunSessionId(sessionId: string): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.ACTIVE_SESSION_ID, sessionId);
+  } catch {
+    // ignore
+  }
+}
+
+export function startNewRunSession(label?: string): RunSession {
+  const now = Date.now();
+  const session: RunSession = {
+    id: makeRunSessionId(),
+    startedAt: now,
+    updatedAt: now,
+    label: label?.trim() || undefined,
+  };
+  writeRunSessions([session, ...getRunSessions()]);
+  setActiveRunSessionId(session.id);
+  return session;
+}
+
+export function getActiveRunSession(): RunSession {
+  const sessions = getRunSessions();
+  try {
+    const activeId = localStorage.getItem(STORAGE_KEYS.ACTIVE_SESSION_ID);
+    const existing = activeId ? sessions.find((session) => session.id === activeId) : undefined;
+    if (existing) return existing;
+  } catch {
+    // Fall through to a fresh session.
+  }
+  return startNewRunSession();
+}
+
+export function resumeRunSession(sessionId: string): RunSession | null {
+  const sessions = getRunSessions();
+  const target = sessions.find((session) => session.id === sessionId);
+  if (!target) return null;
+  const resumed = { ...target, updatedAt: Date.now() };
+  writeRunSessions([resumed, ...sessions.filter((session) => session.id !== sessionId)]);
+  setActiveRunSessionId(sessionId);
+  return resumed;
+}
+
+function touchRunSession(sessionId: string): RunSession {
+  const sessions = getRunSessions();
+  const existing = sessions.find((session) => session.id === sessionId);
+  const now = Date.now();
+  const touched: RunSession = existing
+    ? { ...existing, updatedAt: now }
+    : { id: sessionId, startedAt: now, updatedAt: now };
+  writeRunSessions([touched, ...sessions.filter((session) => session.id !== sessionId)]);
+  return touched;
+}
+
+export function getCurrentSessionRuns(): ArchivedRun[] {
+  const active = getActiveRunSession();
+  return getRunArchive().filter((run) => run.sessionId === active.id);
+}
+
 export function getRunArchive(): ArchivedRun[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.RUN_ARCHIVE);
@@ -1063,6 +1170,7 @@ export function getRunArchive(): ArchivedRun[] {
     if (!Array.isArray(parsed)) return [];
     return parsed.map((run: any) => ({
       ...run,
+      sessionId: typeof run?.sessionId === 'string' && run.sessionId.trim() ? run.sessionId : undefined,
       guyIds: Array.isArray(run?.guyIds) ? run.guyIds : [],
       realityEngineIds: Array.isArray(run?.realityEngineIds) ? run.realityEngineIds : [],
       compositionEngineIds: Array.isArray(run?.compositionEngineIds) ? run.compositionEngineIds : [],
@@ -1112,15 +1220,18 @@ function writeRunArchive(runs: ArchivedRun[]): ArchivedRun[] {
   }
 }
 
-export function saveGeneratedRun(run: Omit<ArchivedRun, 'id' | 'createdAt' | 'starred' | 'feedback'>): ArchivedRun {
+export function saveGeneratedRun(run: Omit<ArchivedRun, 'id' | 'createdAt' | 'starred' | 'feedback' | 'sessionId'>): ArchivedRun {
+  const session = getActiveRunSession();
   const archived: ArchivedRun = {
     ...run,
     id: 'run_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8),
     createdAt: Date.now(),
+    sessionId: session.id,
     starred: false,
     feedback: '',
   };
   writeRunArchive([archived, ...getRunArchive()]);
+  touchRunSession(session.id);
   return archived;
 }
 
@@ -1129,7 +1240,7 @@ export function updateArchivedRun(id: string, patch: Partial<ArchivedRun>): Arch
   let updatedRun: ArchivedRun | null = null;
   const updated = runs.map((run) => {
     if (run.id !== id) return run;
-    updatedRun = { ...run, ...patch, id: run.id, createdAt: run.createdAt };
+    updatedRun = { ...run, ...patch, id: run.id, createdAt: run.createdAt, sessionId: run.sessionId };
     return updatedRun;
   });
   writeRunArchive(updated);
@@ -1353,6 +1464,7 @@ export function runToMarkdown(run: ArchivedRun): string {
     '',
     '**Run ID:** ' + run.id,
     '**Created:** ' + date,
+    '**Session ID:** ' + (run.sessionId || '(legacy / ungrouped)'),
     '**Stack:** ' + run.guyIds.join(' → '),
     '**Reality engines:** ' + (run.realityEngineIds.length ? run.realityEngineIds.join(' → ') : '(none)'),
     '**Reality chaos:** ' + (run.realityChaos || 2),
@@ -1400,6 +1512,26 @@ export function runToMarkdown(run: ArchivedRun): string {
     '\`\`\`',
     ''
   ].join('\n');
+}
+
+export function sessionToMarkdown(
+  session: RunSession = getActiveRunSession(),
+  runs = getRunArchive().filter((run) => run.sessionId === session.id),
+): string {
+  const header = [
+    '# LITTLE GUY MACHINE — SESSION ARCHIVE',
+    '',
+    'Session ID: ' + session.id,
+    'Started: ' + new Date(session.startedAt).toISOString(),
+    'Last active: ' + new Date(session.updatedAt).toISOString(),
+    'Exported: ' + new Date().toISOString(),
+    'Runs: ' + runs.length,
+    'Starred: ' + runs.filter((run) => run.starred).length,
+    '',
+    '---',
+    ''
+  ].join('\n');
+  return header + runs.map(runToMarkdown).join('\n---\n\n');
 }
 
 export function archiveToMarkdown(runs = getRunArchive()): string {
