@@ -3,6 +3,7 @@ import { LittleGuy, SavedStack } from '../types';
 import { ArrowUp, ArrowDown, X, Trash2, Bookmark, Dices, Flame, Sparkles, FolderHeart, FlaskConical } from 'lucide-react';
 import { ACTIVE_GUY_MAX, getStackChemistry, STACK_RECIPES } from '../lib/mindStacking';
 import { ALTERED_STATE_RECIPES } from '../data/alteredStateRecipes';
+import { SPECIALTY_WHOLE_STACK_RECIPES } from '../data/specialtyWholeStackRecipes';
 
 interface StackPanelProps {
   stackGuys: LittleGuy[];
@@ -141,7 +142,37 @@ export function StackPanel({
             </button>
           </div>
           <div className="space-y-2">
-            <div className="text-[10px] font-mono font-bold tracking-wider text-[#00f0ff]">ALTERED-STATE WHOLE-STACK RECIPES</div>
+            <div className="text-[10px] font-mono font-bold tracking-wider text-[#ffd84d]">SPECIALTY WHOLE-STACK RECIPES</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {SPECIALTY_WHOLE_STACK_RECIPES.map((recipe) => (
+                <button
+                  key={recipe.id}
+                  type="button"
+                  onClick={() => {
+                    onLoadSavedStack(recipe);
+                    setShowRecipes(false);
+                  }}
+                  className="text-left p-2.5 rounded-lg bg-[#17150a] border border-[#5b5117] hover:border-[#ffd84d] transition-colors"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-mono font-bold text-white">{recipe.name}</span>
+                    <span className="text-[9px] font-mono text-[#ffe995]">WORLD: OPEN</span>
+                  </div>
+                  <div className="text-[10px] text-[#aaa27c] mt-1 leading-snug">{recipe.description}</div>
+                  <div className="text-[9px] font-mono text-[#f0d6ff] mt-1.5 leading-snug">
+                    VIBE: {recipe.vibeSummary}
+                  </div>
+                  <div className="text-[9px] font-mono text-[#b9f7ff] mt-1.5 leading-snug">
+                    SOUND: {recipe.instrumentSummary}
+                  </div>
+                  <div className="text-[9px] font-mono text-[#7f795b] mt-1">
+                    {recipe.guyIds.length} minds • {recipe.compositionEngineIds.length} composition engines • one-click whole stack
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            <div className="pt-1 text-[10px] font-mono font-bold tracking-wider text-[#00f0ff]">ALTERED-STATE WHOLE-STACK RECIPES</div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-80 overflow-y-auto pr-1">
               {ALTERED_STATE_RECIPES.map((recipe) => (
                 <button
