@@ -9,6 +9,7 @@ import {
   getMusicMechanism,
 } from '../src/data/musicSeedSystem';
 import { SPECIALTY_WHOLE_STACK_RECIPES } from '../src/data/specialtyWholeStackRecipes';
+import { SPECIALTY_COMPOSITION_PRESETS } from '../src/data/specialtyCompositionPresets';
 import { generateProceduralTrack, TARGETS } from '../src/lib/proceduralGenerator';
 
 const recipe = SPECIALTY_WHOLE_STACK_RECIPES.find(
@@ -74,6 +75,22 @@ for (const id of [
 ]) {
   assert.ok(musicRecipe.mechanismIds.includes(id), 'missing choir mechanism: ' + id);
 }
+
+const luminousPreset = SPECIALTY_COMPOSITION_PRESETS.find(
+  (item) => item.id === 'builtin-composition-luminous-friction-orchestra',
+);
+assert.ok(luminousPreset, 'luminous friction composition preset should exist');
+assert.equal(luminousPreset.compositionEngineIds.length, 6, 'instrument-only palette should stay focused');
+assert.deepEqual(
+  normalizeCompositionEngineIds(luminousPreset.compositionEngineIds),
+  luminousPreset.compositionEngineIds,
+  'instrument palette should obey composition dimension limits',
+);
+assert.deepEqual(
+  luminousPreset.lockedEngineIds,
+  luminousPreset.compositionEngineIds,
+  'built-in instrument palette should lock its chosen sound sources when loaded',
+);
 
 const generated = generateProceduralTrack({
   guyIds: recipe.guyIds,
