@@ -310,6 +310,7 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
       (activeControlAuthority ? '[CONTROL AUTHORITY: ' + activeControlAuthority.name + ' — only the authorized controller may make designated changes until authority transfers.]\n' : '') +
       (activeProp ? '[OBJECT / PROP: ' + activeProp.name + ' — keep the same physical object stateful across sections; every return must mediate or remember something.]\n' : '') +
       'Subject: ' + subject + '.\n' +
+      (quotedSeedAnchors.length ? quotedSeedAnchors.map((anchor) => anchor + '\n').join('') : '') +
       'The first pass is deliberately legible. The listener is given a stable specimen before any mutation begins.\n' +
       primary.name + ' controls ' + primary.defaultJurisdiction + '.\n' +
       'Nothing else is permitted to steal that jurisdiction.\n' +
