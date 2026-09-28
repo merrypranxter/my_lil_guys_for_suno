@@ -1311,6 +1311,12 @@ export function getRunArchive(): ArchivedRun[] {
       dislikedMouthTraitIds: validMouthTraitIds(run?.dislikedMouthTraitIds),
       likedMouthQuirkIds: validMouthQuirkIds(run?.likedMouthQuirkIds),
       dislikedMouthQuirkIds: validMouthQuirkIds(run?.dislikedMouthQuirkIds),
+      likedMouthContextKeys: Array.isArray(run?.likedMouthContextKeys)
+        ? run.likedMouthContextKeys.filter((key: unknown) => typeof key === 'string').slice(0, 40)
+        : [],
+      dislikedMouthContextKeys: Array.isArray(run?.dislikedMouthContextKeys)
+        ? run.dislikedMouthContextKeys.filter((key: unknown) => typeof key === 'string').slice(0, 40)
+        : [],
     }));
   } catch (e) {
     console.error('Failed to load run archive', e);
@@ -1607,6 +1613,8 @@ export function runToMarkdown(run: ArchivedRun): string {
     '**Suppress-inheritance mouth traits:** ' + (run.dislikedMouthTraitIds?.length ? run.dislikedMouthTraitIds.join(', ') : 'None'),
     '**Breed-positive mouth quirks:** ' + (run.likedMouthQuirkIds?.length ? run.likedMouthQuirkIds.join(', ') : 'None'),
     '**Suppress-inheritance mouth quirks:** ' + (run.dislikedMouthQuirkIds?.length ? run.dislikedMouthQuirkIds.join(', ') : 'None'),
+    '**Liked Mouth context:** ' + (run.likedMouthContextKeys?.length ? run.likedMouthContextKeys.join(', ') : 'None'),
+    '**Disliked Mouth context:** ' + (run.dislikedMouthContextKeys?.length ? run.dislikedMouthContextKeys.join(', ') : 'None'),
     '**Musical fingerprint:** ' + fingerprint,
     '**Character counts:** style ' + run.charCounts.style + ' / lyrics ' + run.charCounts.lyrics + ' / caption ' + run.charCounts.caption,
     '',
