@@ -495,6 +495,16 @@ app.post('/api/repair', async (req, res) => {
     }
 
     repairedText = enforceOutputContract(boxKey, repairedText);
+    const target = TARGETS[boxKey];
+    if (repairedText.length < target.min || repairedText.length > target.max) {
+      res.status(422).json({
+        error:
+          'Repair stayed outside the target window without filler: ' +
+          repairedText.length + ' chars; need ' + target.min + '–' + target.max + '.',
+        charCount: repairedText.length,
+      });
+      return;
+    }
 
     res.json({
       repairedText,
@@ -505,6 +515,17 @@ app.post('/api/repair', async (req, res) => {
     console.warn('AI length repair unavailable; applying algorithmic calibration:', error?.message);
 
     const repairedText = enforceOutputContract(boxKey, currentText);
+    const target = TARGETS[boxKey];
+
+    if (repairedText.length < target.min || repairedText.length > target.max) {
+      res.status(503).json({
+        error:
+          'AI repair unavailable and local fallback refuses to pad with filler. Current length: ' +
+          repairedText.length + '; need ' + target.min + '–' + target.max + '.',
+        charCount: repairedText.length,
+      });
+      return;
+    }
 
     res.json({
       repairedText,
