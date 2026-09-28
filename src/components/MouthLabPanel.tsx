@@ -93,6 +93,7 @@ interface MouthLabPanelProps {
   onPromptModeChange: (mode: MouthPromptMode) => void;
   onSemanticModeChange: (mode: MouthSemanticMode) => void;
   onNotice?: (message: string) => void;
+  compactMode?: boolean;
 }
 
 type MouthTab = 'breed' | 'quirks' | 'inspect' | 'dynamics' | 'evolve' | 'lineage' | 'specimens';
@@ -220,8 +221,14 @@ export function MouthLabPanel({
   onPromptModeChange,
   onSemanticModeChange,
   onNotice,
+  compactMode = false,
 }: MouthLabPanelProps) {
   const [tab, setTab] = useState<MouthTab>('breed');
+  const [mouthLabExpanded, setMouthLabExpanded] = useState(() => !compactMode);
+  useEffect(() => {
+    if (!compactMode) setMouthLabExpanded(true);
+  }, [compactMode]);
+
   const [parentIds, setParentIds] = useState<string[]>(
     () => genome?.parentDonorIds?.slice(0, 6) || ['mouth-donor-english', 'mouth-donor-spanish']
   );
@@ -1016,6 +1023,61 @@ export function MouthLabPanel({
         </div>
       )}
 
+      {compactMode && !mouthLabExpanded && (
+        <div className="rounded-2xl border border-[#4b2938] bg-[#120b10] p-3 md:p-4">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+            <div>
+              <div className="text-[10px] font-mono font-black tracking-[0.18em] text-[#ff9daf]">PLAY MODE MOUTH</div>
+              <div className="mt-1 text-[10px] font-mono text-[#806a73]">
+                Fast buttons use the same genetics underneath. Open the full Mouth Lab only when you want to perform surgery.
+              </div>
+              {genome && (
+                <div className="mt-2 text-[9px] font-mono text-[#9b7f8b]">
+                  ACTIVE: G{mouthGeneration(genome)} • {genome.name} • expression {genome.musicalExpression}/100
+                </div>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={genome ? evolveActiveAgain : quickFreak}
+                className="rounded-xl border border-[#39ff14]/60 bg-[#0e1a10] px-3 py-2.5 text-[10px] font-mono font-black text-[#b8ff9f]"
+              >
+                {genome ? 'EVOLVE AGAIN' : 'MAKE A WEIRD MOUTH'}
+              </button>
+              {genome && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTab('evolve');
+                    setMouthLabExpanded(true);
+                  }}
+                  className="rounded-xl border border-[#ff8a00]/60 bg-[#1d1207] px-3 py-2.5 text-[10px] font-mono font-black text-[#ffc56b]"
+                >
+                  BREED / EVOLUTION
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => setSpecimenOpen(true)}
+                className="rounded-xl border border-[#ffd84d]/55 bg-[#201b0d] px-3 py-2.5 text-[10px] font-mono font-black text-[#ffe995]"
+              >
+                WHAT THE FUCK WAS THAT?
+              </button>
+              <button
+                type="button"
+                onClick={() => setMouthLabExpanded(true)}
+                className="rounded-xl border border-[#a855f7]/60 bg-[#191023] px-3 py-2.5 text-[10px] font-mono font-black text-[#d7a7ff]"
+              >
+                OPEN MOUTH LAB
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {(!compactMode || mouthLabExpanded) && (
+        <>
       <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
         {(Object.keys(TAB_META) as MouthTab[]).map((id) => {
           const active = tab === id;
@@ -2700,6 +2762,18 @@ export function MouthLabPanel({
             </div>
           </div>
         </div>
+      )}
+
+          {compactMode && (
+            <button
+              type="button"
+              onClick={() => setMouthLabExpanded(false)}
+              className="w-full rounded-xl border border-[#334155] bg-[#0c1017] px-3 py-2 text-[10px] font-mono font-black text-[#8996a8]"
+            >
+              HIDE MOUTH LAB / BACK TO PLAY MODE
+            </button>
+          )}
+        </>
       )}
 
       {specimenOpen && (
