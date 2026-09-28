@@ -11,6 +11,7 @@
     "lint": "tsc --noEmit",
     "verify:sessions": "tsx scripts/verifySessionHygiene.ts",
     "verify:output-contracts": "tsx scripts/verifyOutputContracts.ts",
+    "verify:brain-backup": "tsx scripts/verifyBrainBackup.ts",
     "verify:composition": "tsx scripts/verifyCompositionLab.ts",
     "verify:seed": "tsx scripts/verifyMusicSeedLab.ts",
     "verify:breeding": "tsx scripts/verifyMusicBreeding.ts",

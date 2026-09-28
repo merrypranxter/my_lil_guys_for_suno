@@ -1,5 +1,5 @@
 import type { BoxType } from '../types';
-import { TARGETS, clampAndPad } from './proceduralGenerator';
+import { TARGETS } from './proceduralGenerator';
 
 export interface OutputBoxes {
   style: string;
@@ -13,15 +13,6 @@ export interface OutputContractViolation {
   min: number;
   max: number;
 }
-
-const PADDING_SNIPPETS: Record<BoxType, string> = {
-  style:
-    ' Preserve the anchor while one jurisdiction mutates at a time; keep every active system audible, separate, and causally legible.',
-  lyrics:
-    '[CONTRACT CONTINUATION: preserve the active anchor, mouth physics, rhythmic law, and current causal transformation; add only structurally necessary detail.]',
-  caption:
-    ' The result keeps each mechanism legible while the anchor survives mutation and returns carrying a useful structural scar.',
-};
 
 export function getOutputContractViolations(boxes: OutputBoxes): OutputContractViolation[] {
   return (Object.keys(TARGETS) as BoxType[]).flatMap((boxType) => {
@@ -40,8 +31,17 @@ export function outputContractsPass(boxes: OutputBoxes): boolean {
 export function enforceOutputContract(boxType: BoxType, text: string): string {
   const target = TARGETS[boxType];
   if (!target) return text;
-  if (text.length >= target.min && text.length <= target.max) return text;
-  return clampAndPad(text, target.min, target.max, PADDING_SNIPPETS[boxType]);
+  const trimmed = text.trim();
+  if (trimmed.length <= target.max) return trimmed;
+
+  let result = trimmed.slice(0, target.max);
+  const lastPunct = Math.max(
+    result.lastIndexOf('. '),
+    result.lastIndexOf('] '),
+    result.lastIndexOf('\n'),
+  );
+  if (lastPunct >= target.min) result = result.slice(0, lastPunct + 1).trim();
+  return result;
 }
 
 export function enforceOutputContracts(boxes: OutputBoxes): {

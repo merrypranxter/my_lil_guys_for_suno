@@ -3,7 +3,7 @@ import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI, Type } from '@google/genai';
 import { buildMasterPrompt, buildRepairPrompt } from './src/lib/buildGenerationPrompt';
-import { generateProceduralTrack } from './src/lib/proceduralGenerator';
+import { generateProceduralTrack, TARGETS } from './src/lib/proceduralGenerator';
 import { BoxType, MusicFingerprint, RealityChaosLevel } from './src/types';
 import { normalizeMouthSemanticMode, type MouthPromptMode, type MouthSemanticMode } from './src/mouthLab/types';
 import { normalizeMouthGenomeForGeneration } from './src/mouthLab/promptCompiler';
@@ -164,15 +164,19 @@ async function repairGeneratedOutputContracts(boxes: OutputBoxes): Promise<{
   boxes: OutputBoxes;
   notice?: string;
 }> {
-  const violations = getOutputContractViolations(boxes);
-  if (violations.length === 0) return { boxes };
-
-  const invalidTypes = new Set<BoxType>(violations.map((violation) => violation.boxType));
   let candidate: OutputBoxes = { ...boxes };
-  let aiRepairSucceeded = false;
+  const originallyInvalid = getOutputContractViolations(candidate);
+  if (originallyInvalid.length === 0) return { boxes: candidate };
 
-  try {
-    const violationSummary = violations
+  let aiRepairAttempts = 0;
+  let lastViolations = originallyInvalid;
+
+  for (let attempt = 1; attempt <= 3; attempt += 1) {
+    lastViolations = getOutputContractViolations(candidate);
+    if (lastViolations.length === 0) break;
+
+    const invalidTypes = new Set<BoxType>(lastViolations.map((violation) => violation.boxType));
+    const violationSummary = lastViolations
       .map((violation) =>
         violation.boxType.toUpperCase() + ': ' + violation.length +
         ' chars; required ' + violation.min + '–' + violation.max
@@ -184,60 +188,75 @@ async function repairGeneratedOutputContracts(boxes: OutputBoxes): Promise<{
       'Repair only boxes that violate their exact character window. Valid boxes are frozen and must be returned byte-for-byte unchanged.\n' +
       'STYLE must be 975–999 characters. LYRICS must be 4900–4999 characters. CAPTION must be 490–499 characters.\n' +
       'Preserve musical mechanisms, semantic subject, Mouth Lab behavior, bracketed control syntax, and tone. ' +
-      'Trim redundancy before substance; expand with operationally meaningful detail rather than filler.\n' +
+      'Trim redundancy before substance. If expanding, add NEW operationally meaningful musical detail that is consistent with the existing mechanisms. ' +
+      'NEVER repeat a sentence, operator, control tag, or filler phrase merely to reach the target. ' +
+      'NEVER emit CONTRACT CONTINUATION, CALIBRATION INVARIANT, padding markers, or meta-commentary about character counts.\n' +
       'Return JSON only with style, lyrics, caption.';
 
     const userPrompt =
+      'REPAIR ATTEMPT ' + attempt + ' OF 3\n' +
       'OUTPUT CONTRACT VIOLATIONS:\n' + violationSummary + '\n\n' +
-      'CURRENT BOXES:\n' + JSON.stringify(boxes) + '\n\n' +
-      'Repair the violating boxes and return all three keys.';
+      'CURRENT BOXES:\n' + JSON.stringify(candidate) + '\n\n' +
+      'Repair the violating boxes with substantive non-repeating content and return all three keys.';
 
-    const { response } = await generateWithResilience(userPrompt, {
-      systemInstruction,
-      temperature: 0.45,
-      responseMimeType: 'application/json',
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          style: { type: Type.STRING },
-          lyrics: { type: Type.STRING },
-          caption: { type: Type.STRING },
+    try {
+      const { response } = await generateWithResilience(userPrompt, {
+        systemInstruction,
+        temperature: 0.35,
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            style: { type: Type.STRING },
+            lyrics: { type: Type.STRING },
+            caption: { type: Type.STRING },
+          },
+          required: ['style', 'lyrics', 'caption'],
         },
-        required: ['style', 'lyrics', 'caption'],
-      },
-    });
+      });
 
-    const raw = response.text || '{}';
-    const parsed = JSON.parse(raw);
+      const raw = response.text || '{}';
+      const parsed = JSON.parse(raw);
+      candidate = {
+        style: invalidTypes.has('style') && typeof parsed.style === 'string' ? parsed.style : candidate.style,
+        lyrics: invalidTypes.has('lyrics') && typeof parsed.lyrics === 'string' ? parsed.lyrics : candidate.lyrics,
+        caption: invalidTypes.has('caption') && typeof parsed.caption === 'string' ? parsed.caption : candidate.caption,
+      };
+      aiRepairAttempts = attempt;
 
-    candidate = {
-      style: invalidTypes.has('style') && typeof parsed.style === 'string' ? parsed.style : boxes.style,
-      lyrics: invalidTypes.has('lyrics') && typeof parsed.lyrics === 'string' ? parsed.lyrics : boxes.lyrics,
-      caption: invalidTypes.has('caption') && typeof parsed.caption === 'string' ? parsed.caption : boxes.caption,
-    };
-    aiRepairSucceeded = true;
-  } catch (error: any) {
-    console.warn('Automatic AI contract repair unavailable; using deterministic finalizer:', error?.message || error);
+      // Deterministic enforcement is allowed to trim excess only. It never pads.
+      candidate = enforceOutputContracts(candidate).boxes;
+    } catch (error: any) {
+      console.warn(
+        'Automatic AI contract repair attempt ' + attempt + ' unavailable:',
+        error?.message || error,
+      );
+      break;
+    }
   }
 
-  const finalized = enforceOutputContracts(candidate);
-  const remaining = getOutputContractViolations(finalized.boxes);
+  const remaining = getOutputContractViolations(candidate);
   if (remaining.length > 0) {
     throw new Error(
-      'Output contract finalizer failed for: ' +
-      remaining.map((violation) => violation.boxType).join(', ')
+      'Output contract repair could not reach target without filler for: ' +
+      remaining
+        .map((violation) =>
+          violation.boxType.toUpperCase() + ' ' + violation.length +
+          ' chars (need ' + violation.min + '–' + violation.max + ')'
+        )
+        .join(', ')
     );
   }
 
-  const repairedNames = violations.map((violation) => violation.boxType.toUpperCase()).join(', ');
+  const repairedNames = originallyInvalid.map((violation) => violation.boxType.toUpperCase()).join(', ');
   return {
-    boxes: finalized.boxes,
+    boxes: candidate,
     notice:
       'Automatic output contract repair applied to ' + repairedNames +
-      (aiRepairSucceeded ? '; deterministic final validation passed.' : '; local deterministic finalizer used.'),
+      ' using ' + aiRepairAttempts + ' substantive repair attempt' + (aiRepairAttempts === 1 ? '' : 's') +
+      '; no deterministic filler padding was used.',
   };
 }
-
 app.get('/api/info', (_req, res) => {
   res.json({
     status: 'online',
@@ -476,6 +495,16 @@ app.post('/api/repair', async (req, res) => {
     }
 
     repairedText = enforceOutputContract(boxKey, repairedText);
+    const target = TARGETS[boxKey];
+    if (repairedText.length < target.min || repairedText.length > target.max) {
+      res.status(422).json({
+        error:
+          'Repair stayed outside the target window without filler: ' +
+          repairedText.length + ' chars; need ' + target.min + '–' + target.max + '.',
+        charCount: repairedText.length,
+      });
+      return;
+    }
 
     res.json({
       repairedText,
@@ -486,6 +515,17 @@ app.post('/api/repair', async (req, res) => {
     console.warn('AI length repair unavailable; applying algorithmic calibration:', error?.message);
 
     const repairedText = enforceOutputContract(boxKey, currentText);
+    const target = TARGETS[boxKey];
+
+    if (repairedText.length < target.min || repairedText.length > target.max) {
+      res.status(503).json({
+        error:
+          'AI repair unavailable and local fallback refuses to pad with filler. Current length: ' +
+          repairedText.length + '; need ' + target.min + '–' + target.max + '.',
+        charCount: repairedText.length,
+      });
+      return;
+    }
 
     res.json({
       repairedText,
