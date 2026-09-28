@@ -114,6 +114,9 @@ jobs:
       - name: Mouth Lab evolutionary fuckery regression smoke
         run: npm run verify:mouth-evolutionary-fuckery
 
+      - name: Mouth Lab feedback genetics regression smoke
+        run: npm run verify:mouth-feedback-genetics
+
       - name: Specialty recipe regression smoke
         run: npm run verify:specialty-recipes
 
