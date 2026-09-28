@@ -30,6 +30,9 @@ jobs:
       - name: Output contract regression smoke
         run: npm run verify:output-contracts
 
+      - name: Brain backup regression smoke
+        run: npm run verify:brain-backup
+
       - name: Composition Lab regression smoke
         run: npm run verify:composition
 
