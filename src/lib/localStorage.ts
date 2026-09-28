@@ -46,6 +46,130 @@ const STORAGE_KEYS = {
   MOUTH_FITNESS: 'lgm_mouth_fitness_v1',
 };
 
+export interface MouthContextPreference {
+  key: string;
+  label: string;
+  dimension: 'semantic' | 'expression' | 'environment' | 'evolution' | 'fossil' | 'compiler';
+}
+
+function mouthExpressionBandKey(value: number | undefined): { key: string; label: string } {
+  const n = Math.max(0, Math.min(100, Math.round(Number(value) || 0)));
+  if (n <= 19) return { key: 'expression:mouth-only', label: 'MOUTH EXPRESSION 0–19 • MOUTH ONLY' };
+  if (n <= 39) return { key: 'expression:phrasing-rhythm', label: 'MOUTH EXPRESSION 20–39 • PHRASING / RHYTHM' };
+  if (n <= 59) return { key: 'expression:melody-rhythm', label: 'MOUTH EXPRESSION 40–59 • MELODY / RHYTHM' };
+  if (n <= 79) return { key: 'expression:harmony-instruments', label: 'MOUTH EXPRESSION 60–79 • HARMONY / INSTRUMENTS' };
+  return { key: 'expression:whole-organism', label: 'MOUTH EXPRESSION 80–100 • WHOLE MUSICAL ORGANISM' };
+}
+
+export function getMouthContextPreferencesForRun(run: ArchivedRun): MouthContextPreference[] {
+  if (!run.mouthGenome) return [];
+  const genome = normalizeMouthGenomeForGeneration(run.mouthGenome);
+  if (!genome) return [];
+
+  const rows: MouthContextPreference[] = [];
+  const semantic = normalizeMouthSemanticMode(run.mouthSemanticMode);
+  rows.push({
+    key: 'semantic:' + semantic,
+    label: 'SEMANTICS • ' + semantic.replace(/([a-z])([A-Z])/g, '$1 $2').replace(/-/g, ' ').toUpperCase(),
+    dimension: 'semantic',
+  });
+
+  const expression = mouthExpressionBandKey(genome.musicalExpression);
+  rows.push({ ...expression, dimension: 'expression' });
+
+  const compiler = run.mouthPromptMode || 'bracketed';
+  rows.push({
+    key: 'compiler:' + compiler,
+    label: 'MOUTH COMPILER • ' + compiler.toUpperCase(),
+    dimension: 'compiler',
+  });
+
+  if (genome.environment) {
+    rows.push({
+      key: 'environment:' + genome.environment.mode,
+      label: 'ECOLOGY • ' + genome.environment.mode.toUpperCase(),
+      dimension: 'environment',
+    });
+    if (genome.environment.sourceDonorId) {
+      rows.push({
+        key: 'environment-source:' + genome.environment.sourceDonorId,
+        label: 'ECOLOGY SOURCE • ' + genome.environment.sourceDonorId,
+        dimension: 'environment',
+      });
+    }
+  }
+
+  const evolutionaryOps = Array.from(new Set(
+    genome.mutationScars
+      .map((scar) => scar.sourceOperation)
+      .filter((op) => ['bottleneck', 'founder-effect', 'atavism', 'extinction', 'fossilize', 'speciate'].includes(op)),
+  ));
+  for (const op of evolutionaryOps) {
+    rows.push({
+      key: 'evolution:' + op,
+      label: 'EVOLUTION • ' + op.replace(/-/g, ' ').toUpperCase(),
+      dimension: 'evolution',
+    });
+  }
+
+  for (const fossil of genome.fossils || []) {
+    rows.push({
+      key: 'fossil:' + fossil.sourceType + ':' + fossil.sourceId,
+      label: 'MUSICAL FOSSIL • ' + fossil.sourceName,
+      dimension: 'fossil',
+    });
+  }
+
+  return rows.filter(
+    (item, index, all) => all.findIndex((candidate) => candidate.key === item.key) === index,
+  );
+}
+
+export function getMouthContextPreferenceScores(limit = 80): Record<string, number> {
+  const scores: Record<string, number> = {};
+  const starred = getRunArchive().filter((run) => run.starred && run.mouthGenome).slice(0, limit);
+
+  for (const run of starred) {
+    const active = getMouthContextPreferencesForRun(run).map((item) => item.key);
+    const liked = (run.likedMouthContextKeys || []).filter((key) => active.includes(key));
+    const disliked = (run.dislikedMouthContextKeys || []).filter((key) => active.includes(key));
+    const explicit = liked.length > 0 || disliked.length > 0;
+
+    if (explicit) {
+      for (const key of liked) scores[key] = (scores[key] || 0) + 2;
+      for (const key of disliked) scores[key] = (scores[key] || 0) - 2.5;
+    } else {
+      // Whole-run star is weak configuration evidence. It must never lock the lab
+      // into one semantic mode/ecology/expression band forever.
+      for (const key of active) scores[key] = (scores[key] || 0) + 0.2;
+    }
+  }
+
+  const maxAbs = Math.max(0, ...Object.values(scores).map((value) => Math.abs(value)));
+  if (maxAbs <= 0) return scores;
+  for (const key of Object.keys(scores)) {
+    scores[key] = Math.round((scores[key] / maxAbs) * 100) / 100;
+  }
+  return scores;
+}
+
+export function getMouthContextPreferenceSignals(limit = 6): string[] {
+  const scores = getMouthContextPreferenceScores();
+  const labels = new Map<string, string>();
+  for (const run of getRunArchive().filter((item) => item.starred && item.mouthGenome).slice(0, 80)) {
+    for (const item of getMouthContextPreferencesForRun(run)) labels.set(item.key, item.label);
+  }
+
+  return Object.entries(scores)
+    .filter(([, score]) => Math.abs(score) >= 0.2)
+    .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]) || a[0].localeCompare(b[0]))
+    .slice(0, limit)
+    .map(([key, score]) =>
+      'MOUTH CONTEXT FITNESS — ' + (labels.get(key) || key) + ' has preference weight ' + score.toFixed(2) +
+      '. Treat this as a soft historical preference, never a mandatory default; novelty and explicit current controls outrank it.'
+    );
+}
+
 const MAX_ARCHIVE_RUNS = 150;
 const MAX_RUN_SESSIONS = 60;
 
@@ -1187,6 +1311,12 @@ export function getRunArchive(): ArchivedRun[] {
       dislikedMouthTraitIds: validMouthTraitIds(run?.dislikedMouthTraitIds),
       likedMouthQuirkIds: validMouthQuirkIds(run?.likedMouthQuirkIds),
       dislikedMouthQuirkIds: validMouthQuirkIds(run?.dislikedMouthQuirkIds),
+      likedMouthContextKeys: Array.isArray(run?.likedMouthContextKeys)
+        ? run.likedMouthContextKeys.filter((key: unknown) => typeof key === 'string').slice(0, 40)
+        : [],
+      dislikedMouthContextKeys: Array.isArray(run?.dislikedMouthContextKeys)
+        ? run.dislikedMouthContextKeys.filter((key: unknown) => typeof key === 'string').slice(0, 40)
+        : [],
     }));
   } catch (e) {
     console.error('Failed to load run archive', e);
@@ -1258,7 +1388,8 @@ export function getLikedPreferenceSignals(limit = 10): string[] {
       const music = summarizeMusicStack(run.musicStack || [], run.musicControls);
       const starter = summarizeStarterSeedStack(run.starterSeedStack);
       const tags = run.feedbackTags?.length ? ' Feedback tags: ' + run.feedbackTags.join(', ') + '.' : '';
-      const context = 'stack=' + run.guyIds.join(' > ') + ' | starter=' + starter + ' | reality=' + reality + ' | composition=' + composition + ' | music=' + music + ' | realityChaos=' + (run.realityChaos || 2) + ' | seed=' + (run.seed || '(none)') + ' | ';
+      const mouthContext = getMouthContextPreferencesForRun(run).map((item) => item.label).join(' / ') || '(none)';
+      const context = 'stack=' + run.guyIds.join(' > ') + ' | starter=' + starter + ' | reality=' + reality + ' | composition=' + composition + ' | music=' + music + ' | mouthContext=' + mouthContext + ' | realityChaos=' + (run.realityChaos || 2) + ' | seed=' + (run.seed || '(none)') + ' | ';
       return 'POSITIVE EXAMPLE — ' + context + fingerprint + '.' + tags + note;
     });
 }
@@ -1482,6 +1613,8 @@ export function runToMarkdown(run: ArchivedRun): string {
     '**Suppress-inheritance mouth traits:** ' + (run.dislikedMouthTraitIds?.length ? run.dislikedMouthTraitIds.join(', ') : 'None'),
     '**Breed-positive mouth quirks:** ' + (run.likedMouthQuirkIds?.length ? run.likedMouthQuirkIds.join(', ') : 'None'),
     '**Suppress-inheritance mouth quirks:** ' + (run.dislikedMouthQuirkIds?.length ? run.dislikedMouthQuirkIds.join(', ') : 'None'),
+    '**Liked Mouth context:** ' + (run.likedMouthContextKeys?.length ? run.likedMouthContextKeys.join(', ') : 'None'),
+    '**Disliked Mouth context:** ' + (run.dislikedMouthContextKeys?.length ? run.dislikedMouthContextKeys.join(', ') : 'None'),
     '**Musical fingerprint:** ' + fingerprint,
     '**Character counts:** style ' + run.charCounts.style + ' / lyrics ' + run.charCounts.lyrics + ' / caption ' + run.charCounts.caption,
     '',

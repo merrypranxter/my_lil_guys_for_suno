@@ -33,6 +33,7 @@
     "verify:mouth-expression": "tsx scripts/verifyMouthExpression.ts",
     "verify:mouth-lineage": "tsx scripts/verifyMouthLineage.ts",
     "verify:mouth-evolutionary-fuckery": "tsx scripts/verifyMouthEvolutionaryFuckery.ts",
+    "verify:mouth-feedback-genetics": "tsx scripts/verifyMouthFeedbackGenetics.ts",
     "verify:specialty-recipes": "tsx scripts/verifySpecialtyRecipes.ts",
     "verify:starter-seeds": "tsx scripts/verifyStarterSeedsV2.ts",
     "verify:starter-ui": "tsx scripts/verifyStarterSeedUi.ts",
