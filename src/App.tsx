@@ -97,6 +97,9 @@ const UI_MODULES: ModuleNavItem[] = [
 ];
 
 const DEFAULT_MODULE_OPEN = Object.fromEntries(UI_MODULES.map((item) => [item.id, true])) as Record<string, boolean>;
+const DEFAULT_PLAY_MODULE_OPEN = Object.fromEntries(
+  UI_MODULES.map((item) => [item.id, ['stack', 'controls', 'mouth', 'output'].includes(item.id)])
+) as Record<string, boolean>;
 const DEFAULT_STACK_GUY_IDS = ['taxonomy-goblin', 'recall-mold', 'cosmic-clerk'];
 
 function downloadText(filename: string, text: string) {
@@ -166,12 +169,21 @@ export default function App() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeModule, setActiveModule] = useState('stack');
+  const [uiMode, setUiMode] = useState<'play' | 'lab'>(() => {
+    try {
+      return window.localStorage.getItem('little-guys-ui-mode-v1') === 'lab' ? 'lab' : 'play';
+    } catch {
+      return 'play';
+    }
+  });
   const [moduleOpen, setModuleOpen] = useState<Record<string, boolean>>(() => {
     try {
+      const mode = window.localStorage.getItem('little-guys-ui-mode-v1') === 'lab' ? 'lab' : 'play';
       const saved = window.localStorage.getItem('little-guys-ui-modules-v1');
-      return saved ? { ...DEFAULT_MODULE_OPEN, ...JSON.parse(saved) } : DEFAULT_MODULE_OPEN;
+      if (saved) return { ...(mode === 'lab' ? DEFAULT_MODULE_OPEN : DEFAULT_PLAY_MODULE_OPEN), ...JSON.parse(saved) };
+      return mode === 'lab' ? DEFAULT_MODULE_OPEN : DEFAULT_PLAY_MODULE_OPEN;
     } catch {
-      return DEFAULT_MODULE_OPEN;
+      return DEFAULT_PLAY_MODULE_OPEN;
     }
   });
 
@@ -261,6 +273,20 @@ export default function App() {
     setModuleOpen(Object.fromEntries(UI_MODULES.map((item) => [item.id, open])) as Record<string, boolean>);
   };
 
+  const enterPlayMode = () => {
+    setUiMode('play');
+    setModuleOpen({ ...DEFAULT_PLAY_MODULE_OPEN });
+    try { window.localStorage.setItem('little-guys-ui-mode-v1', 'play'); } catch {}
+    setNoticeMessage('PLAY MODE: core path open; deep labs folded up but still available.');
+  };
+
+  const openFullLab = () => {
+    setUiMode('lab');
+    setAllModules(true);
+    try { window.localStorage.setItem('little-guys-ui-mode-v1', 'lab'); } catch {}
+    setNoticeMessage('FULL LAB OPEN: all machinery exposed.');
+  };
+
   const toggleModule = (id: string) => {
     setModuleOpen((current) => ({ ...current, [id]: !current[id] }));
   };
@@ -348,6 +374,13 @@ export default function App() {
     const count = Math.floor(Math.random() * 3) + 3;
     const chosen = buildSmartStack(count, 'feral', LITTLE_GUYS, getLikedMindWeights());
     setStackGuyIds(chosen.map((g) => g.id));
+  };
+
+  const handleMakeItWeirder = () => {
+    handleFuckMeUp();
+    handleEnergyChange(Math.min(7, energy + 1));
+    setRealityChaos((current) => Math.min(5, current + 1) as RealityChaosLevel);
+    setNoticeMessage('WEIRDER: feral mind stack loaded, energy raised, reality chaos nudged upward. Existing Mouth/Music genetics were left intact.');
   };
 
   const handleLoadRecipe = (recipeId: string) => {
@@ -1009,6 +1042,61 @@ export default function App() {
           onCloseAll={() => setAllModules(false)}
         />
 
+        <div className="rounded-2xl border border-[#2a3142] bg-[#0d1118] p-3 md:p-4">
+          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+            <div>
+              <div className="text-[10px] font-mono font-black tracking-[0.18em] text-[#9ba7ba]">QUICK PLAY</div>
+              <div className="mt-1 text-xs text-[#6f7d92]">
+                Do the obvious thing first. Open the terrifying drawers only when you actually want them.
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={handleGenerate}
+                disabled={isGenerating || stackGuyIds.length === 0}
+                className="rounded-xl border border-[#39ff14] bg-[#39ff14] px-4 py-2.5 text-xs font-mono font-black text-black disabled:opacity-35"
+              >
+                {isGenerating ? 'GENERATING…' : 'GENERATE'}
+              </button>
+              <button
+                type="button"
+                onClick={handleMakeItWeirder}
+                className="rounded-xl border border-[#ff4fd8]/70 bg-[#251020] px-4 py-2.5 text-xs font-mono font-black text-[#ff9dea]"
+              >
+                MAKE IT WEIRDER
+              </button>
+              <button
+                type="button"
+                onClick={() => jumpToModule('mouth')}
+                className="rounded-xl border border-[#ff6b6b]/60 bg-[#211014] px-4 py-2.5 text-xs font-mono font-black text-[#ffb3b3]"
+              >
+                MOUTH STUFF
+              </button>
+              {uiMode === 'play' ? (
+                <button
+                  type="button"
+                  onClick={openFullLab}
+                  className="rounded-xl border border-[#a855f7]/70 bg-[#191023] px-4 py-2.5 text-xs font-mono font-black text-[#d7a7ff]"
+                >
+                  OPEN LAB
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={enterPlayMode}
+                  className="rounded-xl border border-[#00f0ff]/60 bg-[#07191d] px-4 py-2.5 text-xs font-mono font-black text-[#9bf8ff]"
+                >
+                  PLAY MODE
+                </button>
+              )}
+            </div>
+          </div>
+          <div className="mt-2 text-[9px] font-mono text-[#596579]">
+            MODE: {uiMode === 'play' ? 'PLAY — Stack / Controls / Mouth / Output prioritized' : 'FULL LAB — every module open'}
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div className="lg:col-span-7">
             <ModuleSection
@@ -1187,6 +1275,7 @@ export default function App() {
             onPromptModeChange={setMouthPromptMode}
             onSemanticModeChange={setMouthSemanticMode}
             onNotice={setNoticeMessage}
+            compactMode={uiMode === 'play'}
           />
         </ModuleSection>
 
