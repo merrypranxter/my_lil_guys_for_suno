@@ -35,7 +35,7 @@ const ecological = applyMouthEnvironment(base, {
   pressure: 80,
   generations: 5,
   seed: 'feedback-ecology',
-}).genome;
+});
 
 const evolved = applyMouthEvolutionaryOperation({
   genome: ecological,
