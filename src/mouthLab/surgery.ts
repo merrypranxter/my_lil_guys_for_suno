@@ -37,6 +37,7 @@ function reidentify(genome: MouthGenome): MouthGenome {
     breedingSeed: genome.breedingSeed,
     quirks: genome.quirks.map(({ createdAt, ...item }) => item),
     mutationScars: genome.mutationScars.map(({ createdAt, ...item }) => item),
+    fossils: (genome.fossils || []).map(({ createdAt, ...item }) => item),
     environment: genome.environment ? { ...genome.environment, createdAt: undefined } : undefined,
     linkedGeneBundles: genome.linkedGeneBundles.map(({ createdAt, ...item }) => item),
   });
