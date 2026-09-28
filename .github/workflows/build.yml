@@ -117,6 +117,9 @@ jobs:
       - name: Mouth Lab feedback genetics regression smoke
         run: npm run verify:mouth-feedback-genetics
 
+      - name: Play Mode UX regression smoke
+        run: npm run verify:play-mode-ux
+
       - name: Specialty recipe regression smoke
         run: npm run verify:specialty-recipes
 
