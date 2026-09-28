@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronDown, ChevronUp, FlaskConical, History, Info, Lock, Save, Shuffle, Search, Star, Trash2, Unlock, X } from 'lucide-react';
 import { CompositionDimension, CompositionDomain, CompositionEngine, CompositionFavorite, CompositionPreset } from '../types';
+import { SPECIALTY_COMPOSITION_PRESETS } from '../data/specialtyCompositionPresets';
 import {
   COMPOSITION_DIMENSION_DOMAINS,
   COMPOSITION_DIMENSION_JURISDICTIONS,
@@ -486,6 +487,28 @@ export function CompositionLabPanel({ selectedIds, onChange }: CompositionLabPan
             <p className="mt-2 text-[10px] font-mono text-[#657287]">
               Lock anything you love. Randomizers never replace locked engines. MUTATE changes only a small fraction of the unlocked build.
             </p>
+          </div>
+
+          <div className="rounded-xl border border-[#4b4620] bg-[#111008] p-3 space-y-2">
+            <div className="text-[10px] font-mono font-black tracking-widest text-[#ffe680]">
+              BUILT-IN SPECIALTY PALETTES
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-2">
+              {SPECIALTY_COMPOSITION_PRESETS.map((preset) => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={() => loadPreset(preset)}
+                  className="rounded-lg border border-[#4d4721] bg-[#171408] p-3 text-left hover:border-[#ffd84d]"
+                >
+                  <div className="text-[10px] font-mono font-black text-white">{preset.name}</div>
+                  <div className="mt-1 text-[9px] leading-relaxed text-[#aaa27c]">{preset.description}</div>
+                  <div className="mt-1.5 text-[9px] font-mono leading-relaxed text-[#b9f7ff]">
+                    SOUND: {preset.instrumentSummary}
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="rounded-xl border border-[#342f47] bg-[#0b0c13] p-3 space-y-3">
