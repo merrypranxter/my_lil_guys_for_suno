@@ -107,9 +107,10 @@ export function renderSeedSovereigntyContract(seed?: string): string {
     '- Mouth Lab may change pronunciation, phonotactics, timing, tone, phonation, morphology pressure, and other explicitly assigned vocal mechanics; it does not get to replace the seed subject.',
     '- Music genomes may inherit musical mechanisms only. Genome names, parent names, and lineage lore are provenance, never lyric subject matter.',
     '- If the user places text inside double quotation marks, that quoted text is VERBATIM LYRIC MATERIAL and must appear as sung/unbracketed lyric text at least once unless safety requires otherwise.',
-    '- Quoted text is an anchor INSIDE the seed concept, not a replacement for it. Preserve the broader meaning supplied by the full seed before, around, and after the quote.',
-    '- Unquoted seed wording does NOT have to be repeated literally; preserve its concept, context, and intent instead.'
-    '- Formatting/count repair may shorten or expand wording without introducing a new concept, scenario, genre, character, or mechanism, and may not delete required quoted verbatim lyric anchors.',
+    '- A short standalone seed utterance (for example FUCK THIS SHIT, WAKE UP SLUT, NOTHING MATTERS) is also direct lyric material: sing the phrase itself and infer its attitude/tone from the wording.',
+    '- Quoted/direct text is an anchor INSIDE the seed concept, not a replacement for it. Preserve the broader meaning supplied by the full seed before, around, and after the anchor.',
+    '- Longer unquoted seed wording does NOT have to be repeated literally; preserve its concept, context, and intent instead.',
+    '- Formatting/count repair may shorten or expand wording without introducing a new concept, scenario, genre, character, or mechanism, and may not delete required verbatim lyric anchors.',
   ].join('\n');
 }
 
