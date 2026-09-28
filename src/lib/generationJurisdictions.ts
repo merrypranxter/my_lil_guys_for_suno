@@ -100,7 +100,7 @@ export function renderSeedSovereigntyContract(seed?: string): string {
     'Direct standalone utterance anchor: ' + (contract.directUtteranceAnchor || 'none'),
     'Required verbatim sung anchors: ' + (contract.requiredVerbatimLyricAnchors.length ? contract.requiredVerbatimLyricAnchors.join(' | ') : 'none'),
     'Rules:',
-    '- The seed owns WHAT the song is about, explicit named objects/people/places/concepts, and requested actions or attitudes.',
+    '- The seed owns WHAT the song is about, explicit named objects/people/places/concepts, and requested actions or attitudes. It is a conceptual nucleus, not a phrase prison: the system may derive implications, consequences, imagery, situations, arguments, fake facts, lore, metaphors, and causal chains from it, but those expansions must remain recognizably descended from the seed.',
     '- Reality may stage, embody, narrate, or distort the seed, but may not replace the seed with a more convenient scenario.',
     '- Little Guys may transform causal logic, identity, memory, measurement, constraints, attention, or other cognitive relations AROUND the seed; they do not get to substitute their favorite topic.',
     '- Composition may change HOW the seed is sung, timed, arranged, transmitted, tuned, spatialized, damaged, or structurally organized; it does not own semantic subject matter.',
