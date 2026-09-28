@@ -378,9 +378,16 @@ app.post('/api/generate', async (req, res) => {
     );
 
     const seedCoverage = evaluateLiteralSeedCoverage(seed, [style, lyrics, caption]);
+    const quotedCoverage = evaluateQuotedSeedLyricsCoverage(seed, lyrics);
+    if (quotedCoverage.missing.length > 0) {
+      throw new Error(
+        'Quoted seed lyric anchor missing from sung/unbracketed lyrics: ' +
+        quotedCoverage.missing.map((anchor) => '"' + anchor + '"').join(', ')
+      );
+    }
     const seedNotice =
       seedCoverage.anchors.length > 0 && seedCoverage.coverage === 0
-        ? 'Seed sovereignty warning: none of the protected literal seed anchors survived into the generated boxes. Review for semantic drift.'
+        ? 'Seed sovereignty warning: none of the semantic seed anchors survived into the generated boxes. Review for semantic drift.'
         : undefined;
 
     res.json({
@@ -422,9 +429,16 @@ app.post('/api/generate', async (req, res) => {
         caption: fallback.caption,
       }).boxes;
       const fallbackSeedCoverage = evaluateLiteralSeedCoverage(seed, [fallbackCalibrated.style, fallbackCalibrated.lyrics, fallbackCalibrated.caption]);
+      const fallbackQuotedCoverage = evaluateQuotedSeedLyricsCoverage(seed, fallbackCalibrated.lyrics);
+      if (fallbackQuotedCoverage.missing.length > 0) {
+        throw new Error(
+          'Procedural fallback failed quoted seed lyric anchor: ' +
+          fallbackQuotedCoverage.missing.map((anchor) => '"' + anchor + '"').join(', ')
+        );
+      }
       const fallbackSeedNotice =
         fallbackSeedCoverage.anchors.length > 0 && fallbackSeedCoverage.coverage === 0
-          ? 'Seed sovereignty warning: none of the protected literal seed anchors survived into the generated boxes. Review for semantic drift.'
+          ? 'Seed sovereignty warning: none of the semantic seed anchors survived into the generated boxes. Review for semantic drift.'
           : undefined;
 
       res.json({
