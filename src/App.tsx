@@ -180,8 +180,9 @@ export default function App() {
     try {
       const mode = window.localStorage.getItem('little-guys-ui-mode-v1') === 'lab' ? 'lab' : 'play';
       const saved = window.localStorage.getItem('little-guys-ui-modules-v1');
-      if (saved) return { ...(mode === 'lab' ? DEFAULT_MODULE_OPEN : DEFAULT_PLAY_MODULE_OPEN), ...JSON.parse(saved) };
-      return mode === 'lab' ? DEFAULT_MODULE_OPEN : DEFAULT_PLAY_MODULE_OPEN;
+      if (mode === 'play') return { ...DEFAULT_PLAY_MODULE_OPEN };
+      if (saved) return { ...DEFAULT_MODULE_OPEN, ...JSON.parse(saved) };
+      return DEFAULT_MODULE_OPEN;
     } catch {
       return DEFAULT_PLAY_MODULE_OPEN;
     }
@@ -1038,8 +1039,8 @@ export default function App() {
           items={UI_MODULES}
           activeId={activeModule}
           onJump={jumpToModule}
-          onOpenAll={() => setAllModules(true)}
-          onCloseAll={() => setAllModules(false)}
+          onOpenAll={openFullLab}
+          onCloseAll={enterPlayMode}
         />
 
         <div className="rounded-2xl border border-[#2a3142] bg-[#0d1118] p-3 md:p-4">
