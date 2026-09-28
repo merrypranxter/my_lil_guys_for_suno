@@ -10,7 +10,7 @@ import { normalizeMouthGenomeForGeneration } from './src/mouthLab/promptCompiler
 import { normalizeCompositionEngineIds } from './src/data/compositionEngines';
 import { normalizeMusicControls, normalizeMusicStack } from './src/data/musicSeedSystem';
 import { planGuyActivation } from './src/lib/mindStacking';
-import { evaluateLiteralSeedCoverage } from './src/lib/generationJurisdictions';
+import { evaluateLiteralSeedCoverage, evaluateRequiredSeedLyricsCoverage } from './src/lib/generationJurisdictions';
 import { enforceOutputContract, enforceOutputContracts, getOutputContractViolations, type OutputBoxes } from './src/lib/outputContracts';
 import { normalizeStarterSeedStack } from './src/starterSeeds/runtime';
 
@@ -378,10 +378,10 @@ app.post('/api/generate', async (req, res) => {
     );
 
     const seedCoverage = evaluateLiteralSeedCoverage(seed, [style, lyrics, caption]);
-    const quotedCoverage = evaluateQuotedSeedLyricsCoverage(seed, lyrics);
+    const quotedCoverage = evaluateRequiredSeedLyricsCoverage(seed, lyrics);
     if (quotedCoverage.missing.length > 0) {
       throw new Error(
-        'Quoted seed lyric anchor missing from sung/unbracketed lyrics: ' +
+        'Required seed lyric anchor missing from sung/unbracketed lyrics: ' +
         quotedCoverage.missing.map((anchor) => '"' + anchor + '"').join(', ')
       );
     }
@@ -429,10 +429,10 @@ app.post('/api/generate', async (req, res) => {
         caption: fallback.caption,
       }).boxes;
       const fallbackSeedCoverage = evaluateLiteralSeedCoverage(seed, [fallbackCalibrated.style, fallbackCalibrated.lyrics, fallbackCalibrated.caption]);
-      const fallbackQuotedCoverage = evaluateQuotedSeedLyricsCoverage(seed, fallbackCalibrated.lyrics);
+      const fallbackQuotedCoverage = evaluateRequiredSeedLyricsCoverage(seed, fallbackCalibrated.lyrics);
       if (fallbackQuotedCoverage.missing.length > 0) {
         throw new Error(
-          'Procedural fallback failed quoted seed lyric anchor: ' +
+          'Procedural fallback failed required seed lyric anchor: ' +
           fallbackQuotedCoverage.missing.map((anchor) => '"' + anchor + '"').join(', ')
         );
       }
