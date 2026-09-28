@@ -252,9 +252,76 @@ export const MUSIC_MECHANISMS: MusicMechanism[] = [
     stemValue: 4,
     chaos: 2,
   },
+  {
+    id: 'choral-counterpoint-lattice',
+    family: 'vocal',
+    name: 'CHORAL COUNTERPOINT LATTICE',
+    shortExplanation: 'A large choir behaves like many interlocking melodic organisms instead of one chord pad.',
+    instruction:
+      'Build the choir from independent, singable lines with staggered entries, antiphonal exchange, imitation, contrary motion, and brief hocketed handoffs. Keep individual lines melodically legible while the aggregate remains ecstatic and dense. Avoid generic block-chord "epic choir" writing.',
+    tags: ['choir', 'polyphony', 'counterpoint', 'canon', 'antiphony'],
+    stemValue: 5,
+    chaos: 4,
+  },
+  {
+    id: 'polyharmonic-suspension-field',
+    family: 'arrangement',
+    name: 'POLYHARMONIC SUSPENSION FIELD',
+    shortExplanation: 'Several compatible harmonic planes coexist and keep opening into new consonant tension instead of collapsing into one cadence.',
+    instruction:
+      'Maintain two or more concurrent harmonic interpretations over a shared anchor. Let upper voices, drones, and instrumental partial-fields imply different but related chordal centers. Apparent arrivals should immediately expose another suspension, added tone, inversion, or ratio-space continuation. Never cash all tensions into a final tonic closure.',
+    tags: ['polyharmony', 'suspension', 'nonresolution', 'counterpoint'],
+    stemValue: 4,
+    chaos: 4,
+  },
+  {
+    id: 'perpetual-uplift',
+    family: 'form',
+    name: 'PERPETUAL UPLIFT',
+    shortExplanation: 'Every triumphant arrival becomes the launch ramp for the next larger arrival.',
+    instruction:
+      'Create repeated sensations of upward breakthrough without a final cadence. Each peak must feel earned and genuinely euphoric, then reveal extra harmonic height, a new choir layer, a register expansion, or a fresh rhythmic interlock. End in suspended forward motion rather than collapse, fade-to-sadness, or religious solemnity.',
+    tags: ['uplift', 'triumphant', 'false-arrival', 'open-ended'],
+    stemValue: 3,
+    chaos: 3,
+  },
+  {
+    id: 'luminous-friction-orchestra',
+    family: 'texture',
+    name: 'LUMINOUS FRICTION ORCHESTRA',
+    shortExplanation: 'Sustained glass, metal, and continuous-pitch instruments create radiant physical resonance without cinematic church gloss.',
+    instruction:
+      'Favor friction-excited glass, bowed metal, long resonant partials, continuous-pitch glides, and beating overtones. Keep attacks soft-to-blooming, spectra bright and prismatic, and low layers supportive rather than ominous. The result should feel secular, experimental, ecstatic, and physically luminous—not hymnal, gothic, or angel-movie cliché.',
+    tags: ['glass', 'bowed', 'resonance', 'shimmer', 'experimental'],
+    stemValue: 5,
+    chaos: 3,
+  },
 ];
 
 export const MUSIC_SEED_RECIPES: MusicSeedRecipe[] = [
+  {
+    id: 'ecstatic-choir-never-arrives',
+    name: 'ECSTATIC CHOIR — NEVER ARRIVES',
+    description: 'Secular sky-sized choir: polyphonic, polyrhythmic, polyharmonic, radiant, and permanently one glorious step away from resolution.',
+    startHere: 'You want the chorus to feel like it keeps breaking open into a bigger chorus forever? Start here.',
+    mechanismIds: [
+      'choral-counterpoint-lattice',
+      'pulse-coupling-3-2',
+      'polyharmonic-suspension-field',
+      'perpetual-uplift',
+      'luminous-friction-orchestra',
+      'anchor-survival',
+    ],
+    defaultControls: {
+      stemminess: 86,
+      kineticDensity: 80,
+      socialInfection: 96,
+      coupling: 96,
+      interruption: 18,
+      anchorStrength: 90,
+      castSize: 100,
+    },
+  },
   {
     id: 'coupled-stampede',
     name: 'COUPLED STAMPEDE',
