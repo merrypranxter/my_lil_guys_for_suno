@@ -2,7 +2,10 @@ import assert from 'node:assert/strict';
 import { LITTLE_GUYS } from '../src/data/littleGuys';
 import {
   buildSeedSovereigntyContract,
+  detectDirectSeedUtterance,
   evaluateLiteralSeedCoverage,
+  evaluateRequiredSeedLyricsCoverage,
+  extractRequiredVerbatimSeedAnchors,
   renderLayerJurisdictionMatrix,
   renderSeedSovereigntyContract,
 } from '../src/lib/generationJurisdictions';
@@ -58,3 +61,59 @@ assert(prompt.systemInstruction.includes('Minds own cognitive transformation, no
 assert(prompt.systemInstruction.includes('MUSIC SEED STACK IS PRECOMPILED MUSICAL PHYSICS, NOT A PRESET AND NOT A STORY GENERATOR'));
 
 console.log('Jurisdiction enforcement verified: seed sovereignty, layer ownership, collision precedence, and literal seed-drift detection.');
+
+
+const directSeed = 'FUCK THIS SHIT';
+const directContract = buildSeedSovereigntyContract(directSeed);
+assert.equal(detectDirectSeedUtterance(directSeed), directSeed);
+assert.deepEqual(directContract.requiredVerbatimLyricAnchors, [directSeed]);
+assert(
+  renderSeedSovereigntyContract(directSeed).includes('Direct standalone utterance anchor: FUCK THIS SHIT'),
+  'Short standalone utterance should be classified as direct lyric material.',
+);
+assert.equal(
+  evaluateRequiredSeedLyricsCoverage(directSeed, '[VERSE]\nFUCK THIS SHIT\nwe are done here').coverage,
+  1,
+  'Direct utterance should count only when present in sung/unbracketed lyric text.',
+);
+assert.equal(
+  evaluateRequiredSeedLyricsCoverage(directSeed, '[SUBJECT: FUCK THIS SHIT]\nwe are done here').coverage,
+  0,
+  'A control/meta mention must not satisfy direct lyric coverage.',
+);
+
+const contextualQuotedSeed = 'furious at the machine, finally saying "FUCK YOU" while it keeps smiling';
+assert.deepEqual(
+  extractRequiredVerbatimSeedAnchors(contextualQuotedSeed),
+  ['FUCK YOU'],
+  'Quoted material inside a longer concept should be the only required verbatim anchor.',
+);
+assert.equal(
+  evaluateRequiredSeedLyricsCoverage(
+    contextualQuotedSeed,
+    '[VERSE]\nThe machine keeps smiling while the pressure climbs\nFUCK YOU\nI stop negotiating',
+  ).coverage,
+  1,
+);
+const contextualContract = renderSeedSovereigntyContract(contextualQuotedSeed);
+assert(contextualContract.includes('Preserve the broader meaning'));
+assert(contextualContract.includes('FUCK YOU'));
+
+const longConceptSeed = 'I am furious at this cheerful machine and want a song about refusing to cooperate with it anymore';
+assert.equal(
+  detectDirectSeedUtterance(longConceptSeed),
+  undefined,
+  'Long conceptual seeds should not be forced verbatim.',
+);
+assert.equal(
+  extractRequiredVerbatimSeedAnchors(longConceptSeed).length,
+  0,
+  'Long unquoted concept should preserve meaning without requiring exact wording.',
+);
+
+const instructionSeed = 'make a song about FUCK THIS SHIT';
+assert.equal(
+  detectDirectSeedUtterance(instructionSeed),
+  undefined,
+  'Short instruction phrasing should not be mistaken for a direct utterance.',
+);
