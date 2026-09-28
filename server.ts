@@ -3,7 +3,7 @@ import path from 'path';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI, Type } from '@google/genai';
 import { buildMasterPrompt, buildRepairPrompt } from './src/lib/buildGenerationPrompt';
-import { generateProceduralTrack } from './src/lib/proceduralGenerator';
+import { generateProceduralTrack, TARGETS } from './src/lib/proceduralGenerator';
 import { BoxType, MusicFingerprint, RealityChaosLevel } from './src/types';
 import { normalizeMouthSemanticMode, type MouthPromptMode, type MouthSemanticMode } from './src/mouthLab/types';
 import { normalizeMouthGenomeForGeneration } from './src/mouthLab/promptCompiler';
