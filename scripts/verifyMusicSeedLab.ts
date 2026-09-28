@@ -9,7 +9,8 @@ import {
   normalizeMusicStack,
 } from '../src/data/musicSeedSystem';
 
-assert.equal(MUSIC_SEED_RECIPES.length, 10, 'Expected 10 starter seed recipes');
+assert.ok(MUSIC_SEED_RECIPES.length >= 11, 'Expected the original recipes plus specialty additions');
+assert.ok(MUSIC_SEED_RECIPES.some((recipe) => recipe.id === 'ecstatic-choir-never-arrives'), 'Ecstatic choir recipe should be registered');
 assert.ok(MUSIC_MECHANISMS.length >= 20, 'Expected at least 20 music mechanisms');
 
 const mechanismIds = MUSIC_MECHANISMS.map((item) => item.id);
