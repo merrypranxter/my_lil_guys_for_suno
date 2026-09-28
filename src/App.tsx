@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { LITTLE_GUYS } from './data/littleGuys';
 import { ArchivedRun, RunSession, LittleGuy, BoxType, SavedStack, GenerationResponse, MusicBredGenome, MusicControls, MusicStackItem, PetriDishExperiment, PetriDishSibling, RealityChaosLevel } from './types';
-import { generateProceduralTrack, clampAndPad, TARGETS } from './lib/proceduralGenerator';
+import { generateProceduralTrack, TARGETS } from './lib/proceduralGenerator';
 import { ACTIVE_GUY_MAX, buildSmartStack, planGuyActivation, resolveRecipe } from './lib/mindStacking';
 import { getMindMetadata } from './data/mindMetadata';
 import { Header } from './components/Header';
@@ -16,6 +16,7 @@ import { PetriDishPanel } from './components/PetriDishPanel';
 import { StarterSeedPanel } from './components/StarterSeedPanel';
 import { genomeToStackItem } from './lib/musicBreeding';
 import { blendSiblingControls, buildSiblingMusicStack } from './lib/petriDish';
+import { restoreBrainBackup, serializeBrainBackup } from './lib/brainBackup';
 import { DEFAULT_MUSIC_CONTROLS, MUSIC_FEEDBACK_TAGS, compileMusicStack, musicGenomePhenotypeSignature } from './data/musicSeedSystem';
 import { OutputBox } from './components/OutputBox';
 import { ModuleDock, ModuleSection } from './components/ModuleShell';
@@ -72,7 +73,7 @@ import {
   sessionToMarkdown,
   archiveToMarkdown,
 } from './lib/localStorage';
-import { AlertCircle, Archive, Download, Layers, MessageSquare, Sparkles, Star, X } from 'lucide-react';
+import { AlertCircle, Archive, Download, Layers, MessageSquare, Sparkles, Star, Upload, X } from 'lucide-react';
 import type { MouthGenome, MouthPromptMode, MouthSemanticMode } from './mouthLab/types';
 import { getMouthQuirkDefinition } from './mouthLab/quirks';
 import { getMouthTrait } from './mouthLab/traits';
@@ -844,6 +845,29 @@ export default function App() {
     setNoticeMessage('Session resumed from its latest archived run.');
   };
 
+  const exportBrainBackup = () => {
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    downloadText(
+      'little-guy-brain-backup-' + stamp + '.json',
+      serializeBrainBackup(),
+    );
+    setNoticeMessage('Brain backup exported. Keep this file through redeploys so stars, feedback, fitness, saved creatures, and lab state can be restored.');
+  };
+
+  const importBrainBackupFile = async (file?: File) => {
+    if (!file) return;
+    try {
+      const raw = await file.text();
+      const result = restoreBrainBackup(raw);
+      setNoticeMessage(
+        'Restored ' + result.restoredKeys + ' Little Guy memory keys. Reloading the lab with the restored brain…'
+      );
+      window.setTimeout(() => window.location.reload(), 250);
+    } catch (error: any) {
+      setErrorMessage(error?.message || 'Could not restore that brain backup.');
+    }
+  };
+
   const exportSession = () => {
     const runs = getRunArchive().filter((run) => run.sessionId === activeSession.id);
     const stamp = new Date(activeSession.startedAt).toISOString().replace(/[:.]/g, '-');
@@ -1175,6 +1199,32 @@ export default function App() {
                   </button>
                   <button
                     type="button"
+                    onClick={exportBrainBackup}
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#ffd84d] bg-[#1c1809] text-[#ffe995] hover:bg-[#2a240d]"
+                    title="Download all Little Guy Machine local memory so redeploys cannot erase it"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    EXPORT BRAIN
+                  </button>
+                  <label
+                    className="inline-flex cursor-pointer items-center gap-1.5 px-3 py-2 rounded-lg border border-[#39ff14]/60 bg-[#0e1b10] text-[#aaff99] hover:border-[#39ff14]"
+                    title="Restore a previously exported Little Guy brain backup"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    RESTORE BRAIN
+                    <input
+                      type="file"
+                      accept=".json,application/json"
+                      className="hidden"
+                      onChange={(event) => {
+                        const file = event.target.files?.[0];
+                        void importBrainBackupFile(file);
+                        event.currentTarget.value = '';
+                      }}
+                    />
+                  </label>
+                  <button
+                    type="button"
                     onClick={exportSession}
                     disabled={sessionRunCount === 0}
                     className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#334155] bg-[#111827] text-[#cbd5e1] hover:border-[#39ff14] hover:text-white disabled:opacity-40"
@@ -1210,7 +1260,7 @@ export default function App() {
                 </div>
               </div>
               <div className="mt-2 text-[10px] font-mono text-[#617089]">
-                New Session clears the current experiment only. Stars, feedback, saved genomes, recipes, favorites, and old archive runs stay intact.
+                New Session clears the current experiment only. EXPORT BRAIN is the portable safety copy for redeploys: stars, feedback, fitness, saved genomes, recipes, favorites, Mouth species, and archive state.
               </div>
             </div>
 
