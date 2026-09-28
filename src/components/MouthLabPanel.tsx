@@ -19,6 +19,7 @@ import type {
   MouthCastRole,
   MouthExpressionState,
   MouthEvolutionResult,
+  MouthEvolutionaryOperation,
   MouthEnvironmentMode,
   MouthGenome,
   MouthLabArchive,
@@ -41,6 +42,7 @@ import {
   MOUTH_SEMANTIC_MODES,
   MOUTH_TRANSDUCTION_PRESETS,
   applyMouthEnvironment,
+  applyMouthEvolutionaryOperation,
   applyMouthQuirk,
   applyMouthSpecimen,
   breedMouthGenome,
@@ -271,6 +273,10 @@ export function MouthLabPanel({
   const [environmentPressure, setEnvironmentPressure] = useState(() => genome?.environment?.pressure ?? 70);
   const [environmentGenerations, setEnvironmentGenerations] = useState(() => genome?.environment?.generations ?? 4);
   const [environmentSeed, setEnvironmentSeed] = useState(() => genome?.environment?.seed || randomSeed('ecology'));
+  const [evolutionaryOperation, setEvolutionaryOperation] = useState<MouthEvolutionaryOperation>('bottleneck');
+  const [evolutionarySeed, setEvolutionarySeed] = useState(() => randomSeed('deep-evolution'));
+  const [evolutionaryIntensity, setEvolutionaryIntensity] = useState(68);
+  const [evolutionaryTargetId, setEvolutionaryTargetId] = useState('');
   const [selfEvolutionSeed, setSelfEvolutionSeed] = useState(() => randomSeed('self-evolve'));
   const [selfMutationChance, setSelfMutationChance] = useState(() => genome?.mutation ?? 42);
   const [selfEvolutionResult, setSelfEvolutionResult] = useState<MouthEvolutionResult | null>(null);
@@ -339,6 +345,25 @@ export function MouthLabPanel({
     );
   }, [quirkQuery]);
 
+
+  const evolutionaryTargets = useMemo(() => {
+    if (!genome) return [];
+    const traits = genome.assignments.flatMap((assignment) =>
+      assignment.traitIds.map((id) => ({
+        id,
+        label: 'TRAIT • ' + (getMouthTrait(id)?.name || id),
+      })),
+    );
+    const quirks = genome.quirks
+      .filter((quirk) => quirk.enabled)
+      .map((quirk) => ({
+        id: quirk.quirkId,
+        label: 'QUIRK • ' + (getMouthQuirkDefinition(quirk.quirkId)?.name || quirk.quirkId),
+      }));
+    return [...traits, ...quirks].filter(
+      (item, index, all) => all.findIndex((candidate) => candidate.id === item.id) === index,
+    );
+  }, [genome]);
 
   const evolutionParentOptions = useMemo(() => {
     const options: Array<{ id: string; genome: MouthGenome; label: string }> = [];
@@ -809,6 +834,34 @@ export function MouthLabPanel({
         ? current.filter((id) => id !== specimenId)
         : [...current, specimenId].slice(0, 6)
     );
+  };
+
+  const runEvolutionaryFuckery = () => {
+    if (!genome) {
+      announce('Breed or load a mouth before doing evolutionary crimes.');
+      return;
+    }
+
+    try {
+      const needsTarget = evolutionaryOperation === 'extinction' || evolutionaryOperation === 'fossilize';
+      const result = applyMouthEvolutionaryOperation({
+        genome,
+        operation: evolutionaryOperation,
+        seed: evolutionarySeed || randomSeed('deep-evolution'),
+        intensity: evolutionaryIntensity,
+        targetId: needsTarget && evolutionaryTargetId ? evolutionaryTargetId : undefined,
+      });
+
+      onGenomeChange(result.genome);
+      setEvolutionResult(null);
+      setEvolutionarySeed(randomSeed('deep-evolution'));
+      setEvolutionaryTargetId('');
+      announce(
+        result.operation.toUpperCase().replace(/-/g, ' ') + ': ' + result.summary
+      );
+    } catch (error: any) {
+      announce(error?.message || 'Evolutionary operation failed.');
+    }
   };
 
   const evolveActiveAgain = () => {
@@ -1916,6 +1969,112 @@ export function MouthLabPanel({
               <div className="mt-3 text-[10px] font-mono text-[#617989]">No active mouth yet. Breed one first, then ruin its childhood.</div>
             )}
           </div>
+          <div className="rounded-2xl border border-[#ff8a00]/35 bg-[#171006] p-3">
+            <div>
+              <div className="text-xs font-mono font-black text-[#ffc56b]">EVOLUTIONARY FUCKERY</div>
+              <div className="mt-1 max-w-4xl text-[10px] font-mono leading-relaxed text-[#9d815c]">
+                Deterministic lineage events. These create a new descendant generation, preserve true donor ancestry, and leave scars/fossils the LINEAGE tab can actually show.
+              </div>
+            </div>
+
+            {genome ? (
+              <>
+                <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                  <label>
+                    <div className="mb-1 text-[9px] font-mono font-black text-[#8d7858]">OPERATION</div>
+                    <select
+                      value={evolutionaryOperation}
+                      onChange={(event) => {
+                        setEvolutionaryOperation(event.target.value as MouthEvolutionaryOperation);
+                        setEvolutionaryTargetId('');
+                      }}
+                      className="w-full rounded-lg border border-[#5a4223] bg-[#100b05] px-2.5 py-2 text-[10px] font-mono text-white"
+                    >
+                      <option value="bottleneck">BOTTLENECK</option>
+                      <option value="founder-effect">FOUNDER EFFECT</option>
+                      <option value="atavism">ATAVISM</option>
+                      <option value="extinction">EXTINCTION</option>
+                      <option value="fossilize">FOSSILIZE</option>
+                      <option value="speciate">SPECIATE</option>
+                    </select>
+                  </label>
+
+                  <label>
+                    <div className="mb-1 text-[9px] font-mono font-black text-[#8d7858]">INTENSITY {evolutionaryIntensity}/100</div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={100}
+                      value={evolutionaryIntensity}
+                      onChange={(event) => setEvolutionaryIntensity(clamp(Number(event.target.value)))}
+                      className="w-full accent-orange-400"
+                    />
+                  </label>
+
+                  {(evolutionaryOperation === 'extinction' || evolutionaryOperation === 'fossilize' || evolutionaryOperation === 'atavism') && (
+                    <label>
+                      <div className="mb-1 text-[9px] font-mono font-black text-[#8d7858]">
+                        {evolutionaryOperation === 'atavism' ? 'OPTIONAL TARGET' : 'TARGET'}
+                      </div>
+                      <select
+                        value={evolutionaryTargetId}
+                        onChange={(event) => setEvolutionaryTargetId(event.target.value)}
+                        className="w-full rounded-lg border border-[#5a4223] bg-[#100b05] px-2.5 py-2 text-[10px] font-mono text-white"
+                      >
+                        <option value="">{evolutionaryOperation === 'atavism' ? 'AUTO-CHOOSE DORMANT ANCESTOR' : 'AUTO-CHOOSE ACTIVE MECHANISM'}</option>
+                        {evolutionaryOperation !== 'atavism' && evolutionaryTargets.map((item) => (
+                          <option key={item.id} value={item.id}>{item.label}</option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+
+                  <label>
+                    <div className="mb-1 text-[9px] font-mono font-black text-[#8d7858]">EVOLUTION SEED</div>
+                    <input
+                      value={evolutionarySeed}
+                      onChange={(event) => setEvolutionarySeed(event.target.value)}
+                      className="w-full rounded-lg border border-[#5a4223] bg-[#100b05] px-2.5 py-2 text-[10px] font-mono text-white"
+                    />
+                  </label>
+                </div>
+
+                <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                  <div className="rounded-lg border border-[#49361f] bg-[#100b05] p-2 text-[9px] font-mono text-[#9d815c]">
+                    <span className="font-black text-[#ffc56b]">BOTTLENECK / FOUNDER:</span> lose a survivor-weighted chunk of active genetics; founder effect also amplifies whatever survives.
+                  </div>
+                  <div className="rounded-lg border border-[#49361f] bg-[#100b05] p-2 text-[9px] font-mono text-[#9d815c]">
+                    <span className="font-black text-[#ffc56b]">ATAVISM / EXTINCTION:</span> resurrect dormant ancestral potential or make an active behavior genuinely disappear.
+                  </div>
+                  <div className="rounded-lg border border-[#49361f] bg-[#100b05] p-2 text-[9px] font-mono text-[#9d815c]">
+                    <span className="font-black text-[#ffc56b]">FOSSIL / SPECIATE:</span> dead mouth behavior survives as music, or the branch diverges into a distinct species.
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={runEvolutionaryFuckery}
+                  className="mt-3 w-full rounded-xl border border-[#ff8a00] bg-[#ff8a00] px-4 py-3 text-xs font-mono font-black text-black hover:brightness-110"
+                >
+                  DO THE EVOLUTIONARY CRIME
+                </button>
+
+                {(genome.fossils || []).length > 0 && (
+                  <div className="mt-3 rounded-xl border border-[#6b5226] bg-[#100b05] p-2.5">
+                    <div className="text-[9px] font-mono font-black text-[#ffd08a]">MUSICAL FOSSILS</div>
+                    {(genome.fossils || []).map((fossil) => (
+                      <div key={fossil.id} className="mt-1 text-[9px] font-mono text-[#a98f69]">
+                        G{fossil.generation} • {fossil.sourceName} → {fossil.musicalRule}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="mt-3 text-[10px] font-mono text-[#7d664a]">No active mouth to evolutionarily traumatize.</div>
+            )}
+          </div>
+
           <div className="rounded-2xl border border-[#ff4fd8]/30 bg-[#160c16] p-3">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
