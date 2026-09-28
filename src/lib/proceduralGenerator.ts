@@ -8,6 +8,7 @@ import type { MouthGenome, MouthPromptMode, MouthSemanticMode } from '../mouthLa
 import type { StarterSeedStackItem } from '../starterSeeds/types';
 import { compileMouthPrompt, normalizeMouthGenomeForGeneration } from '../mouthLab/promptCompiler';
 import { REALITY_CHAOS_LABELS, analyzeRealityChemistry } from './realityChemistry';
+import { extractRequiredVerbatimSeedAnchors } from './generationJurisdictions';
 
 export interface ProceduralTrackParams {
   guyIds: string[];
@@ -124,6 +125,7 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
   const primary = guys[0];
   const secondaries = guys.slice(1);
   const subject = seed && seed.trim() ? seed.trim() : primary.name;
+  const requiredSeedLyricAnchors = extractRequiredVerbatimSeedAnchors(seed || '');
   const fingerprint = forcedFingerprint || chooseDiverseFingerprint(recentFingerprints);
   const tempo = tempoForEnergy(energy, fingerprint.rhythm);
 
@@ -310,6 +312,7 @@ export function generateProceduralTrack(params: ProceduralTrackParams): Procedur
       (activeControlAuthority ? '[CONTROL AUTHORITY: ' + activeControlAuthority.name + ' — only the authorized controller may make designated changes until authority transfers.]\n' : '') +
       (activeProp ? '[OBJECT / PROP: ' + activeProp.name + ' — keep the same physical object stateful across sections; every return must mediate or remember something.]\n' : '') +
       'Subject: ' + subject + '.\n' +
+      (requiredSeedLyricAnchors.length ? requiredSeedLyricAnchors.map((anchor) => anchor + '\n').join('') : '') +
       'The first pass is deliberately legible. The listener is given a stable specimen before any mutation begins.\n' +
       primary.name + ' controls ' + primary.defaultJurisdiction + '.\n' +
       'Nothing else is permitted to steal that jurisdiction.\n' +
