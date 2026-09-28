@@ -4,6 +4,7 @@ import {
   BrainCircuit,
   Check,
   Dna,
+  GitBranch,
   HeartPulse,
   Library,
   Microscope,
@@ -92,7 +93,7 @@ interface MouthLabPanelProps {
   onNotice?: (message: string) => void;
 }
 
-type MouthTab = 'breed' | 'quirks' | 'inspect' | 'dynamics' | 'evolve' | 'specimens';
+type MouthTab = 'breed' | 'quirks' | 'inspect' | 'dynamics' | 'evolve' | 'lineage' | 'specimens';
 
 const PRESSURES: MouthTraitPressure[] = ['low', 'medium', 'high', 'obsessive'];
 
@@ -129,8 +130,69 @@ const TAB_META: Record<MouthTab, { label: string; subtitle: string }> = {
   inspect: { label: 'DESIGN A MOUTH', subtitle: 'inspect / pressure / compiler' },
   dynamics: { label: 'DYNAMIC MOUTHS', subtitle: 'cast / infection / timeline / transduction' },
   evolve: { label: 'EVOLUTION', subtitle: 'species × species • specimens • assay' },
+  lineage: { label: 'LINEAGE', subtitle: 'parents • inheritance • scars • descendants' },
   specimens: { label: 'SPECIMEN ARCHIVE', subtitle: 'save the accidents worth keeping' },
 };
+
+interface LineageTreeRow {
+  id: string;
+  name: string;
+  generation: number;
+  depth: number;
+  genome?: MouthGenome;
+  relation: 'active' | 'ancestor' | 'missing';
+}
+
+function mouthGeneration(genome?: MouthGenome): number {
+  return genome?.lineage?.generation ?? 0;
+}
+
+function buildLineageTreeRows(
+  focus: MouthGenome,
+  species: MouthGenome[],
+  maxDepth = 5,
+): LineageTreeRow[] {
+  const byId = new Map(species.map((item) => [item.id, item]));
+  byId.set(focus.id, focus);
+  const rows: LineageTreeRow[] = [];
+  const seen = new Set<string>();
+
+  const walk = (
+    id: string,
+    name: string,
+    generation: number,
+    depth: number,
+    relation: LineageTreeRow['relation'],
+  ) => {
+    const key = id || name + ':' + generation + ':' + depth;
+    if (seen.has(key) || depth > maxDepth) return;
+    seen.add(key);
+
+    const found = id ? byId.get(id) : undefined;
+    rows.push({
+      id: id || key,
+      name: found?.name || name,
+      generation: found ? mouthGeneration(found) : generation,
+      depth,
+      genome: found,
+      relation: found ? relation : 'missing',
+    });
+
+    if (!found?.lineage || depth >= maxDepth) return;
+    found.lineage.parentGenomeIds.forEach((parentId, index) => {
+      walk(
+        parentId,
+        found.lineage!.parentNames[index] || parentId,
+        Math.max(0, found.lineage!.generation - 1),
+        depth + 1,
+        'ancestor',
+      );
+    });
+  };
+
+  walk(focus.id, focus.name, mouthGeneration(focus), 0, 'active');
+  return rows;
+}
 
 function randomSeed(prefix = 'mouth') {
   return prefix + '-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
@@ -299,6 +361,28 @@ export function MouthLabPanel({
     }
     return options;
   }, [genome, archive.species]);
+
+  const lineageRows = useMemo(
+    () => (genome ? buildLineageTreeRows(genome, archive.species) : []),
+    [genome, archive.species],
+  );
+
+  const lineageDescendants = useMemo(() => {
+    if (!genome) return [];
+    return archive.species
+      .filter((species) => species.lineage?.parentGenomeIds.includes(genome.id))
+      .sort((a, b) => mouthGeneration(a) - mouthGeneration(b) || a.name.localeCompare(b.name));
+  }, [genome, archive.species]);
+
+  const lineageInheritedByParent = useMemo(() => {
+    if (!genome?.lineage) return [];
+    return genome.lineage.parentGenomeIds.map((parentId, index) => ({
+      parentId,
+      parentName: genome.lineage!.parentNames[index] || parentId,
+      traitIds: genome.lineage!.inheritedTraitIdsByParent[parentId] || [],
+      quirkIds: genome.lineage!.inheritedQuirkIdsByParent[parentId] || [],
+    }));
+  }, [genome]);
 
   const mouthFitnessScores = useMemo(
     () => getMouthTraitFitnessScores(),
@@ -2150,6 +2234,199 @@ export function MouthLabPanel({
                     ))}
                   </div>
                 )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {tab === 'lineage' && (
+        <div className="space-y-4">
+          {!genome ? (
+            <div className="rounded-2xl border border-dashed border-[#344056] bg-[#0a0e15] p-8 text-center font-mono text-xs text-[#657187]">
+              Breed or load a mouth first. Then I can tell you which linguistic bastard begat which.
+            </div>
+          ) : (
+            <>
+              <div className="rounded-2xl border border-[#a855f7]/35 bg-[#100918] p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2 text-sm font-mono font-black text-[#e2b7ff]">
+                      <GitBranch className="h-4 w-4" />
+                      YOUR MOUTH FAMILY TREE
+                    </div>
+                    <div className="mt-1 text-[10px] font-mono text-[#7c6b88]">
+                      G{mouthGeneration(genome)} • {genome.name} • {genome.lineage?.parentGenomeIds.length || 0} genome parent{genome.lineage?.parentGenomeIds.length === 1 ? '' : 's'} • {genome.parentDonorIds.length} original language donor{genome.parentDonorIds.length === 1 ? '' : 's'}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={saveSpecies}
+                    className="rounded-lg border border-[#a855f7]/50 bg-[#190d25] px-3 py-2 text-[9px] font-mono font-black text-[#d7a7ff] hover:border-[#c084fc]"
+                  >
+                    SAVE CURRENT SPECIES
+                  </button>
+                </div>
+
+                <div className="mt-4 space-y-2">
+                  {lineageRows.map((row) => (
+                    <div
+                      key={row.id + ':' + row.depth}
+                      className={
+                        'relative rounded-xl border p-3 ' +
+                        (row.depth === 0
+                          ? 'border-[#ff4fd8]/55 bg-[#211022]'
+                          : row.genome
+                            ? 'border-[#3c3152] bg-[#0c1018]'
+                            : 'border-dashed border-[#4d3c52] bg-[#0b0b10]')
+                      }
+                      style={{ marginLeft: Math.min(row.depth, 5) * 18 }}
+                    >
+                      {row.depth > 0 && (
+                        <div className="absolute -left-[13px] top-[-9px] h-[22px] w-[12px] border-b border-l border-[#5c4770]" />
+                      )}
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div>
+                          <div className="text-[10px] font-mono font-black text-[#dcb7f3]">
+                            {row.depth === 0 ? 'ACTIVE • ' : row.genome ? 'ANCESTOR • ' : 'RECORDED ANCESTOR • '}
+                            G{row.generation} • {row.name}
+                          </div>
+                          {row.genome ? (
+                            <>
+                              <div className="mt-1 text-[9px] font-mono text-[#748196]">
+                                LANGUAGE DONORS: {row.genome.parentDonorIds.map((id) => getMouthDonor(id)?.name || id).join(' × ')}
+                              </div>
+                              <div className="mt-1 text-[9px] font-mono text-[#5f6b7e]">
+                                {row.genome.assignments.flatMap((assignment) => assignment.traitIds).length} active traits • {row.genome.quirks.length} quirks • {row.genome.mutationScars.length} scars • Mouth Expression {row.genome.musicalExpression}/100
+                              </div>
+                            </>
+                          ) : (
+                            <div className="mt-1 text-[9px] font-mono text-[#695d6d]">
+                              Full genome is not saved locally, but its identity survives in the child lineage record.
+                            </div>
+                          )}
+                        </div>
+                        {row.genome && row.genome.id !== genome.id && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onGenomeChange(row.genome);
+                              announce('Loaded ancestor: ' + row.genome!.name + '.');
+                            }}
+                            className="rounded-md border border-[#534061] px-2 py-1 text-[8px] font-mono font-black text-[#b89bc8] hover:text-white"
+                          >
+                            LOAD
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid gap-4 xl:grid-cols-2">
+                <div className="rounded-2xl border border-[#293246] bg-[#090d14] p-4">
+                  <div className="text-xs font-mono font-black text-white">WHAT THIS ONE INHERITED</div>
+                  {genome.lineage ? (
+                    <div className="mt-3 space-y-3">
+                      {lineageInheritedByParent.map((parent) => (
+                        <div key={parent.parentId} className="rounded-xl border border-[#30394d] bg-[#0d121b] p-3">
+                          <div className="text-[10px] font-mono font-black text-[#a8d8ff]">{parent.parentName}</div>
+                          <div className="mt-2 text-[9px] font-mono text-[#718096]">
+                            TRAITS: {parent.traitIds.length
+                              ? parent.traitIds.map((id) => getMouthTrait(id)?.name || id).join(' • ')
+                              : 'none recorded'}
+                          </div>
+                          <div className="mt-1 text-[9px] font-mono text-[#718096]">
+                            QUIRKS: {parent.quirkIds.length
+                              ? parent.quirkIds.map((id) => getMouthQuirkDefinition(id)?.name || id).join(' • ')
+                              : 'none recorded'}
+                          </div>
+                        </div>
+                      ))}
+                      {(genome.lineage.mutationTraitIds.length > 0 || genome.lineage.mutationQuirkIds.length > 0) && (
+                        <div className="rounded-xl border border-[#ff4fd8]/30 bg-[#1c0e19] p-3 text-[9px] font-mono text-[#d393c1]">
+                          <div className="font-black text-[#ff9dea]">NEW IN THIS GENERATION</div>
+                          {genome.lineage.mutationTraitIds.length > 0 && (
+                            <div className="mt-1">
+                              Trait activation: {genome.lineage.mutationTraitIds.map((id) => getMouthTrait(id)?.name || id).join(' • ')}
+                            </div>
+                          )}
+                          {genome.lineage.mutationQuirkIds.length > 0 && (
+                            <div className="mt-1">
+                              Quirk drift: {genome.lineage.mutationQuirkIds.map((id) => getMouthQuirkDefinition(id)?.name || id).join(' • ')}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="mt-3 text-[10px] font-mono text-[#657187]">
+                      This is a G0 founder mouth. Its ancestry is the original donor-language cross rather than genome parents.
+                    </div>
+                  )}
+                </div>
+
+                <div className="rounded-2xl border border-[#293246] bg-[#090d14] p-4">
+                  <div className="text-xs font-mono font-black text-white">LIVED HISTORY / SCARS</div>
+                  <div className="mt-3 space-y-2">
+                    {genome.environment && (
+                      <div className="rounded-xl border border-[#00f0ff]/25 bg-[#07171b] p-3 text-[9px] font-mono text-[#80b7c2]">
+                        <div className="font-black text-[#9bf8ff]">CURRENT ENVIRONMENT</div>
+                        <div className="mt-1">
+                          {genome.environment.mode.toUpperCase()} • {genome.environment.generations} generation(s) • {genome.environment.pressure}/100
+                          {genome.environment.sourceDonorId
+                            ? ' • ' + (getMouthDonor(genome.environment.sourceDonorId)?.name || genome.environment.sourceDonorId)
+                            : ''}
+                        </div>
+                      </div>
+                    )}
+
+                    {genome.mutationScars.length ? genome.mutationScars.map((scar) => (
+                      <div key={scar.id} className="rounded-xl border border-[#4a3440] bg-[#120d11] p-3">
+                        <div className="text-[9px] font-mono font-black text-[#e3a1b7]">
+                          {scar.sourceOperation.toUpperCase().replace(/-/g, ' ')} • strength {scar.strength}/100
+                        </div>
+                        <div className="mt-1 text-[9px] font-mono leading-relaxed text-[#8b6c78]">{scar.residualRule}</div>
+                      </div>
+                    )) : (
+                      <div className="rounded-xl border border-dashed border-[#344056] p-4 text-[10px] font-mono text-[#657187]">
+                        No mutation scars recorded yet. Suspiciously well-adjusted little mouth.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-[#293246] bg-[#090d14] p-4">
+                <div className="text-xs font-mono font-black text-white">SAVED DIRECT DESCENDANTS</div>
+                <div className="mt-1 text-[10px] font-mono text-[#657187]">
+                  Children are only visible here if you saved them into the species archive.
+                </div>
+                <div className="mt-3 grid gap-2 md:grid-cols-2">
+                  {lineageDescendants.length ? lineageDescendants.map((child) => (
+                    <button
+                      key={child.id}
+                      type="button"
+                      onClick={() => {
+                        onGenomeChange(child);
+                        announce('Loaded descendant: ' + child.name + '.');
+                      }}
+                      className="rounded-xl border border-[#344056] bg-[#0d121b] p-3 text-left hover:border-[#a855f7]/60"
+                    >
+                      <div className="text-[10px] font-mono font-black text-[#d7a7ff]">
+                        G{mouthGeneration(child)} • {child.name}
+                      </div>
+                      <div className="mt-1 text-[9px] font-mono text-[#657187]">
+                        {child.lineage?.mutationTraitIds.length || 0} new trait activations • {child.lineage?.mutationQuirkIds.length || 0} quirk drifts • {child.mutationScars.length} scars
+                      </div>
+                    </button>
+                  )) : (
+                    <div className="rounded-xl border border-dashed border-[#344056] p-4 text-[10px] font-mono text-[#657187]">
+                      No saved direct children yet.
+                    </div>
+                  )}
+                </div>
               </div>
             </>
           )}
