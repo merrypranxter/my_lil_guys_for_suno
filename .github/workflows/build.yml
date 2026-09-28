@@ -105,6 +105,9 @@ jobs:
       - name: Mouth Lab musical expression regression smoke
         run: npm run verify:mouth-expression
 
+      - name: Specialty recipe regression smoke
+        run: npm run verify:specialty-recipes
+
       - name: Build
         run: npm run build
 
