@@ -1,6 +1,7 @@
 export interface SeedSovereigntyContract {
   rawSeed: string;
   literalAnchors: string[];
+  quotedVerbatimAnchors: string[];
   hasSeed: boolean;
 }
 
@@ -16,12 +17,20 @@ function normalizeToken(token: string): string {
   return token.toLowerCase().replace(/[^a-z0-9'’-]+/g, '').replace(/[’]/g, "'");
 }
 
+export function extractQuotedSeedAnchors(seed: string): string[] {
+  const trimmed = seed.trim();
+  if (!trimmed) return [];
+  return Array.from(trimmed.matchAll(/["“”]([^"“”]{1,120})["“”]/g))
+    .map((match) => match[1].trim())
+    .filter(Boolean);
+}
+
 export function extractSeedAnchors(seed: string, maxAnchors = 8): string[] {
   const trimmed = seed.trim();
   if (!trimmed) return [];
 
-  const quoted = Array.from(trimmed.matchAll(/["“”']([^"“”']{2,80})["“”']/g))
-    .map((match) => match[1].trim().toLowerCase())
+  const quoted = extractQuotedSeedAnchors(trimmed)
+    .map((value) => value.toLowerCase())
     .filter(Boolean);
 
   const words = trimmed
@@ -38,6 +47,7 @@ export function buildSeedSovereigntyContract(seed?: string): SeedSovereigntyCont
   return {
     rawSeed,
     literalAnchors: extractSeedAnchors(rawSeed),
+    quotedVerbatimAnchors: extractQuotedSeedAnchors(rawSeed),
     hasSeed: Boolean(rawSeed),
   };
 }
@@ -54,15 +64,18 @@ export function renderSeedSovereigntyContract(seed?: string): string {
   return [
     'SEED IS SOVEREIGN OVER SUBJECT MATTER.',
     'Protected seed, verbatim: "' + contract.rawSeed + '"',
-    'Literal anchors worth preserving when natural: ' + (contract.literalAnchors.length ? contract.literalAnchors.join(' | ') : 'none extracted'),
+    'Concept anchors worth preserving when natural: ' + (contract.literalAnchors.length ? contract.literalAnchors.join(' | ') : 'none extracted'),
+    'Quoted verbatim lyric anchors: ' + (contract.quotedVerbatimAnchors.length ? contract.quotedVerbatimAnchors.join(' | ') : 'none'),
     'Rules:',
-    '- The seed owns WHAT the song is about, explicit named objects/people/places/concepts, and literal requested actions or attitudes.',
+    '- The seed owns WHAT the song is about, explicit named objects/people/places/concepts, and requested actions or attitudes.',
     '- Reality may stage, embody, narrate, or distort the seed, but may not replace the seed with a more convenient scenario.',
     '- Little Guys may transform causal logic, identity, memory, measurement, constraints, attention, or other cognitive relations AROUND the seed; they do not get to substitute their favorite topic.',
     '- Composition may change HOW the seed is sung, timed, arranged, transmitted, tuned, spatialized, damaged, or structurally organized; it does not own semantic subject matter.',
     '- Mouth Lab may change pronunciation, phonotactics, timing, tone, phonation, morphology pressure, and other explicitly assigned vocal mechanics; it does not get to replace the seed subject.',
     '- Music genomes may inherit musical mechanisms only. Genome names, parent names, and lineage lore are provenance, never lyric subject matter.',
-    '- Formatting/count repair may shorten or expand wording without introducing a new concept, scenario, genre, character, or mechanism.',
+    '- If the user places text inside double quotation marks, that quoted text is VERBATIM LYRIC MATERIAL and must appear as sung/unbracketed lyric text at least once unless safety requires otherwise.',
+    '- Unquoted seed wording does NOT have to be repeated literally; preserve its concept and intent instead.',
+    '- Formatting/count repair may shorten or expand wording without introducing a new concept, scenario, genre, character, or mechanism, and may not delete required quoted verbatim lyric anchors.',
   ].join('\n');
 }
 
@@ -102,6 +115,27 @@ export function evaluateLiteralSeedCoverage(seed: string | undefined, texts: str
 
   const haystack = texts.join('\n').toLowerCase();
   const matched = anchors.filter((anchor) => haystack.includes(anchor));
+  const missing = anchors.filter((anchor) => !matched.includes(anchor));
+
+  return {
+    anchors,
+    matched,
+    missing,
+    coverage: matched.length / anchors.length,
+  };
+}
+
+
+function stripBracketedControlText(text: string): string {
+  return text.replace(/\[[^\]]*\]/g, ' ');
+}
+
+export function evaluateQuotedSeedLyricsCoverage(seed: string | undefined, lyrics: string): SeedCoverageReport {
+  const anchors = extractQuotedSeedAnchors(seed || '').map((anchor) => anchor.toLowerCase());
+  if (!anchors.length) return { anchors: [], matched: [], missing: [], coverage: 1 };
+
+  const sungText = stripBracketedControlText(lyrics).toLowerCase();
+  const matched = anchors.filter((anchor) => sungText.includes(anchor));
   const missing = anchors.filter((anchor) => !matched.includes(anchor));
 
   return {
