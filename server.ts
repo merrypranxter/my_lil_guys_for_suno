@@ -160,7 +160,7 @@ async function generateWithResilience(
   throw lastError;
 }
 
-async function repairGeneratedOutputContracts(boxes: OutputBoxes): Promise<{
+async function repairGeneratedOutputContracts(boxes: OutputBoxes, seed: string): Promise<{
   boxes: OutputBoxes;
   notice?: string;
 }> {
@@ -188,7 +188,8 @@ async function repairGeneratedOutputContracts(boxes: OutputBoxes): Promise<{
       'Repair only boxes that violate their exact character window. Valid boxes are frozen and must be returned byte-for-byte unchanged.\n' +
       'STYLE must be 975–999 characters. LYRICS must be 4900–4999 characters. CAPTION must be 490–499 characters.\n' +
       'Preserve musical mechanisms, semantic subject, Mouth Lab behavior, bracketed control syntax, and tone. ' +
-      'Trim redundancy before substance. If expanding, add NEW operationally meaningful musical detail that is consistent with the existing mechanisms. ' +
+      'Trim redundancy before substance. If expanding, add NEW operationally meaningful detail that stays descended from the seed: develop implications, consequences, imagery, situations, arguments, pseudo-scientific lore, metaphors, causal chains, or active musical mechanisms already present. ' +
+      'Do not add unrelated lore, generic system language, or neutral filler. ' +
       'NEVER repeat a sentence, operator, control tag, or filler phrase merely to reach the target. ' +
       'NEVER emit CONTRACT CONTINUATION, CALIBRATION INVARIANT, padding markers, or meta-commentary about character counts.\n' +
       'Return JSON only with style, lyrics, caption.';
@@ -196,8 +197,9 @@ async function repairGeneratedOutputContracts(boxes: OutputBoxes): Promise<{
     const userPrompt =
       'REPAIR ATTEMPT ' + attempt + ' OF 3\n' +
       'OUTPUT CONTRACT VIOLATIONS:\n' + violationSummary + '\n\n' +
+      'CURRENT SUBJECT / SEED:\n' + (seed || '(none)') + '\n\n' +
       'CURRENT BOXES:\n' + JSON.stringify(candidate) + '\n\n' +
-      'Repair the violating boxes with substantive non-repeating content and return all three keys.';
+      'Repair the violating boxes with substantive non-repeating ON-SUBJECT content and return all three keys.';
 
     try {
       const { response } = await generateWithResilience(userPrompt, {
@@ -236,17 +238,10 @@ async function repairGeneratedOutputContracts(boxes: OutputBoxes): Promise<{
   }
 
   const remaining = getOutputContractViolations(candidate);
-  if (remaining.length > 0) {
-    throw new Error(
-      'Output contract repair could not reach target without filler for: ' +
-      remaining
-        .map((violation) =>
-          violation.boxType.toUpperCase() + ' ' + violation.length +
-          ' chars (need ' + violation.min + '–' + violation.max + ')'
-        )
-        .join(', ')
-    );
-  }
+  const softWarnings = remaining.map((violation) =>
+    violation.boxType.toUpperCase() + ' ' + violation.length +
+    ' chars (target ' + violation.min + '–' + violation.max + ')'
+  );
 
   const repairedNames = originallyInvalid.map((violation) => violation.boxType.toUpperCase()).join(', ');
   return {
@@ -254,7 +249,9 @@ async function repairGeneratedOutputContracts(boxes: OutputBoxes): Promise<{
     notice:
       'Automatic output contract repair applied to ' + repairedNames +
       ' using ' + aiRepairAttempts + ' substantive repair attempt' + (aiRepairAttempts === 1 ? '' : 's') +
-      '; no deterministic filler padding was used.',
+      (softWarnings.length
+        ? '. Content was kept instead of blocked; still outside target: ' + softWarnings.join(', ') + '.'
+        : '.'),
   };
 }
 app.get('/api/info', (_req, res) => {
@@ -369,7 +366,7 @@ app.post('/api/generate', async (req, res) => {
       lyrics: parsed.lyrics || '',
       caption: parsed.caption || '',
     };
-    const calibrated = await repairGeneratedOutputContracts(rawBoxes);
+    const calibrated = await repairGeneratedOutputContracts(rawBoxes, seed);
     const { style, lyrics, caption } = calibrated.boxes;
     const fingerprint = forcedFingerprint || (
       parsed.fingerprint && typeof parsed.fingerprint === 'object'
