@@ -2,6 +2,8 @@ export interface SeedSovereigntyContract {
   rawSeed: string;
   literalAnchors: string[];
   quotedVerbatimAnchors: string[];
+  directUtteranceAnchor?: string;
+  requiredVerbatimLyricAnchors: string[];
   hasSeed: boolean;
 }
 
@@ -25,6 +27,30 @@ export function extractQuotedSeedAnchors(seed: string): string[] {
     .filter(Boolean);
 }
 
+export function detectDirectSeedUtterance(seed: string): string | undefined {
+  const trimmed = seed.trim();
+  if (!trimmed) return undefined;
+  if (extractQuotedSeedAnchors(trimmed).length) return undefined;
+
+  const words = trimmed.split(/\s+/).filter(Boolean);
+  if (trimmed.length > 80 || words.length > 8) return undefined;
+
+  const lower = trimmed.toLowerCase();
+  const instructionPrefixes = [
+    'make ', 'write ', 'create ', 'generate ', 'do a ', 'do an ', 'give me ',
+    'song about ', 'a song about ', 'music about ', 'using ', 'with ',
+  ];
+  if (instructionPrefixes.some((prefix) => lower.startsWith(prefix))) return undefined;
+
+  return trimmed;
+}
+
+export function extractRequiredVerbatimSeedAnchors(seed: string): string[] {
+  const quoted = extractQuotedSeedAnchors(seed);
+  const direct = detectDirectSeedUtterance(seed);
+  return Array.from(new Set([...quoted, ...(direct ? [direct] : [])]));
+}
+
 export function extractSeedAnchors(seed: string, maxAnchors = 8): string[] {
   const trimmed = seed.trim();
   if (!trimmed) return [];
@@ -44,10 +70,15 @@ export function extractSeedAnchors(seed: string, maxAnchors = 8): string[] {
 
 export function buildSeedSovereigntyContract(seed?: string): SeedSovereigntyContract {
   const rawSeed = (seed || '').trim();
+  const quotedVerbatimAnchors = extractQuotedSeedAnchors(rawSeed);
+  const directUtteranceAnchor = detectDirectSeedUtterance(rawSeed);
+  const requiredVerbatimLyricAnchors = extractRequiredVerbatimSeedAnchors(rawSeed);
   return {
     rawSeed,
     literalAnchors: extractSeedAnchors(rawSeed),
-    quotedVerbatimAnchors: extractQuotedSeedAnchors(rawSeed),
+    quotedVerbatimAnchors,
+    directUtteranceAnchor,
+    requiredVerbatimLyricAnchors,
     hasSeed: Boolean(rawSeed),
   };
 }
@@ -66,6 +97,8 @@ export function renderSeedSovereigntyContract(seed?: string): string {
     'Protected seed, verbatim: "' + contract.rawSeed + '"',
     'Concept anchors worth preserving when natural: ' + (contract.literalAnchors.length ? contract.literalAnchors.join(' | ') : 'none extracted'),
     'Quoted verbatim lyric anchors: ' + (contract.quotedVerbatimAnchors.length ? contract.quotedVerbatimAnchors.join(' | ') : 'none'),
+    'Direct standalone utterance anchor: ' + (contract.directUtteranceAnchor || 'none'),
+    'Required verbatim sung anchors: ' + (contract.requiredVerbatimLyricAnchors.length ? contract.requiredVerbatimLyricAnchors.join(' | ') : 'none'),
     'Rules:',
     '- The seed owns WHAT the song is about, explicit named objects/people/places/concepts, and requested actions or attitudes.',
     '- Reality may stage, embody, narrate, or distort the seed, but may not replace the seed with a more convenient scenario.',
@@ -131,8 +164,8 @@ function stripBracketedControlText(text: string): string {
   return text.replace(/\[[^\]]*\]/g, ' ');
 }
 
-export function evaluateQuotedSeedLyricsCoverage(seed: string | undefined, lyrics: string): SeedCoverageReport {
-  const anchors = extractQuotedSeedAnchors(seed || '').map((anchor) => anchor.toLowerCase());
+export function evaluateRequiredSeedLyricsCoverage(seed: string | undefined, lyrics: string): SeedCoverageReport {
+  const anchors = extractRequiredVerbatimSeedAnchors(seed || '').map((anchor) => anchor.toLowerCase());
   if (!anchors.length) return { anchors: [], matched: [], missing: [], coverage: 1 };
 
   const sungText = stripBracketedControlText(lyrics).toLowerCase();
