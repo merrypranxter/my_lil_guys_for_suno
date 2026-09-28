@@ -188,7 +188,7 @@ async function repairGeneratedOutputContracts(boxes: OutputBoxes, seed: string):
       'Repair only boxes that violate their exact character window. Valid boxes are frozen and must be returned byte-for-byte unchanged.\n' +
       'STYLE must be 975–999 characters. LYRICS must be 4900–4999 characters. CAPTION must be 490–499 characters.\n' +
       'Preserve musical mechanisms, semantic subject, Mouth Lab behavior, bracketed control syntax, and tone. ' +
-      'Trim redundancy before substance. If expanding, add NEW operationally meaningful detail that stays ON SUBJECT: deepen the seed concept, attitude, scenario, or active musical mechanisms already present. ' +
+      'Trim redundancy before substance. If expanding, add NEW operationally meaningful detail that stays descended from the seed: develop implications, consequences, imagery, situations, arguments, pseudo-scientific lore, metaphors, causal chains, or active musical mechanisms already present. ' +
       'Do not add unrelated lore, generic system language, or neutral filler. ' +
       'NEVER repeat a sentence, operator, control tag, or filler phrase merely to reach the target. ' +
       'NEVER emit CONTRACT CONTINUATION, CALIBRATION INVARIANT, padding markers, or meta-commentary about character counts.\n' +
