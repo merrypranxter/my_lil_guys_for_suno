@@ -466,4 +466,6 @@ export interface ArchivedRun {
   dislikedMouthTraitIds?: string[];
   likedMouthQuirkIds?: string[];
   dislikedMouthQuirkIds?: string[];
+  likedMouthContextKeys?: string[];
+  dislikedMouthContextKeys?: string[];
 }
