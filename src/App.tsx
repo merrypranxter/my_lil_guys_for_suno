@@ -694,11 +694,12 @@ export default function App() {
 
       const target = TARGETS[type];
       if (target) {
-        const paddingSnippet = '[CALIBRATION INVARIANT: Maintaining operational trajectory for ' + type.toUpperCase() + '. Baseline protocol sustained.]';
-        const calibrated = clampAndPad(currentText, target.min, target.max, paddingSnippet);
-        setOutputs((prev) => ({ ...prev, [type]: calibrated }));
-        persistRepairToArchive(type, calibrated);
-        setNoticeMessage('Calibrated ' + type.toUpperCase() + ' to ' + calibrated.length + ' characters (Target: ' + target.min + '–' + target.max + ').');
+        setErrorMessage(
+          'Could not repair ' + type.toUpperCase() +
+          ' without filler. Keeping the original ' + currentText.length +
+          ' characters instead of padding it with repetitive control sludge. Target: ' +
+          target.min + '–' + target.max + '.'
+        );
       } else {
         setErrorMessage('Failed to calibrate ' + type + ' length: ' + err.message);
       }
