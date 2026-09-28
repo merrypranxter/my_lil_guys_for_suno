@@ -958,6 +958,7 @@ function styleDirectives(genome: MouthGenome, mode: MouthSemanticMode): string {
     '[MOUTH LAB SEMANTICS: ' + semanticPolicy(genome, mode) + ']',
     '[MOUTH LAB PERFORMANCE: preserve separate mouth jurisdictions; high/obsessive traits must remain audible across section changes; conflict rules create events rather than mush.]',
     musicalExpression.styleDirectives,
+    ...fossilLines(genome).map((line) => '[' + line + ']'),
     ...(genome.dynamics?.castProfiles.length
       ? ['[CAST MOUTHS: ' + genome.dynamics.castProfiles.map((profile) => mouthCastLabel(profile.role) + '=' + profile.label).join(' | ') + ']']
       : []),
