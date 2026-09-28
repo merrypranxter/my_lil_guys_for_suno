@@ -376,9 +376,45 @@ export interface MouthEnvironmentRequest {
   seed?: string;
 }
 
+export type MouthEvolutionaryOperation =
+  | 'bottleneck'
+  | 'founder-effect'
+  | 'atavism'
+  | 'extinction'
+  | 'fossilize'
+  | 'speciate';
+
+export interface MouthFossil {
+  id: string;
+  sourceType: 'trait' | 'quirk';
+  sourceId: string;
+  sourceName: string;
+  musicalRule: string;
+  generation: number;
+  createdAt: number;
+}
+
+export interface MouthEvolutionaryOperationRequest {
+  genome: MouthGenome;
+  operation: MouthEvolutionaryOperation;
+  seed: string;
+  intensity?: number;
+  targetId?: string;
+  requestedName?: string;
+}
+
+export interface MouthEvolutionaryOperationResult {
+  genome: MouthGenome;
+  operation: MouthEvolutionaryOperation;
+  summary: string;
+  affectedTraitIds: string[];
+  affectedQuirkIds: string[];
+  fossil?: MouthFossil;
+}
+
 export interface MouthMutationScar {
   id: string;
-  sourceOperation: 'gene-knockout' | 'quirk-removal' | 'specimen-application' | 'environment-exposure' | 'manual';
+  sourceOperation: 'gene-knockout' | 'quirk-removal' | 'specimen-application' | 'environment-exposure' | 'bottleneck' | 'founder-effect' | 'atavism' | 'extinction' | 'fossilize' | 'speciate' | 'manual';
   removedTraitIds: string[];
   removedQuirkIds: string[];
   residualRule: string;
@@ -461,6 +497,7 @@ export interface MouthGenome {
   breedingSeed: string;
   quirks: MouthQuirkInstance[];
   mutationScars: MouthMutationScar[];
+  fossils?: MouthFossil[];
   environment?: MouthEnvironment;
   linkedGeneBundles: MouthLinkedGeneBundle[];
   dynamics?: MouthDynamics;

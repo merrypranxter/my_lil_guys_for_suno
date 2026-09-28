@@ -805,6 +805,9 @@ export function breedMouthSpecies(request: MouthEvolutionRequest): MouthEvolutio
     mutationScars: [...parentA.mutationScars, ...parentB.mutationScars]
       .sort(() => rng() - 0.5)
       .slice(0, 4),
+    fossils: [...(parentA.fossils || []), ...(parentB.fossils || [])]
+      .sort(() => rng() - 0.5)
+      .slice(0, 4),
     linkedGeneBundles: unique(
       [...parentA.linkedGeneBundles, ...parentB.linkedGeneBundles].map((bundle) => bundle.id),
     )

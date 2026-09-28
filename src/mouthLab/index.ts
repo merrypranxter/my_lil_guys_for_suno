@@ -17,3 +17,5 @@ export * from './evolution';
 export * from './environment';
 
 export * from './expression';
+
+export * from './evolutionaryFuckery';

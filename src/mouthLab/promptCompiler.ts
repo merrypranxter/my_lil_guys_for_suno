@@ -185,7 +185,7 @@ export function normalizeMouthGenomeForGeneration(value: unknown): MouthGenome |
     .slice(0, 16)
     .map((scar: any) => ({
       id: cleanText(scar?.id, 140) || 'mouth_scar_external',
-      sourceOperation: ['gene-knockout', 'quirk-removal', 'specimen-application', 'environment-exposure', 'manual'].includes(scar?.sourceOperation)
+      sourceOperation: ['gene-knockout', 'quirk-removal', 'specimen-application', 'environment-exposure', 'bottleneck', 'founder-effect', 'atavism', 'extinction', 'fossilize', 'speciate', 'manual'].includes(scar?.sourceOperation)
         ? scar.sourceOperation
         : 'manual',
       removedTraitIds: Array.from(
@@ -207,6 +207,29 @@ export function normalizeMouthGenomeForGeneration(value: unknown): MouthGenome |
       createdAt: Number.isFinite(scar?.createdAt) ? Number(scar.createdAt) : Date.now(),
     }))
     .filter((scar: any) => scar.residualRule || scar.removedTraitIds.length || scar.removedQuirkIds.length);
+
+  const fossils = (Array.isArray(raw.fossils) ? raw.fossils : [])
+    .slice(0, 16)
+    .map((fossil: any) => {
+      const sourceType = fossil?.sourceType === 'quirk' ? 'quirk' : 'trait';
+      const sourceId = cleanText(fossil?.sourceId, 180);
+      const valid =
+        sourceType === 'trait'
+          ? Boolean(getMouthTrait(sourceId))
+          : Boolean(getMouthQuirkDefinition(sourceId));
+      if (!valid) return undefined;
+      return {
+        id: cleanText(fossil?.id, 180) || 'mouth_fossil_external',
+        sourceType,
+        sourceId,
+        sourceName: cleanText(fossil?.sourceName, 180) ||
+          (sourceType === 'trait' ? traitName(sourceId) : quirkName(sourceId)),
+        musicalRule: cleanText(fossil?.musicalRule, 420),
+        generation: Math.max(0, Math.min(99, Math.round(Number(fossil?.generation) || 0))),
+        createdAt: Number.isFinite(fossil?.createdAt) ? Number(fossil.createdAt) : Date.now(),
+      };
+    })
+    .filter(Boolean);
 
   const linkedGeneBundles = (Array.isArray(raw.linkedGeneBundles) ? raw.linkedGeneBundles : [])
     .slice(0, 16)
@@ -247,6 +270,7 @@ export function normalizeMouthGenomeForGeneration(value: unknown): MouthGenome |
     breedingSeed: cleanText(raw.breedingSeed, 240) || 'normalized-mouth-seed',
     quirks,
     mutationScars: mutationScars as MouthGenome['mutationScars'],
+    fossils: fossils as MouthGenome['fossils'],
     environment: normalizeMouthEnvironment(raw.environment),
     linkedGeneBundles: linkedGeneBundles as MouthGenome['linkedGeneBundles'],
     dynamics: normalizeMouthDynamics(raw.dynamics),
@@ -534,6 +558,14 @@ function environmentLines(genome: MouthGenome): string[] {
       (adaptations || 'general surrounding phonology') +
       '. ENVIRONMENT IS NOT ANCESTRY: do not add this source to parent donors unless it is already a true parent.',
   ];
+}
+
+function fossilLines(genome: MouthGenome): string[] {
+  return (genome.fossils || []).map((fossil) =>
+    'MUSICAL FOSSIL — ' + fossil.sourceName + ' went extinct from active mouth behavior at G' +
+    fossil.generation + ' but persists outside the voice as music: ' + fossil.musicalRule +
+    ' Do not restore the original vocal behavior unless an explicit later operation reactivates it.'
+  );
 }
 
 function scarLines(genome: MouthGenome): string[] {
@@ -834,6 +866,10 @@ function bracketedText(genome: MouthGenome, mode: MouthSemanticMode): string {
     lines.push('[' + line + ']');
   }
 
+  for (const line of fossilLines(genome)) {
+    lines.push('[' + line + ']');
+  }
+
   for (const line of scarLines(genome)) {
     lines.push('[' + line + ']');
   }
@@ -922,6 +958,7 @@ function styleDirectives(genome: MouthGenome, mode: MouthSemanticMode): string {
     '[MOUTH LAB SEMANTICS: ' + semanticPolicy(genome, mode) + ']',
     '[MOUTH LAB PERFORMANCE: preserve separate mouth jurisdictions; high/obsessive traits must remain audible across section changes; conflict rules create events rather than mush.]',
     musicalExpression.styleDirectives,
+    ...fossilLines(genome).map((line) => '[' + line + ']'),
     ...(genome.dynamics?.castProfiles.length
       ? ['[CAST MOUTHS: ' + genome.dynamics.castProfiles.map((profile) => mouthCastLabel(profile.role) + '=' + profile.label).join(' | ') + ']']
       : []),
@@ -953,6 +990,7 @@ function lyricsDirectives(genome: MouthGenome, mode: MouthSemanticMode): string 
     ...pressureReinforcementLines(genome).map((line) => '[ENFORCEMENT: ' + line + ']'),
     ...interactionLines(genome).map((line) => '[NEGOTIATION: ' + line + ']'),
     ...environmentLines(genome).map((line) => '[' + line + ']'),
+    ...fossilLines(genome).map((line) => '[' + line + ']'),
     ...scarLines(genome).map((line) => '[' + line + ']'),
     ...castProfileLine(genome).map((line) => '[CAST GENETICS: ' + line + ']'),
     ...expressionLines(genome).map((line) => '[CONDITIONAL PHONETICS: ' + line + ']'),
