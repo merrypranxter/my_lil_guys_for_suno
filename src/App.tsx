@@ -66,6 +66,8 @@ import {
   getStarterPreferenceSignals,
   getNoveltyPressureSignals,
   getMouthNoveltyPressureSignals,
+  getMouthContextPreferenceSignals,
+  getMouthContextPreferencesForRun,
   getRecentMechanismSaturation,
   promoteGenomesFromRun,
   promoteMouthGenomeFromRun,
@@ -156,6 +158,8 @@ export default function App() {
   const [dislikedMouthTraitIdsDraft, setDislikedMouthTraitIdsDraft] = useState<string[]>([]);
   const [likedMouthQuirkIdsDraft, setLikedMouthQuirkIdsDraft] = useState<string[]>([]);
   const [dislikedMouthQuirkIdsDraft, setDislikedMouthQuirkIdsDraft] = useState<string[]>([]);
+  const [likedMouthContextKeysDraft, setLikedMouthContextKeysDraft] = useState<string[]>([]);
+  const [dislikedMouthContextKeysDraft, setDislikedMouthContextKeysDraft] = useState<string[]>([]);
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [repairingBox, setRepairingBox] = useState<BoxType | null>(null);
@@ -506,6 +510,7 @@ export default function App() {
       ...getCompositionFavoriteSignals(3),
       ...getStarterPreferenceSignals(3),
       ...getMusicPreferenceSignals(3),
+      ...getMouthContextPreferenceSignals(4),
       ...getLikedPreferenceSignals(4),
     ].slice(0, 12);
     const noveltySignals = [
@@ -727,6 +732,8 @@ export default function App() {
     setDislikedMouthTraitIdsDraft(currentRun.dislikedMouthTraitIds || []);
     setLikedMouthQuirkIdsDraft(currentRun.likedMouthQuirkIds || []);
     setDislikedMouthQuirkIdsDraft(currentRun.dislikedMouthQuirkIds || []);
+    setLikedMouthContextKeysDraft(currentRun.likedMouthContextKeys || []);
+    setDislikedMouthContextKeysDraft(currentRun.dislikedMouthContextKeys || []);
     setFeedbackOpen(true);
   };
 
@@ -744,6 +751,8 @@ export default function App() {
       dislikedMouthTraitIds: dislikedMouthTraitIdsDraft,
       likedMouthQuirkIds: likedMouthQuirkIdsDraft,
       dislikedMouthQuirkIds: dislikedMouthQuirkIdsDraft,
+      likedMouthContextKeys: likedMouthContextKeysDraft,
+      dislikedMouthContextKeys: dislikedMouthContextKeysDraft,
     });
     if (updated) {
       setCurrentRun(updated);
@@ -796,6 +805,8 @@ export default function App() {
     setDislikedMouthTraitIdsDraft([]);
     setLikedMouthQuirkIdsDraft([]);
     setDislikedMouthQuirkIdsDraft([]);
+    setLikedMouthContextKeysDraft([]);
+    setDislikedMouthContextKeysDraft([]);
     setErrorMessage(null);
   };
 
@@ -912,6 +923,9 @@ export default function App() {
       )
         .map((id) => getMouthTrait(id))
         .filter((trait): trait is NonNullable<ReturnType<typeof getMouthTrait>> => Boolean(trait))
+    : [];
+  const currentFeedbackMouthContext = currentRun
+    ? getMouthContextPreferencesForRun(currentRun)
     : [];
   const currentFeedbackMouthQuirks = currentRun?.mouthGenome
     ? Array.from(
@@ -1731,6 +1745,65 @@ export default function App() {
                       })}
                     </div>
                   )}
+                </div>
+              )}
+
+              {currentFeedbackMouthContext.length > 0 && (
+                <div className="rounded-xl border border-[#23485b] bg-[#081218] p-3">
+                  <div className="text-xs font-mono text-[#8fe8ff] mb-1">WHAT PART OF THE MOUTH WORLD WORKED?</div>
+                  <div className="text-[10px] font-mono text-[#66818c] mb-3">
+                    These are configuration-level genes: semantics, Mouth Expression band, ecology, evolutionary events, fossils, and compiler mode. Explicit votes are strong; skipping this section leaves only weak whole-run evidence.
+                  </div>
+                  <div className="space-y-2">
+                    {currentFeedbackMouthContext.map((item) => {
+                      const liked = likedMouthContextKeysDraft.includes(item.key);
+                      const disliked = dislikedMouthContextKeysDraft.includes(item.key);
+                      return (
+                        <div key={item.key} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-lg border border-[#1d3946] bg-[#0a1116] px-3 py-2">
+                          <div>
+                            <div className="text-[10px] font-mono font-black text-white">{item.label}</div>
+                            <div className="text-[9px] font-mono text-[#55717c]">{item.dimension.toUpperCase()} CONTEXT</div>
+                          </div>
+                          <div className="flex shrink-0 gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setLikedMouthContextKeysDraft((current) =>
+                                  liked ? current.filter((key) => key !== item.key) : [...current.filter((key) => key !== item.key), item.key]
+                                );
+                                setDislikedMouthContextKeysDraft((current) => current.filter((key) => key !== item.key));
+                              }}
+                              className={
+                                'rounded border px-2 py-1 text-[9px] font-mono font-black ' +
+                                (liked
+                                  ? 'border-[#39ff14] bg-[#102417] text-[#a7ff9f]'
+                                  : 'border-[#294552] bg-[#0e1820] text-[#6f8c98] hover:text-white')
+                              }
+                            >
+                              ★ MORE LIKE THIS
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setDislikedMouthContextKeysDraft((current) =>
+                                  disliked ? current.filter((key) => key !== item.key) : [...current.filter((key) => key !== item.key), item.key]
+                                );
+                                setLikedMouthContextKeysDraft((current) => current.filter((key) => key !== item.key));
+                              }}
+                              className={
+                                'rounded border px-2 py-1 text-[9px] font-mono font-black ' +
+                                (disliked
+                                  ? 'border-[#ef4444] bg-[#2b1216] text-[#fca5a5]'
+                                  : 'border-[#294552] bg-[#0e1820] text-[#6f8c98] hover:text-white')
+                              }
+                            >
+                              ✕ LESS LIKE THIS
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 
