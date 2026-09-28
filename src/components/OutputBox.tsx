@@ -26,6 +26,7 @@ export function OutputBox({
 
   const charCount = content.length;
   const { min, max, yellowTolerance } = targetRange;
+  const isExactTarget = charCount >= min && charCount <= max;
 
   // Determine status color
   // Green: within [min, max]
@@ -195,14 +196,19 @@ export function OutputBox({
           <button
             type="button"
             onClick={() => onRepair(type)}
-            disabled={isRepairing}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#181d2a] border border-[#2b354b] text-[#93c5fd] hover:text-white hover:border-[#3b82f6] disabled:opacity-50 transition-colors active:scale-95"
-            title="Perform a targeted calibration call to adjust this box's character count into the exact target range"
+            disabled={isRepairing || isExactTarget}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#181d2a] border border-[#2b354b] text-[#93c5fd] hover:text-white hover:border-[#3b82f6] disabled:opacity-35 disabled:cursor-not-allowed transition-colors active:scale-95"
+            title={isExactTarget ? 'Already inside the exact target window' : 'Perform a targeted calibration call to adjust this box into the preferred range'}
           >
             {isRepairing ? (
               <>
                 <Loader2 className="w-3 h-3 animate-spin text-[#00f0ff]" />
                 <span>CALIBRATING LENGTH...</span>
+              </>
+            ) : isExactTarget ? (
+              <>
+                <Check className="w-3 h-3 text-[#39ff14]" />
+                <span>LENGTH GOOD</span>
               </>
             ) : (
               <>
