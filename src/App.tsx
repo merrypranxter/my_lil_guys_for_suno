@@ -655,6 +655,13 @@ export default function App() {
     const currentText = outputs[type];
     if (!currentText || repairingBox) return;
 
+    const target = TARGETS[type];
+    if (target && currentText.length >= target.min && currentText.length <= target.max) {
+      setErrorMessage(null);
+      setNoticeMessage(type.toUpperCase() + ' is already inside the target window at ' + currentText.length + ' characters.');
+      return;
+    }
+
     setRepairingBox(type);
     setErrorMessage(null);
     setNoticeMessage(null);
@@ -695,10 +702,9 @@ export default function App() {
 
       const target = TARGETS[type];
       if (target) {
-        setErrorMessage(
-          'Could not repair ' + type.toUpperCase() +
-          ' without filler. Keeping the original ' + currentText.length +
-          ' characters instead of padding it with repetitive control sludge. Target: ' +
+        setNoticeMessage(
+          'Kept the useful ' + type.toUpperCase() + ' at ' + currentText.length +
+          ' characters after repair was unavailable. Preferred window: ' +
           target.min + '–' + target.max + '.'
         );
       } else {
