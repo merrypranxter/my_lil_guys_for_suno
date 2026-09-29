@@ -10,14 +10,52 @@ import type { StarterSeedDefinition } from '../src/starterSeeds';
 const validation = validateStarterSeedRegistryV2(STARTER_SEEDS);
 assert.equal(validation.valid, true, validation.errors.join('\n'));
 
-assert(STARTER_SEEDS.length >= 53, 'Expected a substantial starter seed library');
-assert.equal(STARTER_SEEDS_BY_CATEGORY.affect.length, 8);
+assert(STARTER_SEEDS.length >= 71, 'Expected the expanded starter seed library');
+assert.equal(STARTER_SEEDS_BY_CATEGORY.affect.length, 26);
 assert.equal(STARTER_SEEDS_BY_CATEGORY.psychedelic.length, 8);
 assert.equal(STARTER_SEEDS_BY_CATEGORY.motion.length, 6);
 assert.equal(STARTER_SEEDS_BY_CATEGORY.social.length, 6);
 assert.equal(STARTER_SEEDS_BY_CATEGORY.worldPackage.length, 8);
 assert.equal(STARTER_SEEDS_BY_CATEGORY.instrumentPack.length, 4);
 assert.equal(STARTER_SEEDS_BY_CATEGORY.texture.length, 13);
+
+const requiredEmotionalSpectrum = [
+  'affect-righteous-fury',
+  'affect-petty-spite',
+  'affect-defiant-refusal',
+  'affect-dread-under-glass',
+  'affect-paranoid-suspicion',
+  'affect-disgust-recoil',
+  'affect-grief-with-teeth',
+  'affect-aching-longing',
+  'affect-envy-static',
+  'affect-shame-spiral',
+  'affect-embarrassment-flash',
+  'affect-boredom-itch',
+  'affect-confused-overload',
+  'affect-guarded-tenderness',
+  'affect-relief-flood',
+  'affect-sublime-awe',
+  'affect-nervous-excitement',
+  'affect-resentment-simmer',
+];
+
+for (const id of requiredEmotionalSpectrum) {
+  const seed = STARTER_SEEDS.find((item) => item.id === id);
+  assert.ok(seed, 'Missing emotional starter: ' + id);
+  assert.equal(seed?.category, 'affect');
+  assert.ok(seed?.owns.includes('emotionalValence'), id + ' should explicitly own emotional valence');
+  assert.ok((seed?.operators.length || 0) >= 3, id + ' should contain real operational behavior');
+}
+
+const mixedAffect = compileStarterSeedStackV2(STARTER_SEEDS, [
+  { instanceId: 'rage', seedId: 'affect-righteous-fury', intensity: 90, muted: false, locked: false },
+  { instanceId: 'tender', seedId: 'affect-guarded-tenderness', intensity: 80, muted: false, locked: false },
+]);
+assert(
+  mixedAffect.collisions.some((collision) => collision.jurisdiction === 'emotionalValence'),
+  'Conflicting emotions should negotiate instead of averaging into emotional beige.',
+);
 
 const stack = compileStarterSeedStackV2(STARTER_SEEDS, [
   { instanceId: 'a', seedId: 'affect-divine-exultation', intensity: 90, muted: false, locked: false },
