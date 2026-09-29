@@ -811,6 +811,10 @@ export function MusicSeedLabPanel({
                 <SliderRow label="INTERRUPTION" left="finish your thought" right="ABSOLUTELY NOT" value={controls.interruption} onChange={(value) => setControl('interruption', value)} />
                 <SliderRow label="ANCHOR" left="amnesia" right="that fucking thing again" value={controls.anchorStrength} onChange={(value) => setControl('anchorStrength', value)} />
                 <SliderRow label="CAST SIZE" left="solo" right="municipal emergency" value={controls.castSize} onChange={(value) => setControl('castSize', value)} />
+                <SliderRow label="MOUTH FREAKERY" left="sing normally" right="MOUTHS HAVE ESCAPED" value={controls.mouthFreakery} onChange={(value) => setControl('mouthFreakery', value)} />
+                <SliderRow label="TECHNIQUE MUTATION" left="stay in your lane" right="infect each other" value={controls.techniqueMutation} onChange={(value) => setControl('techniqueMutation', value)} />
+                <SliderRow label="VOCAL LEGIBILITY" left="pure mouth physics" right="I CAN STILL FOLLOW THIS" value={controls.vocalLegibility} onChange={(value) => setControl('vocalLegibility', value)} />
+                <SliderRow label="VOCAL POPULATION" left="one mouth" right="mouth municipality" value={controls.vocalPopulation} onChange={(value) => setControl('vocalPopulation', value)} />
               </div>
             </div>
           )}

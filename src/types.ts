@@ -216,6 +216,10 @@ export interface MusicControls {
   interruption: number;
   anchorStrength: number;
   castSize: number;
+  mouthFreakery: number;
+  techniqueMutation: number;
+  vocalLegibility: number;
+  vocalPopulation: number;
 }
 
 export interface MusicSeedRecipe {

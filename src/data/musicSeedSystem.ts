@@ -15,7 +15,18 @@ export const DEFAULT_MUSIC_CONTROLS: MusicControls = {
   interruption: 45,
   anchorStrength: 62,
   castSize: 42,
+  mouthFreakery: 52,
+  techniqueMutation: 45,
+  vocalLegibility: 68,
+  vocalPopulation: 48,
 };
+
+export const SUNO_WORKFLOW_CALIBRATION = {
+  styleInfluence: 100,
+  weirdness: 64,
+  weirdnessWorkingCeiling: 65,
+  note: 'Merry operating calibration: keep model weirdness near 64-65 for grinding sessions; create structured weirdness in the prompt rather than pushing Suno into dropout or pure-glitch territory.',
+} as const;
 
 export const MUSIC_FEEDBACK_TAGS = [
   'THE GROOVE',
@@ -428,6 +439,10 @@ export function normalizeMusicControls(value?: Partial<MusicControls> | null): M
     interruption: clamp100(source.interruption, DEFAULT_MUSIC_CONTROLS.interruption),
     anchorStrength: clamp100(source.anchorStrength, DEFAULT_MUSIC_CONTROLS.anchorStrength),
     castSize: clamp100(source.castSize, DEFAULT_MUSIC_CONTROLS.castSize),
+    mouthFreakery: clamp100(source.mouthFreakery, DEFAULT_MUSIC_CONTROLS.mouthFreakery),
+    techniqueMutation: clamp100(source.techniqueMutation, DEFAULT_MUSIC_CONTROLS.techniqueMutation),
+    vocalLegibility: clamp100(source.vocalLegibility, DEFAULT_MUSIC_CONTROLS.vocalLegibility),
+    vocalPopulation: clamp100(source.vocalPopulation, DEFAULT_MUSIC_CONTROLS.vocalPopulation),
   };
 }
 
@@ -510,6 +525,10 @@ export function musicGenomePhenotypeKey(genomeValue: unknown): string {
     genome.controls.interruption,
     genome.controls.anchorStrength,
     genome.controls.castSize,
+    genome.controls.mouthFreakery,
+    genome.controls.techniqueMutation,
+    genome.controls.vocalLegibility,
+    genome.controls.vocalPopulation,
   ].join(',');
   const invariant = genome.lineage.invariant.trim().replace(/\s+/g, ' ');
   const relationshipLaw = genome.lineage.relationshipLaw.trim().replace(/\s+/g, ' ');
@@ -732,6 +751,21 @@ export function compileMusicStack(
   if (controls.coupling >= 80 && mechanisms.some((item) => item.mechanism.family === 'rhythm')) {
     interactions.push('Multiple rhythmic truths must share a common substrate or recurring alignment point so complexity remains physically graspable.');
   }
+  if (controls.mouthFreakery >= 75) {
+    interactions.push('High Mouth Freakery means the voice may become rhythm, texture, register-play, interruption, or instrumentation, but never fire every available vocal behavior at once. Rotate techniques through identifiable jobs.');
+  }
+  if (controls.techniqueMutation >= 70) {
+    interactions.push('High Technique Mutation transfers one property at a time: contour, rhythm, register, articulation, or function. Mutation must preserve ancestry; never replace the current vocal ecology with an unrelated NEW GAME+ reset.');
+  }
+  if (controls.vocalPopulation >= 70) {
+    interactions.push('High Vocal Population means multiple independent vocal agents with separate entrance conditions and jobs, not a generic backing choir and not mandatory simultaneity.');
+  }
+  if (controls.vocalLegibility >= 55) {
+    interactions.push('Maintain a legibility floor: at least one graspable lyric phrase, anchor, pulse, vocal role, or groove must survive even when vocal behavior becomes extreme.');
+  }
+  if (controls.kineticDensity >= 80 && controls.mouthFreakery >= 75) {
+    interactions.push('RESTRAINT GATE: density and mouth extremity are both high, so prefer sequential consequences over simultaneous pileup. Another event must change the trajectory; otherwise leave it out. Substance outranks pure glitch.');
+  }
 
   genomePhenotypes.forEach((phenotype, index) => {
     interactions.push(
@@ -767,6 +801,12 @@ export function musicControlsToDirectives(controlsValue?: Partial<MusicControls>
     'INTERRUPTION ' + controls.interruption + '/100 — ' + band(controls.interruption, 'let phrases usually finish.', 'use periodic structural cuts.', 'allow frequent hard interruptions that cause downstream changes.'),
     'ANCHOR STRENGTH ' + controls.anchorStrength + '/100 — ' + band(controls.anchorStrength, 'permit rapid forgetting and replacement.', 'return recognizable material after mutation.', 'make one invariant unmistakable even under severe transformation.'),
     'CAST SIZE ' + controls.castSize + '/100 — ' + band(controls.castSize, 'favor one or two vocal agents.', 'use a small distinguishable ensemble.', 'use a populated cast with clearly separated vocal jobs.'),
+    'MOUTH FREAKERY ' + controls.mouthFreakery + '/100 — ' + band(controls.mouthFreakery, 'keep vocal delivery mostly conventional with sparse physical ornament.', 'allow recurring register flips, scat, whistles, trills, melisma, patter, hocketing, and other mouth-as-instrument behavior.', 'let voices frequently abandon ordinary singing for acrobatic, percussive, textural, or instrumental jobs; rotate behaviors instead of stacking every technique at once.'),
+    'TECHNIQUE MUTATION ' + controls.techniqueMutation + '/100 — ' + band(controls.techniqueMutation, 'keep each vocal technique recognizably itself.', 'occasionally transfer contour, rhythm, register, articulation, or function between techniques.', 'let techniques infect and transform one another one property at a time while preserving audible ancestry; mutation without amnesia, never arbitrary reset.'),
+    'VOCAL LEGIBILITY ' + controls.vocalLegibility + '/100 — ' + band(controls.vocalLegibility, 'language may dissolve substantially into phonetic material.', 'alternate intelligible semantic phrases with nonlexical or physically driven mouth material.', 'keep words, anchor phrases, and vocal roles highly graspable even during extreme gymnastics.'),
+    'VOCAL POPULATION ' + controls.vocalPopulation + '/100 — ' + band(controls.vocalPopulation, 'keep the vocal ecology intimate and sparsely populated.', 'use several distinguishable vocal agents with separate jobs.', 'populate the song with many independent vocal agents, but stagger entrances and preserve role separation rather than defaulting to choir mush.'),
+    'RESTRAINT / FUCK-OFF THRESHOLD — internal law: high control values increase available event pressure, not permission for meaningless pileup. Add an event only when it creates an audible consequence; preserve substance and a legibility floor; never degrade the back half into undifferentiated glitch.',
+    'SUNO OPERATING CALIBRATION — style influence 100; weirdness target 64 (routine ceiling about 65). Structured weirdness must come from these explicit musical rules rather than relying on higher model weirdness.',
   ];
 }
 
@@ -775,7 +815,7 @@ export function summarizeMusicStack(stackValue: unknown, controlsValue?: Partial
   const recipes = compiled.recipes.map((item) => item.name).join(' + ') || 'NO RECIPE';
   const genomes = compiled.genomes.map((item) => item.name + ' G' + item.generation).join(' + ') || 'NO GENOME';
   const mechanisms = compiled.mechanisms.map((item) => item.mechanism.name).join(' + ') || 'no mechanism chips';
-  return 'recipes=' + recipes + ' | genomes=' + genomes + ' | mechanisms=' + mechanisms + ' | suppressedDuplicates=' + compiled.suppressedDuplicates.reduce((sum, item) => sum + item.count, 0) + ' | stemminess=' + compiled.controls.stemminess + ' | coupling=' + compiled.controls.coupling;
+  return 'recipes=' + recipes + ' | genomes=' + genomes + ' | mechanisms=' + mechanisms + ' | suppressedDuplicates=' + compiled.suppressedDuplicates.reduce((sum, item) => sum + item.count, 0) + ' | stemminess=' + compiled.controls.stemminess + ' | kineticDensity=' + compiled.controls.kineticDensity + ' | mouthFreakery=' + compiled.controls.mouthFreakery + ' | techniqueMutation=' + compiled.controls.techniqueMutation + ' | vocalLegibility=' + compiled.controls.vocalLegibility + ' | vocalPopulation=' + compiled.controls.vocalPopulation + ' | coupling=' + compiled.controls.coupling;
 }
 
 export function mechanismFamilies(): MusicMechanismFamily[] {

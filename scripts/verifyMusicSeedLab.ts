@@ -7,6 +7,7 @@ import {
   getMusicMechanism,
   normalizeMusicControls,
   normalizeMusicStack,
+  musicControlsToDirectives,
 } from '../src/data/musicSeedSystem';
 
 assert.ok(MUSIC_SEED_RECIPES.length >= 11, 'Expected the original recipes plus specialty additions');
@@ -81,6 +82,30 @@ const controls = normalizeMusicControls({
 assert.equal(controls.stemminess, 100, 'Controls should clamp high values');
 assert.equal(controls.coupling, 0, 'Controls should clamp low values');
 assert.equal(controls.castSize, 73, 'Controls should round values');
+assert.equal(controls.mouthFreakery, DEFAULT_MUSIC_CONTROLS.mouthFreakery, 'Legacy controls should receive Mouth Freakery default');
+assert.equal(controls.techniqueMutation, DEFAULT_MUSIC_CONTROLS.techniqueMutation, 'Legacy controls should receive Technique Mutation default');
+assert.equal(controls.vocalLegibility, DEFAULT_MUSIC_CONTROLS.vocalLegibility, 'Legacy controls should receive Vocal Legibility default');
+assert.equal(controls.vocalPopulation, DEFAULT_MUSIC_CONTROLS.vocalPopulation, 'Legacy controls should receive Vocal Population default');
+
+const vocalPhysics = normalizeMusicControls({
+  mouthFreakery: 91,
+  techniqueMutation: 83,
+  vocalLegibility: 61,
+  vocalPopulation: 88,
+  kineticDensity: 94,
+});
+assert.equal(vocalPhysics.mouthFreakery, 91, 'Mouth Freakery should normalize independently');
+assert.equal(vocalPhysics.techniqueMutation, 83, 'Technique Mutation should normalize independently');
+assert.equal(vocalPhysics.vocalLegibility, 61, 'Vocal Legibility should normalize independently');
+assert.equal(vocalPhysics.vocalPopulation, 88, 'Vocal Population should normalize independently');
+
+const vocalDirectives = musicControlsToDirectives(vocalPhysics).join('\n');
+assert.ok(vocalDirectives.includes('MOUTH FREAKERY 91/100'), 'Prompt directives should expose Mouth Freakery');
+assert.ok(vocalDirectives.includes('TECHNIQUE MUTATION 83/100'), 'Prompt directives should expose Technique Mutation');
+assert.ok(vocalDirectives.includes('VOCAL LEGIBILITY 61/100'), 'Prompt directives should expose Vocal Legibility');
+assert.ok(vocalDirectives.includes('VOCAL POPULATION 88/100'), 'Prompt directives should expose Vocal Population');
+assert.ok(vocalDirectives.includes('RESTRAINT / FUCK-OFF THRESHOLD'), 'Prompt directives should include anti-pileup restraint law');
+assert.ok(vocalDirectives.includes('weirdness target 64'), 'Prompt directives should preserve the Suno working calibration');
 
 console.log(
   'Music Seed Lab verification passed:',
