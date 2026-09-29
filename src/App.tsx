@@ -16,7 +16,7 @@ import { PetriDishPanel } from './components/PetriDishPanel';
 import { StarterSeedPanel } from './components/StarterSeedPanel';
 import { genomeToStackItem } from './lib/musicBreeding';
 import { blendSiblingControls, buildSiblingMusicStack } from './lib/petriDish';
-import { restoreBrainBackup, serializeBrainBackup } from './lib/brainBackup';
+import { getLastBrainBackupAt, markBrainBackupExported, restoreBrainBackup, serializeBrainBackup } from './lib/brainBackup';
 import { DEFAULT_MUSIC_CONTROLS, MUSIC_FEEDBACK_TAGS, compileMusicStack, musicGenomePhenotypeSignature } from './data/musicSeedSystem';
 import { OutputBox } from './components/OutputBox';
 import { ModuleDock, ModuleSection } from './components/ModuleShell';
@@ -75,7 +75,7 @@ import {
   sessionToMarkdown,
   archiveToMarkdown,
 } from './lib/localStorage';
-import { AlertCircle, Archive, Download, Layers, MessageSquare, Sparkles, Star, Upload, X } from 'lucide-react';
+import { AlertCircle, Archive, Download, Layers, MessageSquare, RotateCcw, Sparkles, Star, Upload, X } from 'lucide-react';
 import type { MouthGenome, MouthPromptMode, MouthSemanticMode } from './mouthLab/types';
 import { getMouthQuirkDefinition } from './mouthLab/quirks';
 import { getMouthTrait } from './mouthLab/traits';
@@ -150,6 +150,9 @@ export default function App() {
   const [resumeSessionId, setResumeSessionId] = useState(() => getActiveRunSession().id);
   const [sessionRunCount, setSessionRunCount] = useState(() => getCurrentSessionRuns().length);
   const [archiveCount, setArchiveCount] = useState(() => getRunArchive().length);
+  const [lastBrainBackupAt, setLastBrainBackupAt] = useState<number | undefined>(() => {
+    try { return getLastBrainBackupAt(); } catch { return undefined; }
+  });
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [feedbackDraft, setFeedbackDraft] = useState('');
   const [feedbackTagsDraft, setFeedbackTagsDraft] = useState<string[]>([]);
@@ -854,6 +857,23 @@ export default function App() {
     setNoticeMessage('Fresh session started. Old runs are still safe in the archive.');
   };
 
+  const hardRefreshExperiment = () => {
+    const session = startNewRunSession();
+    setActiveSession(session);
+    setRunSessions(getRunSessions());
+    setResumeSessionId(session.id);
+    setSessionRunCount(0);
+    resetSessionWorkspace();
+    setUiMode('play');
+    setModuleOpen({ ...DEFAULT_PLAY_MODULE_OPEN });
+    setActiveModule('stack');
+    try { window.localStorage.setItem('little-guys-ui-mode-v1', 'play'); } catch {}
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setNoticeMessage(
+      'HARD REFRESH: brand-new experiment workspace. Archive, stars, feedback, fitness, saved stacks, Mouth species, fossils, and breeding memory were preserved.'
+    );
+  };
+
   const resumeSelectedSession = () => {
     const session = resumeRunSession(resumeSessionId);
     if (!session) {
@@ -902,6 +922,8 @@ export default function App() {
       'little-guy-brain-backup-' + stamp + '.json',
       serializeBrainBackup(),
     );
+    const exportedAt = markBrainBackupExported();
+    setLastBrainBackupAt(exportedAt);
     setNoticeMessage('Brain backup exported. Keep this file through redeploys so stars, feedback, fitness, saved creatures, and lab state can be restored.');
   };
 
@@ -910,6 +932,7 @@ export default function App() {
     try {
       const raw = await file.text();
       const result = restoreBrainBackup(raw);
+      setLastBrainBackupAt(result.exportedAt);
       setNoticeMessage(
         'Restored ' + result.restoredKeys + ' Little Guy memory keys. Reloading the lab with the restored brain…'
       );
@@ -1074,6 +1097,17 @@ export default function App() {
               >
                 MOUTH STUFF
               </button>
+              <button
+                type="button"
+                onClick={hardRefreshExperiment}
+                className="rounded-xl border border-[#64748b]/70 bg-[#111827] px-4 py-2.5 text-xs font-mono font-black text-[#cbd5e1]"
+                title="Start a completely fresh experiment workspace while preserving archive, likes, fitness, saved species, and breeding memory"
+              >
+                <span className="inline-flex items-center gap-1.5">
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  NEW EXPERIMENT / HARD REFRESH
+                </span>
+              </button>
               {uiMode === 'play' ? (
                 <button
                   type="button"
@@ -1093,8 +1127,11 @@ export default function App() {
               )}
             </div>
           </div>
-          <div className="mt-2 text-[9px] font-mono text-[#596579]">
-            MODE: {uiMode === 'play' ? 'PLAY — Stack / Controls / Mouth / Output prioritized' : 'FULL LAB — every module open'}
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[9px] font-mono text-[#596579]">
+            <span>MODE: {uiMode === 'play' ? 'PLAY — Stack / Controls / Mouth / Output prioritized' : 'FULL LAB — every module open'}</span>
+            <span className={lastBrainBackupAt ? 'text-[#8fb99a]' : 'text-[#c88b5b]'}>
+              BRAIN BACKUP: {lastBrainBackupAt ? new Date(lastBrainBackupAt).toLocaleString() : 'NEVER EXPORTED'}
+            </span>
           </div>
         </div>
 
@@ -1370,7 +1407,7 @@ export default function App() {
                 </div>
               </div>
               <div className="mt-2 text-[10px] font-mono text-[#617089]">
-                New Session clears the current experiment only. EXPORT BRAIN is the portable safety copy for redeploys: stars, feedback, fitness, saved genomes, recipes, favorites, Mouth species, and archive state.
+                NEW SESSION / CLEAR WORKSPACE resets only the active experiment. HARD REFRESH at the top also returns the UI to PLAY MODE. Neither deletes archive, stars, feedback, fitness, saved genomes, recipes, favorites, Mouth species, fossils, or learned breeding memory.
               </div>
             </div>
 

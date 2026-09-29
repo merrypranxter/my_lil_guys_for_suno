@@ -120,6 +120,9 @@ jobs:
       - name: Play Mode UX regression smoke
         run: npm run verify:play-mode-ux
 
+      - name: Post-playtest hygiene regression smoke
+        run: npm run verify:post-playtest-hygiene
+
       - name: Specialty recipe regression smoke
         run: npm run verify:specialty-recipes
 
