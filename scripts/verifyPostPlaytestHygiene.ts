@@ -43,6 +43,13 @@ assert.ok(app.includes('const hardRefreshExperiment = () =>'), 'hard refresh han
 assert.ok(app.includes("setUiMode('play')"), 'hard refresh must return UI to play mode');
 assert.ok(app.includes('setModuleOpen({ ...DEFAULT_PLAY_MODULE_OPEN })'), 'hard refresh must restore play-mode drawer layout');
 assert.ok(app.includes('BRAIN BACKUP:'), 'Quick Play must show brain backup status');
+const markIndex = app.indexOf('const exportedAt = markBrainBackupExported()');
+const serializeIndex = app.indexOf('serializeBrainBackup()', markIndex);
+assert.ok(markIndex >= 0 && serializeIndex > markIndex, 'mark must happen before serialization so restored backup keeps its timestamp');
+assert.ok(
+  !app.includes('applying local algorithmic calibration'),
+  'repair diagnostics must not claim a filler algorithm still exists',
+);
 assert.ok(app.includes('NEW SESSION / CLEAR WORKSPACE'), 'session reset wording must distinguish workspace reset from memory deletion');
 
 console.log('Post-playtest hygiene verification passed:', {
