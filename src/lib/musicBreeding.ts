@@ -29,6 +29,10 @@ const CONTROL_KEYS: Array<keyof MusicControls> = [
   'interruption',
   'anchorStrength',
   'castSize',
+  'mouthFreakery',
+  'techniqueMutation',
+  'vocalLegibility',
+  'vocalPopulation',
 ];
 
 function hashString(input: string): number {
