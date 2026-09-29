@@ -67,6 +67,11 @@ assert(
   'R freak control language must reinforce virtually every eligible target.',
 );
 assert(
+  bracketed.lyricsDirectives.includes('PHONETIC REALIZER') &&
+    bracketed.lyricsDirectives.includes('rrright'),
+  'R freak control language must encode the trill into literal lyric spelling examples.',
+);
+assert(
   bracketed.styleDirectives.includes('MOUTH LAB STYLE PRIORITY'),
   'Compiler must produce STYLE-specific directives.',
 );
@@ -128,6 +133,11 @@ assert(
 assert(
   descriptive.text.includes('generic accent'),
   'Descriptive output should preserve anti-mush behavior.',
+);
+assert(
+  descriptive.text.includes('Literal lyric-surface realization') &&
+    descriptive.text.includes('repeated visible r sequences'),
+  'Descriptive mode should include explicit phonetic lyric-surface realization.',
 );
 
 const tampered: any = {
@@ -210,6 +220,11 @@ assert(
 assert(
   master.userPrompt.includes('[MOUTH LAB CONTROL]'),
   'Lyrics/control instructions must receive the compiled Mouth Lab control block.',
+);
+assert(
+  master.userPrompt.includes('PHONETIC REALIZER') &&
+    master.userPrompt.includes('rrright'),
+  'Master generation prompt must receive literal phonetic spelling guidance.',
 );
 
 const legacy = buildMasterPrompt({
