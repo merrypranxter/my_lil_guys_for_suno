@@ -39,6 +39,50 @@ export type MouthTraitRelationship =
 
 export type MouthResearchConfidence = 'high' | 'medium' | 'provisional';
 
+export type MouthTechniqueFamily =
+  | 'register'
+  | 'articulation'
+  | 'ornament'
+  | 'rhythm'
+  | 'phonetic'
+  | 'resonance'
+  | 'ensemble'
+  | 'airflow';
+
+export type MouthTechniqueJob =
+  | 'lead'
+  | 'punctuation'
+  | 'percussion'
+  | 'texture'
+  | 'response'
+  | 'transition'
+  | 'anchor'
+  | 'escalation';
+
+export interface MouthTechniqueDefinition {
+  id: string;
+  name: string;
+  family: MouthTechniqueFamily;
+  description: string;
+  jobs: MouthTechniqueJob[];
+  traitTags: string[];
+  compatibleTechniqueIds: string[];
+  antagonisticTechniqueIds: string[];
+  mutationProperties: Array<'contour' | 'rhythm' | 'register' | 'articulation' | 'function' | 'timbre'>;
+  minCooldownEvents: number;
+  maxConsecutiveUses: number;
+  intelligibilityCost: number;
+  densityCost: number;
+  promptRule: string;
+}
+
+export interface MouthTechniquePaletteEntry {
+  techniqueId: string;
+  weight: number;
+  job: MouthTechniqueJob;
+  reason: string;
+}
+
 export type MouthCastRole =
   | 'lead'
   | 'narrator'
