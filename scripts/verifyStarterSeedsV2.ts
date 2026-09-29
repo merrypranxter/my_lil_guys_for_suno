@@ -10,8 +10,8 @@ import type { StarterSeedDefinition } from '../src/starterSeeds';
 const validation = validateStarterSeedRegistryV2(STARTER_SEEDS);
 assert.equal(validation.valid, true, validation.errors.join('\n'));
 
-assert(STARTER_SEEDS.length >= 70, 'Expected the expanded starter seed library');
-assert.equal(STARTER_SEEDS_BY_CATEGORY.affect.length, 25);
+assert(STARTER_SEEDS.length >= 71, 'Expected the expanded starter seed library');
+assert.equal(STARTER_SEEDS_BY_CATEGORY.affect.length, 26);
 assert.equal(STARTER_SEEDS_BY_CATEGORY.psychedelic.length, 8);
 assert.equal(STARTER_SEEDS_BY_CATEGORY.motion.length, 6);
 assert.equal(STARTER_SEEDS_BY_CATEGORY.social.length, 6);
