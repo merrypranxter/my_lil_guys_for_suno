@@ -7,6 +7,7 @@ import {
   deriveMouthTechniquePalette,
   getMouthTechnique,
   MOUTH_TECHNIQUES,
+  deriveMouthTechniqueInteractions,
 } from '../src/mouthLab';
 import { buildMasterPrompt } from '../src/lib/buildGenerationPrompt';
 import { generateProceduralTrack, TARGETS } from '../src/lib/proceduralGenerator';
@@ -49,6 +50,11 @@ assert(Boolean(getMouthTechnique('tech-yodel-break')), 'Yodel Break technique mu
 assert(Boolean(getMouthTechnique('tech-consonant-drum')), 'Consonant Drum technique must exist.');
 const techniquePalette = deriveMouthTechniquePalette(rGenome);
 assert(techniquePalette.length > 0, 'A valid mouth genome should derive a usable technique palette.');
+const interactions = deriveMouthTechniqueInteractions(rGenome);
+assert(interactions.length >= 2 && interactions.length <= 5, 'Stage 3 should derive a bounded interaction set.');
+assert(interactions.every((item) => item.trigger && item.preserve && item.transferProperty), 'Every interaction must carry trigger, transfer, and preservation ancestry.');
+const interactionsAgain = deriveMouthTechniqueInteractions(rGenome);
+assert(JSON.stringify(interactions) === JSON.stringify(interactionsAgain), 'Interaction derivation must be deterministic for the same genome.');
 
 const bracketed = compileMouthPrompt(rGenome, {
   mode: 'bracketed',
@@ -85,6 +91,14 @@ assert(
     bracketed.lyricsDirectives.includes('TECHNIQUE MUTATION LAW') &&
     bracketed.lyricsDirectives.includes('REPETITION LAW'),
   'Compiler must inject technique ecology, mutation ancestry, and anti-habit laws.',
+);
+assert(
+  bracketed.lyricsDirectives.includes('VOCAL INTERACTION ENGINE') &&
+    bracketed.lyricsDirectives.includes('MUTATION WITHOUT AMNESIA') &&
+    bracketed.lyricsDirectives.includes('SOCIAL TRAFFIC LAW') &&
+    bracketed.lyricsDirectives.includes('LEGIBILITY FLOOR') &&
+    bracketed.lyricsDirectives.includes('FUCK-OFF GATE'),
+  'Stage 3 compiler must inject causal interaction and anti-collapse laws.',
 );
 assert(
   bracketed.styleDirectives.includes('MOUTH LAB STYLE PRIORITY'),
