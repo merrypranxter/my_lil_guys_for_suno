@@ -19,6 +19,43 @@ function recipeItem(refId: string, strength = 100, locked = true): MusicStackIte
 
 export const SPECIALTY_WHOLE_STACK_RECIPES: SpecialtyWholeStackRecipe[] = [
   {
+    id: 'builtin-specialty-mouth-riot',
+    name: 'MOUTH RIOT',
+    description:
+      'A vocal-system preset built around a simple recognizable anchor: distinct mouths ornament it, flip register, fracture into hockets, relay jobs, infect one another, become percussion/instruments, then return the anchor scarred but legible.',
+    vibeSummary:
+      'Hyperactive, social, acrobatic, funny, physical, highly structured; maximum mouth consequences without pure-glitch collapse.',
+    instrumentSummary:
+      'voices as lead • percussion • relay • hocket • response • texture • instrument',
+    guyIds: ['sensory-freak', 'loop-ferret'],
+    realityEngineIds: [],
+    compositionEngineIds: [
+      'ensemble-antiphonal-choirs',
+      'gesture-breath-hocket',
+      'gesture-group-inhale-trigger',
+    ],
+    musicStack: [
+      recipeItem('mouth-riot', 100),
+    ],
+    musicControls: {
+      stemminess: 92,
+      kineticDensity: 91,
+      socialInfection: 90,
+      coupling: 78,
+      interruption: 66,
+      anchorStrength: 84,
+      castSize: 88,
+      mouthFreakery: 88,
+      techniqueMutation: 76,
+      vocalLegibility: 64,
+      vocalPopulation: 86,
+    },
+    realityChaos: 2,
+    mouthPromptMode: 'bracketed',
+    mouthSemanticMode: 'mixed',
+    createdAt: 0,
+  },
+  {
     id: 'builtin-specialty-ecstatic-choir-never-arrives',
     name: 'ECSTATIC CHOIR — NEVER ARRIVES',
     description:
