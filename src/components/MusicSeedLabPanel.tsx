@@ -28,6 +28,7 @@ import {
   mechanismFamilies,
   musicGenomePhenotypeSignature,
   normalizeMusicControls,
+  SUNO_WORKFLOW_CALIBRATION,
 } from '../data/musicSeedSystem';
 import {
   breedMusicGenome,
@@ -513,6 +514,15 @@ export function MusicSeedLabPanel({
                 </button>
               </div>
 
+              <div className="mb-2 rounded-lg border border-[#ff4fd8]/30 bg-[#180d18] px-3 py-2 font-mono">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-[10px] font-black tracking-wider text-[#ff9dea]">SUNO WORKING CALIBRATION</span>
+                  <span className="text-[10px] font-black text-white">STYLE {SUNO_WORKFLOW_CALIBRATION.styleInfluence} • WEIRDNESS {SUNO_WORKFLOW_CALIBRATION.weirdness}</span>
+                </div>
+                <div className="mt-1 text-[9px] leading-relaxed text-[#9d879a]">
+                  These are session guidance, not API knobs. Structured weirdness belongs in the organism below. Kinetic Density is event pressure, never BPM; high Mouth Freakery rotates behaviors instead of firing every technique at once.
+                </div>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 <label className="block">
                   <span className="text-[9px] font-mono font-black text-[#ff9dea]">PARENT A</span>
