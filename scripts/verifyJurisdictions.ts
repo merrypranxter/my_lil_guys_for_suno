@@ -117,3 +117,40 @@ assert.equal(
   undefined,
   'Short instruction phrasing should not be mistaken for a direct utterance.',
 );
+
+
+const bundleSeed = 'hey ladies! // get funky!';
+const bundleContract = buildSeedSovereigntyContract(bundleSeed);
+assert.equal(
+  detectDirectSeedUtterance(bundleSeed),
+  undefined,
+  '//-separated starter fragments must not be mistaken for one literal utterance.',
+);
+assert.deepEqual(
+  bundleContract.requiredVerbatimLyricAnchors,
+  [],
+  'Unquoted // bundles should be conceptual nudges, not required verbatim sung material.',
+);
+assert.equal(
+  evaluateRequiredSeedLyricsCoverage(bundleSeed, '[VERSE]\nHey ladies, move in close\nGet funky now').coverage,
+  1,
+  'Conceptual // bundle should never fail verbatim lyric coverage.',
+);
+const renderedBundle = renderSeedSovereigntyContract(bundleSeed);
+assert(renderedBundle.includes('// separates seed fragments/conceptual nudges'));
+assert(renderedBundle.includes('Required verbatim sung anchors: none'));
+
+const quotedBundleFragment = 'party entrance // "HEY LADIES!" // get funky';
+assert.deepEqual(
+  extractRequiredVerbatimSeedAnchors(quotedBundleFragment),
+  ['HEY LADIES!'],
+  'Explicit quotation inside a // bundle should remain a verbatim sung anchor.',
+);
+assert.equal(
+  evaluateRequiredSeedLyricsCoverage(
+    quotedBundleFragment,
+    '[VERSE]\nHEY LADIES!\nEverybody starts moving',
+  ).coverage,
+  1,
+  'Quoted fragment inside a bundle should still be enforceable as sung text.',
+);

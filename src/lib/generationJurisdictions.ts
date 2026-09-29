@@ -31,6 +31,9 @@ export function detectDirectSeedUtterance(seed: string): string | undefined {
   const trimmed = seed.trim();
   if (!trimmed) return undefined;
   if (extractQuotedSeedAnchors(trimmed).length) return undefined;
+  // // is the app's seed-fragment separator. A bundle of fragments is conceptual
+  // input, not one literal utterance containing slash punctuation.
+  if (trimmed.includes('//')) return undefined;
 
   const words = trimmed.split(/\s+/).filter(Boolean);
   if (trimmed.length > 80 || words.length > 8) return undefined;
@@ -107,7 +110,8 @@ export function renderSeedSovereigntyContract(seed?: string): string {
     '- Mouth Lab may change pronunciation, phonotactics, timing, tone, phonation, morphology pressure, and other explicitly assigned vocal mechanics; it does not get to replace the seed subject.',
     '- Music genomes may inherit musical mechanisms only. Genome names, parent names, and lineage lore are provenance, never lyric subject matter.',
     '- If the user places text inside double quotation marks, that quoted text is VERBATIM LYRIC MATERIAL and must appear as sung/unbracketed lyric text at least once unless safety requires otherwise.',
-    '- A short standalone seed utterance (for example FUCK THIS SHIT, WAKE UP SLUT, NOTHING MATTERS) is also direct lyric material: sing the phrase itself and infer its attitude/tone from the wording.',
+    '- A short standalone seed utterance (for example FUCK THIS SHIT, WAKE UP SLUT, NOTHING MATTERS) is also direct lyric material: sing the phrase itself and infer its attitude/tone from the wording. This applies only to one compact utterance, not to //-separated seed bundles.',
+    '- // separates seed fragments/conceptual nudges. Do not require the slash characters or the whole // bundle to appear verbatim in lyrics unless the user explicitly placed that exact material inside quotation marks.',
     '- Quoted/direct text is an anchor INSIDE the seed concept, not a replacement for it. Preserve the broader meaning supplied by the full seed before, around, and after the anchor.',
     '- Longer unquoted seed wording does NOT have to be repeated literally; preserve its concept, context, and intent instead.',
     '- Formatting/count repair may shorten or expand wording without introducing a new concept, scenario, genre, character, or mechanism, and may not delete required verbatim lyric anchors.',
