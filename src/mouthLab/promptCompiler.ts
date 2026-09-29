@@ -17,6 +17,7 @@ import { clampMouthControl } from './determinism';
 import { normalizeMouthEnvironment } from './environment';
 import { compileMouthMusicalExpression, normalizeMouthMusicalExpression } from './expression';
 import { compileMouthTechniquePalette, deriveMouthTechniquePalette } from './techniques';
+import { compileMouthTechniqueInteractions, deriveMouthTechniqueInteractions } from './interactions';
 
 const VALID_AXES = new Set([
   'semantics',
@@ -1017,6 +1018,10 @@ function bracketedText(genome: MouthGenome, mode: MouthSemanticMode): string {
     lines.push('[VOCAL TECHNIQUE: ' + line + ']');
   }
 
+  for (const line of compileMouthTechniqueInteractions(genome)) {
+    lines.push('[VOCAL INTERACTION: ' + line + ']');
+  }
+
   lines.push(
     '[ANTI-CARICATURE: transplant operational phonetic/morphological mechanisms only. Targeted phonetic spelling of selected mouth mechanics is required when a safe proxy exists, but wholesale fake accent spelling is forbidden. Do not invent personality, ethnicity, intelligence, social class, or comedy from a donor language.]',
   );
@@ -1123,6 +1128,7 @@ function lyricsDirectives(genome: MouthGenome, mode: MouthSemanticMode): string 
     ...transductionLines(genome).map((line) => '[TRANSDUCTION: ' + line + ']'),
     ...phoneticRealizerLines(genome).map((line) => '[PHONETIC REALIZER: ' + line + ']'),
     ...compileMouthTechniquePalette(genome).map((line) => '[VOCAL TECHNIQUE: ' + line + ']'),
+    ...compileMouthTechniqueInteractions(genome).map((line) => '[VOCAL INTERACTION: ' + line + ']'),
   ];
 
   return parts.join('\n');
@@ -1169,6 +1175,7 @@ export function compileMouthPrompt(
       '; transductions=' +
       (genome.dynamics?.transductions.length || 0) +
       '; technique palette=' + deriveMouthTechniquePalette(genome).length +
+      '; technique interactions=' + deriveMouthTechniqueInteractions(genome).length +
       '.',
     activeTraitIds: Array.from(
       new Set(genome.assignments.flatMap((assignment) => assignment.traitIds)),
