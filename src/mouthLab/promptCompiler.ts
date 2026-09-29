@@ -16,6 +16,7 @@ import { normalizeMouthDynamics, mouthCastLabel } from './dynamics';
 import { clampMouthControl } from './determinism';
 import { normalizeMouthEnvironment } from './environment';
 import { compileMouthMusicalExpression, normalizeMouthMusicalExpression } from './expression';
+import { compileMouthTechniquePalette, deriveMouthTechniquePalette } from './techniques';
 
 const VALID_AXES = new Set([
   'semantics',
@@ -1012,6 +1013,10 @@ function bracketedText(genome: MouthGenome, mode: MouthSemanticMode): string {
     lines.push('[PHONETIC REALIZER: ' + line + ']');
   }
 
+  for (const line of compileMouthTechniquePalette(genome)) {
+    lines.push('[VOCAL TECHNIQUE: ' + line + ']');
+  }
+
   lines.push(
     '[ANTI-CARICATURE: transplant operational phonetic/morphological mechanisms only. Targeted phonetic spelling of selected mouth mechanics is required when a safe proxy exists, but wholesale fake accent spelling is forbidden. Do not invent personality, ethnicity, intelligence, social class, or comedy from a donor language.]',
   );
@@ -1117,6 +1122,7 @@ function lyricsDirectives(genome: MouthGenome, mode: MouthSemanticMode): string 
     ...mutationTimelineLines(genome).map((line) => '[MUTATION TIMELINE: ' + line + ']'),
     ...transductionLines(genome).map((line) => '[TRANSDUCTION: ' + line + ']'),
     ...phoneticRealizerLines(genome).map((line) => '[PHONETIC REALIZER: ' + line + ']'),
+    ...compileMouthTechniquePalette(genome).map((line) => '[VOCAL TECHNIQUE: ' + line + ']'),
   ];
 
   return parts.join('\n');
@@ -1162,6 +1168,7 @@ export function compileMouthPrompt(
       (genome.dynamics?.timeline.length || 0) +
       '; transductions=' +
       (genome.dynamics?.transductions.length || 0) +
+      '; technique palette=' + deriveMouthTechniquePalette(genome).length +
       '.',
     activeTraitIds: Array.from(
       new Set(genome.assignments.flatMap((assignment) => assignment.traitIds)),

@@ -4,6 +4,9 @@ import {
   compileMouthPrompt,
   instantiateMouthQuirk,
   normalizeMouthGenomeForGeneration,
+  deriveMouthTechniquePalette,
+  getMouthTechnique,
+  MOUTH_TECHNIQUES,
 } from '../src/mouthLab';
 import { buildMasterPrompt } from '../src/lib/buildGenerationPrompt';
 import { generateProceduralTrack, TARGETS } from '../src/lib/proceduralGenerator';
@@ -41,6 +44,12 @@ const rQuirk = instantiateMouthQuirk(
 
 const rGenome = applyMouthQuirk(bred, rQuirk);
 
+assert(MOUTH_TECHNIQUES.length >= 20, 'Stage 2 should expose a substantial vocal technique library.');
+assert(Boolean(getMouthTechnique('tech-yodel-break')), 'Yodel Break technique must exist.');
+assert(Boolean(getMouthTechnique('tech-consonant-drum')), 'Consonant Drum technique must exist.');
+const techniquePalette = deriveMouthTechniquePalette(rGenome);
+assert(techniquePalette.length > 0, 'A valid mouth genome should derive a usable technique palette.');
+
 const bracketed = compileMouthPrompt(rGenome, {
   mode: 'bracketed',
   semanticMode: 'englishMeaningAlienMouth',
@@ -70,6 +79,12 @@ assert(
   bracketed.lyricsDirectives.includes('PHONETIC REALIZER') &&
     bracketed.lyricsDirectives.includes('rrright'),
   'R freak control language must encode the trill into literal lyric spelling examples.',
+);
+assert(
+  bracketed.lyricsDirectives.includes('MOUTH TECHNIQUE ECOLOGY') &&
+    bracketed.lyricsDirectives.includes('TECHNIQUE MUTATION LAW') &&
+    bracketed.lyricsDirectives.includes('REPETITION LAW'),
+  'Compiler must inject technique ecology, mutation ancestry, and anti-habit laws.',
 );
 assert(
   bracketed.styleDirectives.includes('MOUTH LAB STYLE PRIORITY'),
