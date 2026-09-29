@@ -758,6 +758,119 @@ function dynamicLines(genome: MouthGenome): string[] {
   ];
 }
 
+function phoneticSurfaceRule(
+  traitId: string,
+  pressure: MouthTraitPressure,
+): string | undefined {
+  const pressureText =
+    pressure === 'obsessive'
+      ? 'OBSESSIVE: saturate virtually every eligible target'
+      : pressure === 'high'
+        ? 'HIGH: recur clearly throughout each section'
+        : pressure === 'medium'
+          ? 'MEDIUM: mark several strategically chosen targets'
+          : 'LOW: use one or two subtle examples only';
+
+  switch (traitId) {
+    case 'mouth-trait-alveolar-trill':
+      return (
+        'ALVEOLAR TRILL — ' +
+        pressureText +
+        '. Put the trill into the literal unbracketed lyric spelling, not only the control tags: use repeated visible r sequences such as rrr, trrra, prrr, rrright, or handrr on eligible rhotics so the singing model physically encounters the roll.'
+      );
+    case 'mouth-trait-gemination':
+      return (
+        'GEMINATE CLOSURE — ' +
+        pressureText +
+        '. Show consonant duration in the sung text with deliberate doubling/extension such as tt, kk, pp, mm, or ss at eligible targets; the spelling should create a held closure rather than merely naming gemination.'
+      );
+    case 'mouth-trait-vowel-length':
+    case 'mouth-trait-three-way-quantity':
+      return (
+        'VOWEL / QUANTITY LENGTH — ' +
+        pressureText +
+        '. Spell duration into selected sung vowels with repeated letters such as aaa, oooo, or eeee; short, long, and extra-long spellings should visibly differ when the genome asks for quantity contrast.'
+      );
+    case 'mouth-trait-nasal-vowels':
+    case 'mouth-trait-nasal-harmony':
+      return (
+        'NASAL RESONANCE — ' +
+        pressureText +
+        '. In nonlexical or explicitly mutated sung material, expose nasal carry with visible m/n/ng bridges such as mmm-aa, nn-oo, or ng-aa so resonance is physically cued instead of only described.'
+      );
+    case 'mouth-trait-extreme-cluster':
+    case 'mouth-trait-consonantal-nucleus':
+    case 'mouth-trait-vowel-starvation':
+      return (
+        'CONSONANT COMPRESSION — ' +
+        pressureText +
+        '. When semantics permit, write dense but pronounceable nonlexical clusters directly into the sung surface (for example trrk, krst, brrdn) instead of leaving consonant density as an abstract instruction.'
+      );
+    case 'mouth-trait-glottal-stop':
+    case 'mouth-trait-stod':
+    case 'mouth-trait-glottalized-vowels':
+      return (
+        'GLOTTAL INTERRUPTION — ' +
+        pressureText +
+        '. Use sparse broken-vowel spellings or apostrophe-separated sung fragments such as a\'a or uh-\'ah at eligible targets so the interruption exists in the text itself.'
+      );
+    case 'mouth-trait-ejective-attack':
+      return (
+        'EJECTIVE ATTACK — ' +
+        pressureText +
+        '. In nonlexical mouth events, use abrupt marked stop spellings such as k\', t\', or p\' alongside the control instruction so the singer receives a literal attack cue.'
+      );
+    case 'mouth-trait-prenasalized-attack':
+      return (
+        'PRENASALIZED ATTACK — ' +
+        pressureText +
+        '. Spell fused nasal-plus-stop attacks directly into selected sung tokens with mb, nd, ngb, or similar compact onset clusters instead of separating the nasal and stop into unrelated words.'
+      );
+    case 'mouth-trait-front-rounded-vowels':
+      return (
+        'FRONT-ROUNDED VOWELS — ' +
+        pressureText +
+        '. In nonlexical or explicitly mutated syllables, use a small stable spelling cue such as ü/ö rather than merely saying the vowel is front-rounded; keep ordinary semantic words readable.'
+      );
+    default:
+      return undefined;
+  }
+}
+
+function phoneticRealizerLines(genome: MouthGenome): string[] {
+  const specific = genome.assignments
+    .flatMap((assignment) =>
+      assignment.traitIds
+        .map((traitId) => phoneticSurfaceRule(traitId, assignment.pressure))
+        .filter((line): line is string => Boolean(line)),
+    );
+
+  const hasGlobalRTrill = genome.quirks.some(
+    (quirk) => quirk.enabled && quirk.quirkId === 'mouth-quirk-global-r-trill',
+  );
+
+  const lines = [
+    'PHONETIC REALIZER: selected mouth mechanics must reach the literal unbracketed lyric surface when they have a usable spelling proxy. Do not leave them only in brackets, metadata, or prose description.',
+    'Treat phonetic spelling as performance notation, not accent comedy. Keep semantic words intelligible unless the semantic mode explicitly allows decay/nonsemantic material. Never fabricate donor-language words.',
+    'Mutation density follows pressure: LOW is sparse, MEDIUM is recurring, HIGH is obvious across sections, and OBSESSIVE should dominate virtually every eligible target without making unrelated sounds mutate.',
+    ...specific,
+  ];
+
+  if (hasGlobalRTrill) {
+    lines.push(
+      'GLOBAL RHOTIC TRILL TAKEOVER: repeated r spelling is mandatory on virtually every eligible rhotic target. Prefer visible strings like rrr, trrr, prrr, rrright, rrrun, or word-final rr so the trill is encoded in what must actually be sung.',
+    );
+  }
+
+  return lines;
+}
+
+function compactPhoneticRealizer(genome: MouthGenome): string {
+  const lines = phoneticRealizerLines(genome);
+  if (lines.length <= 3) return '';
+  return 'PHONETIC REALIZER: ' + lines.slice(3).join(' ');
+}
+
 function compactText(genome: MouthGenome, mode: MouthSemanticMode): string {
   const assignments = genome.assignments
     .flatMap((assignment) =>
@@ -793,6 +906,7 @@ function compactText(genome: MouthGenome, mode: MouthSemanticMode): string {
     semanticPolicy(genome, mode),
     assignments,
     quirks ? 'QUIRKS: ' + quirks : '',
+    compactPhoneticRealizer(genome),
     dynamicLines(genome).length
       ? 'DYNAMICS: cast=' + (genome.dynamics?.castProfiles.length || 0) +
         '; expression=' + (genome.dynamics?.expressionRules.length || 0) +
@@ -894,8 +1008,12 @@ function bracketedText(genome: MouthGenome, mode: MouthSemanticMode): string {
     lines.push('[TRANSDUCTION: ' + line + ']');
   }
 
+  for (const line of phoneticRealizerLines(genome)) {
+    lines.push('[PHONETIC REALIZER: ' + line + ']');
+  }
+
   lines.push(
-    '[ANTI-CARICATURE: transplant operational phonetic/morphological mechanisms only. Do not invent personality, ethnicity, intelligence, social class, or comedy from a donor language. Do not use fake eye-dialect as the main representation.]',
+    '[ANTI-CARICATURE: transplant operational phonetic/morphological mechanisms only. Targeted phonetic spelling of selected mouth mechanics is required when a safe proxy exists, but wholesale fake accent spelling is forbidden. Do not invent personality, ethnicity, intelligence, social class, or comedy from a donor language.]',
   );
 
   return lines.join('\n');
@@ -940,6 +1058,7 @@ function descriptiveText(genome: MouthGenome, mode: MouthSemanticMode): string {
     clauses.filter(Boolean).join('; ') +
     (quirkClauses.length ? '. Superimpose these bounded mutations: ' + quirkClauses.join('; ') : '') +
     (dynamicLines(genome).length ? '. Dynamic behavior: ' + dynamicLines(genome).join(' ') : '') +
+    '. Literal lyric-surface realization: ' + phoneticRealizerLines(genome).join(' ') +
     '. Preserve separate jurisdictions and expose conflicts procedurally instead of averaging them into a generic accent.'
   );
 }
@@ -997,6 +1116,7 @@ function lyricsDirectives(genome: MouthGenome, mode: MouthSemanticMode): string 
     ...mutationCurveLines(genome).map((line) => '[MUTATION CURVE: ' + line + ']'),
     ...mutationTimelineLines(genome).map((line) => '[MUTATION TIMELINE: ' + line + ']'),
     ...transductionLines(genome).map((line) => '[TRANSDUCTION: ' + line + ']'),
+    ...phoneticRealizerLines(genome).map((line) => '[PHONETIC REALIZER: ' + line + ']'),
   ];
 
   return parts.join('\n');
