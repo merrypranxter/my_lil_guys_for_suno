@@ -112,6 +112,50 @@ assert.match(generated.lyrics, /CHOIR|choir/);
 assert.match(generated.lyrics, /resolution|cadence|suspension/i);
 assert.match(generated.lyrics, /glass|Cristal|vibraphone|saw|Martenot|piano/i);
 
+
+const mouthRiot = SPECIALTY_WHOLE_STACK_RECIPES.find((item) => item.id === 'builtin-specialty-mouth-riot');
+assert.ok(mouthRiot, 'MOUTH RIOT specialty recipe should exist');
+assert.equal(mouthRiot.musicStack?.[0]?.refId, 'mouth-riot', 'MOUTH RIOT should load its music recipe');
+const mouthRiotMusic = getMusicSeedRecipe('mouth-riot');
+assert.ok(mouthRiotMusic, 'MOUTH RIOT music recipe should exist');
+assert.equal(mouthRiot.musicControls?.kineticDensity, 91, 'MOUTH RIOT kinetic density calibration should stay explicit');
+assert.equal(mouthRiot.musicControls?.mouthFreakery, 88, 'MOUTH RIOT mouth freakery calibration should stay explicit');
+assert.equal(mouthRiot.musicControls?.techniqueMutation, 76, 'MOUTH RIOT mutation calibration should stay explicit');
+assert.equal(mouthRiot.musicControls?.vocalLegibility, 64, 'MOUTH RIOT legibility floor should stay explicit');
+assert.ok((mouthRiot.musicControls?.anchorStrength || 0) >= 80, 'MOUTH RIOT must protect a recognizable anchor');
+assert.ok(mouthRiotMusic!.mechanismIds.includes('hocket-relay'), 'MOUTH RIOT should support hocket fracture');
+assert.ok(mouthRiotMusic!.mechanismIds.includes('communal-infection'), 'MOUTH RIOT should support population infection');
+assert.ok(mouthRiotMusic!.mechanismIds.includes('anchor-survival'), 'MOUTH RIOT should return to a surviving anchor');
+
+const riotGenerated = generateProceduralTrack({
+  guyIds: mouthRiot.guyIds,
+  realityEngineIds: mouthRiot.realityEngineIds,
+  compositionEngineIds: mouthRiot.compositionEngineIds,
+  musicStack: mouthRiot.musicStack,
+  musicControls: mouthRiot.musicControls,
+  realityChaos: mouthRiot.realityChaos,
+  energy: 5,
+  seed: 'simple vocal anchor becomes a contagious mouth riot then comes back scarred',
+  mouthPromptMode: mouthRiot.mouthPromptMode,
+  mouthSemanticMode: mouthRiot.mouthSemanticMode,
+});
+assert.ok(riotGenerated.style.length >= TARGETS.style.min && riotGenerated.style.length <= TARGETS.style.max);
+assert.ok(riotGenerated.lyrics.length >= TARGETS.lyrics.min && riotGenerated.lyrics.length <= TARGETS.lyrics.max);
+assert.ok(riotGenerated.caption.length >= TARGETS.caption.min && riotGenerated.caption.length <= TARGETS.caption.max);
+assert.match(riotGenerated.lyrics, /KINETIC DENSITY 91\/100/);
+assert.match(riotGenerated.lyrics, /MOUTH FREAKERY 88\/100/);
+assert.match(riotGenerated.lyrics, /TECHNIQUE MUTATION 76\/100/);
+assert.match(riotGenerated.lyrics, /VOCAL LEGIBILITY 64\/100/);
+assert.match(riotGenerated.lyrics, /RESTRAINT \/ FUCK-OFF THRESHOLD/);
+assert.doesNotMatch(riotGenerated.lyrics, /91\s*BPM/i, 'Kinetic density must never compile as BPM');
+
+console.log('MOUTH RIOT verification passed:', {
+  controls: mouthRiot.musicControls,
+  style: riotGenerated.style.length,
+  lyrics: riotGenerated.lyrics.length,
+  caption: riotGenerated.caption.length,
+});
+
 console.log('Specialty whole-stack recipe verification passed:', {
   name: recipe.name,
   engines: recipe.compositionEngineIds.length,
