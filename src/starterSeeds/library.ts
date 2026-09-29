@@ -528,7 +528,7 @@ export const STARTER_SEEDS: StarterSeedDefinition[] = [
         { id: 'hard-interrupts', strength: 68 },
         { id: 'double-time-activity', strength: 52 },
       ],
-      musicControlDeltas: { interruption: 22, kineticDensity: 18, realityChaos: undefined },
+      musicControlDeltas: { interruption: 22, kineticDensity: 18 },
     },
   },
   {
