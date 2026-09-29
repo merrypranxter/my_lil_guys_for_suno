@@ -83,6 +83,30 @@ export interface MouthTechniquePaletteEntry {
   reason: string;
 }
 
+export type MouthTechniqueInteractionKind =
+  | 'inheritContour'
+  | 'inheritRhythm'
+  | 'functionTransfer'
+  | 'registerCascade'
+  | 'hocketFracture'
+  | 'phoneticCompression'
+  | 'phoneticExpansion'
+  | 'populationInfection'
+  | 'acrobaticEscalation'
+  | 'techniqueCollision';
+
+export interface MouthTechniqueInteraction {
+  id: string;
+  kind: MouthTechniqueInteractionKind;
+  sourceTechniqueId: string;
+  targetTechniqueId: string;
+  transferProperty: 'contour' | 'rhythm' | 'register' | 'articulation' | 'function' | 'timbre';
+  trigger: string;
+  intensity: number;
+  preserve: string;
+  directive: string;
+}
+
 export type MouthCastRole =
   | 'lead'
   | 'narrator'

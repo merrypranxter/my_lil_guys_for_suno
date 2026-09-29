@@ -21,3 +21,5 @@ export * from './expression';
 export * from './evolutionaryFuckery';
 
 export * from './techniques';
+
+export * from './interactions';
