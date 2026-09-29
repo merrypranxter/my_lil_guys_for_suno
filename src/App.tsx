@@ -740,7 +740,7 @@ export default function App() {
       }
     } catch (err: any) {
       clearTimeout(timeoutId);
-      console.warn('Network/API repair unavailable; applying local algorithmic calibration:', err?.message || err);
+      console.warn('Network/API repair unavailable; preserving useful content without filler padding:', err?.message || err);
 
       const target = TARGETS[type];
       if (target) {
@@ -917,12 +917,12 @@ export default function App() {
   };
 
   const exportBrainBackup = () => {
-    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    const exportedAt = markBrainBackupExported();
+    const stamp = new Date(exportedAt).toISOString().replace(/[:.]/g, '-');
     downloadText(
       'little-guy-brain-backup-' + stamp + '.json',
       serializeBrainBackup(),
     );
-    const exportedAt = markBrainBackupExported();
     setLastBrainBackupAt(exportedAt);
     setNoticeMessage('Brain backup exported. Keep this file through redeploys so stars, feedback, fitness, saved creatures, and lab state can be restored.');
   };
