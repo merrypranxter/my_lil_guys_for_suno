@@ -7,6 +7,7 @@ export interface LittleGuyBrainBackup {
 }
 
 const APP_KEY_PREFIXES = ['lgm_', 'little-guy-machine:'];
+const LAST_BRAIN_EXPORT_KEY = 'little-guy-machine:last-brain-export:v1';
 
 function isAppKey(key: string): boolean {
   return APP_KEY_PREFIXES.some((prefix) => key.startsWith(prefix));
@@ -73,4 +74,19 @@ export function restoreBrainBackup(
     exportedAt: backup.exportedAt,
     origin: backup.origin,
   };
+}
+
+
+export function getLastBrainBackupAt(storage: Storage = localStorage): number | undefined {
+  const raw = storage.getItem(LAST_BRAIN_EXPORT_KEY);
+  const value = Number(raw);
+  return Number.isFinite(value) && value > 0 ? value : undefined;
+}
+
+export function markBrainBackupExported(
+  timestamp = Date.now(),
+  storage: Storage = localStorage,
+): number {
+  storage.setItem(LAST_BRAIN_EXPORT_KEY, String(timestamp));
+  return timestamp;
 }
