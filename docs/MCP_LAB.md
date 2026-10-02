@@ -87,13 +87,7 @@ From the repo folder:
 npm install
 ```
 
-### 2A. If Lil Guys is running locally
-
-Terminal 1:
-
-```bash
-npm run dev
-```
+### 2A. Local Lil Guys: one command
 
 The MCP host should launch:
 
@@ -101,7 +95,11 @@ The MCP host should launch:
 npm run mcp
 ```
 
-No additional URL setting is needed because the MCP server defaults to `http://127.0.0.1:3000`.
+If Lil Guys is not already running on `http://127.0.0.1:3000`, this launcher starts the existing dev server automatically and keeps its stdout away from the MCP protocol channel.
+
+If Lil Guys is already running, it simply connects to the existing process.
+
+For debugging, `npm run mcp:stdio` starts only the MCP process and expects Lil Guys to already be reachable.
 
 ### 2B. If Lil Guys is already deployed
 
@@ -121,6 +119,38 @@ npm run mcp
 ```
 
 Usually the MCP host itself will hold this environment variable, so it does not have to be typed every time.
+
+## Easiest Google-side setup: Antigravity
+
+Google Antigravity supports custom local stdio MCP servers.
+
+In Antigravity IDE:
+
+1. Open the repo/workspace.
+2. In the Agent panel, open **… → MCP Servers → Manage MCP Servers → View raw config**.
+3. Add a server entry like this:
+
+```json
+{
+  "mcpServers": {
+    "lil-guys-lab": {
+      "command": "npm",
+      "args": ["run", "mcp"],
+      "cwd": "/ABSOLUTE/PATH/TO/my_lil_guys_for_suno"
+    }
+  }
+}
+```
+
+If the Lil Guys generator is deployed rather than local, add:
+
+```json
+"env": {
+  "LIL_GUYS_APP_URL": "https://YOUR-LIL-GUYS-DEPLOYMENT"
+}
+```
+
+Then refresh MCP servers. The AI should discover the Lab tools and the `run-lab-experiment` prompt.
 
 ## Generic MCP host configuration
 
