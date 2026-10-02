@@ -22,6 +22,8 @@ export interface LabGenerationConfig
     | 'guyIds'
     | 'realityEngineIds'
     | 'compositionEngineIds'
+    | 'musicStack'
+    | 'musicControls'
     | 'energy'
     | 'realityChaos'
     | 'likedSignals'
