@@ -127,13 +127,15 @@ Both generated local files are gitignored.
 
 ### 3A. Local Lil Guys
 
-Run:
+You do **not** have to start Lil Guys manually.
 
-```bash
-npm run dev
-```
+When Antigravity launches `npm run mcp`:
 
-The MCP host launches `npm run mcp` itself. You do not need to keep a second MCP terminal open.
+- if Lil Guys is already running locally, MCP reuses it;
+- if it is not running and no `LIL_GUYS_APP_URL` is configured, MCP starts the existing Lil Guys dev server itself;
+- app logs are routed to stderr so they do not corrupt the MCP stdio protocol channel.
+
+So for normal Antigravity use there is no second terminal ritual.
 
 ### 3B. Deployed Lil Guys
 
