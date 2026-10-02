@@ -1,6 +1,10 @@
 import { McpServer } from '@modelcontextprotocol/server';
 import * as z from 'zod/v4';
 import type { GenerationRequest } from '../types';
+import { LITTLE_GUYS } from '../data/littleGuys';
+import { REALITY_ENGINES } from '../data/realityEngines';
+import { COMPOSITION_ENGINES } from '../data/compositionEngines';
+import { MUSIC_MECHANISMS, MUSIC_SEED_RECIPES } from '../data/musicSeedSystem';
 import { checkLilGuysConnection, generateWithLilGuys, lilGuysAppUrl } from './apiClient';
 import { EXPERIMENT_MODE_IDS, LAB_RECIPES, getLabRecipe, recipePhase, suggestedDirectives } from './recipes';
 import { createId, getResult, loadNotebook, notebookLocation, updateNotebook } from './store';
@@ -262,6 +266,96 @@ export function createLilGuysMcpServer(): McpServer {
           stopRule: recipe.stopRule,
         })),
       ),
+  );
+
+  server.registerTool(
+    'lab_catalog',
+    {
+      description:
+        'Browse the actual Lil Guys creative vocabulary so the connected AI can choose real Mind, Reality, Composition, mechanism, or music-recipe IDs instead of inventing them.',
+      inputSchema: z.object({
+        kind: z.enum(['minds', 'reality', 'composition', 'music-mechanisms', 'music-recipes']),
+        query: z.string().optional(),
+        limit: z.number().int().min(1).max(100).default(30),
+      }),
+    },
+    async ({ kind, query, limit }) => {
+      try {
+        const q = query?.trim().toLowerCase() || '';
+        const contains = (parts: unknown[]) =>
+          !q || parts.filter(Boolean).join(' ').toLowerCase().includes(q);
+
+        let rows: any[] = [];
+        if (kind === 'minds') {
+          rows = LITTLE_GUYS
+            .filter((item) => contains([item.id, item.name, item.subtitle, item.rule, item.shortExplanation]))
+            .map((item) => ({
+              id: item.id,
+              name: item.name,
+              subtitle: item.subtitle,
+              rule: item.rule,
+              jurisdiction: item.defaultJurisdiction,
+              explanation: item.shortExplanation,
+            }));
+        } else if (kind === 'reality') {
+          rows = REALITY_ENGINES
+            .filter((item) => contains([item.id, item.name, item.dimension, item.rule, item.shortExplanation, ...(item.tags || [])]))
+            .map((item) => ({
+              id: item.id,
+              name: item.name,
+              dimension: item.dimension,
+              rule: item.rule,
+              explanation: item.shortExplanation,
+              tags: item.tags,
+            }));
+        } else if (kind === 'composition') {
+          rows = COMPOSITION_ENGINES
+            .filter((item) => contains([item.id, item.name, item.domain, item.dimension, item.rule, item.shortExplanation, ...(item.tags || [])]))
+            .map((item) => ({
+              id: item.id,
+              name: item.name,
+              domain: item.domain,
+              dimension: item.dimension,
+              rule: item.rule,
+              explanation: item.shortExplanation,
+              tags: item.tags,
+            }));
+        } else if (kind === 'music-mechanisms') {
+          rows = MUSIC_MECHANISMS
+            .filter((item) => contains([item.id, item.name, item.family, item.instruction, item.shortExplanation, ...(item.tags || [])]))
+            .map((item) => ({
+              id: item.id,
+              name: item.name,
+              family: item.family,
+              instruction: item.instruction,
+              explanation: item.shortExplanation,
+              chaos: item.chaos,
+              stemValue: item.stemValue,
+              tags: item.tags,
+            }));
+        } else {
+          rows = MUSIC_SEED_RECIPES
+            .filter((item) => contains([item.id, item.name, item.description, item.startHere, ...(item.mechanismIds || [])]))
+            .map((item) => ({
+              id: item.id,
+              name: item.name,
+              description: item.description,
+              startHere: item.startHere,
+              mechanismIds: item.mechanismIds,
+            }));
+        }
+
+        return textResult({
+          kind,
+          query: query || '',
+          matched: rows.length,
+          returned: Math.min(rows.length, limit),
+          items: rows.slice(0, limit),
+        });
+      } catch (error) {
+        return errorResult(error);
+      }
+    },
   );
 
   server.registerTool(
@@ -746,6 +840,7 @@ export function createLilGuysMcpServer(): McpServer {
               fuckAround ? 'Fuck-around level: ' + fuckAround : '',
               depth ? 'Maximum generations: ' + depth : '',
               '',
+              'Before lab_start, use lab_catalog when useful to choose real Lil Guys / Reality / Composition IDs. Prefer legible productive collisions over undifferentiated random soup. If I did not ask for a specific stack, choose a small diverse stack rather than forcing historical favorites.',
               'Start with lab_start using selectionMode=assistant unless I explicitly ask to choose survivors myself.',
               'Then conduct the experiment by repeatedly using lab_generate_generation, inspecting results, selecting survivors according to the named recipe, and calling lab_next_move.',
               'Do not ask me to copy/paste intermediate material.',
