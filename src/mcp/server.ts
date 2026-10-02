@@ -34,6 +34,43 @@ function errorResult(error: unknown) {
   };
 }
 
+function buildMusicStack(
+  musicMechanismIds: string[] = [],
+  musicRecipeIds: string[] = [],
+): NonNullable<GenerationRequest['musicStack']> {
+  const mechanismSet = new Set(MUSIC_MECHANISMS.map((item) => item.id));
+  const recipeSet = new Set(MUSIC_SEED_RECIPES.map((item) => item.id));
+
+  const unknownMechanisms = musicMechanismIds.filter((id) => !mechanismSet.has(id));
+  const unknownRecipes = musicRecipeIds.filter((id) => !recipeSet.has(id));
+  if (unknownMechanisms.length || unknownRecipes.length) {
+    const pieces = [
+      unknownMechanisms.length ? 'Unknown music mechanism IDs: ' + unknownMechanisms.join(', ') : '',
+      unknownRecipes.length ? 'Unknown music recipe IDs: ' + unknownRecipes.join(', ') : '',
+    ].filter(Boolean);
+    throw new Error(pieces.join('. ') + '. Use lab_catalog before lab_start.');
+  }
+
+  return [
+    ...Array.from(new Set(musicRecipeIds)).map((id, index) => ({
+      instanceId: 'mcp_recipe_' + index + '_' + id,
+      kind: 'recipe' as const,
+      refId: id,
+      muted: false,
+      locked: false,
+      strength: 100,
+    })),
+    ...Array.from(new Set(musicMechanismIds)).map((id, index) => ({
+      instanceId: 'mcp_mechanism_' + index + '_' + id,
+      kind: 'mechanism' as const,
+      refId: id,
+      muted: false,
+      locked: false,
+      strength: 100,
+    })),
+  ];
+}
+
 function summarizeResult(result: LabResult, includeLyrics = false): LabResultSummary {
   const lyrics = result.response.lyrics || '';
   return {
@@ -175,6 +212,8 @@ function makeGenerationRequest(
     guyIds: config.guyIds || [],
     realityEngineIds: config.realityEngineIds || [],
     compositionEngineIds: config.compositionEngineIds || [],
+    musicStack: config.musicStack || [],
+    musicControls: config.musicControls,
     realityChaos: config.realityChaos || 2,
     seed: session.rootSeed,
     energy: config.energy ?? 4,
@@ -383,6 +422,8 @@ export function createLilGuysMcpServer(): McpServer {
         guyIds: z.array(z.string()).max(64).optional(),
         realityEngineIds: z.array(z.string()).max(24).optional(),
         compositionEngineIds: z.array(z.string()).max(64).optional(),
+        musicMechanismIds: z.array(z.string()).max(24).optional(),
+        musicRecipeIds: z.array(z.string()).max(12).optional(),
         energy: z.number().min(1).max(5).optional(),
         realityChaos: z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4)]).optional(),
         likedSignals: z.array(z.string()).max(10).optional(),
@@ -397,6 +438,7 @@ export function createLilGuysMcpServer(): McpServer {
           guyIds: args.guyIds || [],
           realityEngineIds: args.realityEngineIds || [],
           compositionEngineIds: args.compositionEngineIds || [],
+          musicStack: buildMusicStack(args.musicMechanismIds || [], args.musicRecipeIds || []),
           energy: args.energy ?? 4,
           realityChaos: args.realityChaos ?? 2,
           likedSignals: args.likedSignals || [],
@@ -853,7 +895,7 @@ export function createLilGuysMcpServer(): McpServer {
               fuckAround ? 'Fuck-around level: ' + fuckAround : '',
               depth ? 'Maximum generations: ' + depth : '',
               '',
-              'Before lab_start, use lab_catalog when useful to choose real Lil Guys / Reality / Composition IDs. Prefer legible productive collisions over undifferentiated random soup. If I did not ask for a specific stack, choose a small diverse stack rather than forcing historical favorites.',
+              'Before lab_start, use lab_catalog when useful to choose real Lil Guys / Reality / Composition / music mechanism / music recipe IDs. Prefer legible productive collisions over undifferentiated random soup. If I did not ask for a specific stack, choose a small diverse stack rather than forcing historical favorites.',
               'Start with lab_start using selectionMode=assistant unless I explicitly ask to choose survivors myself.',
               'Then conduct the experiment by repeatedly using lab_generate_generation, inspecting results, selecting survivors according to the named recipe, and calling lab_next_move.',
               'Do not ask me to copy/paste intermediate material.',
