@@ -199,6 +199,18 @@ Checks that the MCP process can reach Lil Guys.
 
 Lists the experiment recipes, selection pressures, phases, and stop rules.
 
+### `lab_catalog`
+
+Lets the connected AI browse the real IDs and rules already inside Lil Guys:
+
+- Minds / Little Guys
+- Reality Engines
+- Composition Engines
+- Music mechanisms
+- Music recipes
+
+This is what keeps autonomous setup from hallucinating fake component IDs. The AI can search the catalog and choose a small, legible stack with productive collisions instead of random soup.
+
 ### `lab_start`
 
 Starts a persistent experiment. Important inputs include:
