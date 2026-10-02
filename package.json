@@ -45,7 +45,8 @@
     "verify:starter-textures": "tsx scripts/verifyStarterTextures.ts",
     "mcp": "tsx mcp.ts",
     "mcp:inspect": "npx @modelcontextprotocol/inspector npm run mcp",
-    "verify:mcp-lab": "tsx scripts/verifyMcpLab.ts"
+    "verify:mcp-lab": "tsx scripts/verifyMcpLab.ts",
+    "mcp:setup": "tsx scripts/setupMcpLab.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
