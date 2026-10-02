@@ -77,7 +77,9 @@ http://127.0.0.1:3000
 
 Override it with `LIL_GUYS_APP_URL`.
 
-## Setup
+## Setup — easiest path for Google Antigravity
+
+Current Google Antigravity supports local stdio MCP servers from its MCP configuration. Lil Guys includes a setup script so you do not have to hand-build the JSON.
 
 ### 1. Install dependencies
 
@@ -87,93 +89,75 @@ From the repo folder:
 npm install
 ```
 
-### 2A. Local Lil Guys: one command
+### 2. Generate the Antigravity MCP config
 
-The MCP host should launch:
+If Lil Guys is running locally at the normal development URL:
+
+```bash
+npm run mcp:setup
+```
+
+If Lil Guys is already deployed:
+
+```bash
+npm run mcp:setup -- --app-url https://YOUR-LIL-GUYS-URL
+```
+
+This creates or updates:
+
+```text
+.agents/mcp_config.json
+```
+
+It preserves other MCP servers already in that file and adds `lil-guys-lab`.
+
+The generated config launches this repo with:
+
+```text
+npm --prefix <THIS-REPO> run mcp
+```
+
+and stores MCP-only notebook data in:
+
+```text
+.lil-guys-lab/notebook.json
+```
+
+Both generated local files are gitignored.
+
+### 3A. Local Lil Guys
+
+Run:
+
+```bash
+npm run dev
+```
+
+The MCP host launches `npm run mcp` itself. You do not need to keep a second MCP terminal open.
+
+### 3B. Deployed Lil Guys
+
+If you used `--app-url`, the local MCP process talks to the deployed Lil Guys `/api/generate` endpoint instead.
+
+The deployed app must be reachable from your computer. Lil Guys still owns the Gemini API key; the MCP layer does not need a second Gemini key.
+
+### 4. Refresh Antigravity
+
+In Antigravity:
+
+**MCP Servers → Manage MCP Servers → Refresh**
+
+You should see **lil-guys-lab** and its tools.
+
+### Manual / generic MCP configuration
+
+If you use a different MCP-capable host, the server command is still simply:
 
 ```bash
 npm run mcp
 ```
 
-If Lil Guys is not already running on `http://127.0.0.1:3000`, this launcher starts the existing dev server automatically and keeps its stdout away from the MCP protocol channel.
-
-If Lil Guys is already running, it simply connects to the existing process.
-
-For debugging, `npm run mcp:stdio` starts only the MCP process and expects Lil Guys to already be reachable.
-
-### 2B. If Lil Guys is already deployed
-
-Point the MCP Lab at the deployed app:
-
-macOS / Linux:
-
-```bash
-LIL_GUYS_APP_URL="https://YOUR-LIL-GUYS-URL" npm run mcp
-```
-
-Windows PowerShell:
-
-```powershell
-$env:LIL_GUYS_APP_URL="https://YOUR-LIL-GUYS-URL"
-npm run mcp
-```
-
-Usually the MCP host itself will hold this environment variable, so it does not have to be typed every time.
-
-## Easiest Google-side setup: Antigravity
-
-Google Antigravity supports custom local stdio MCP servers.
-
-In Antigravity IDE:
-
-1. Open the repo/workspace.
-2. In the Agent panel, open **… → MCP Servers → Manage MCP Servers → View raw config**.
-3. Add a server entry like this:
-
-```json
-{
-  "mcpServers": {
-    "lil-guys-lab": {
-      "command": "npm",
-      "args": ["run", "mcp"],
-      "cwd": "/ABSOLUTE/PATH/TO/my_lil_guys_for_suno"
-    }
-  }
-}
-```
-
-If the Lil Guys generator is deployed rather than local, add:
-
-```json
-"env": {
-  "LIL_GUYS_APP_URL": "https://YOUR-LIL-GUYS-DEPLOYMENT"
-}
-```
-
-Then refresh MCP servers. The AI should discover the Lab tools and the `run-lab-experiment` prompt.
-
-## Generic MCP host configuration
-
-Every MCP host has a slightly different settings screen, but a local stdio configuration usually needs these same pieces:
-
-```json
-{
-  "mcpServers": {
-    "lil-guys-lab": {
-      "command": "npm",
-      "args": ["run", "mcp"],
-      "cwd": "/ABSOLUTE/PATH/TO/my_lil_guys_for_suno",
-      "env": {
-        "LIL_GUYS_APP_URL": "https://YOUR-LIL-GUYS-DEPLOYMENT"
-      }
-    }
-  }
-}
-```
-
-If Lil Guys is local on port 3000, the `env` block can be omitted.
-
-Use the MCP setup UI or config format documented by the particular AI host. Do not paste this JSON blindly into a host that uses a different format.
+Point that host at this repo as a local stdio MCP server and set `LIL_GUYS_APP_URL` when the Lil Guys API is not local.
 
 ## Test it before involving an AI
 
