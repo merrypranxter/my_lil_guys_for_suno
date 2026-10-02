@@ -1,9 +1,9 @@
-import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process';
+import { spawn, type ChildProcess } from 'node:child_process';
 import { serveStdio } from '@modelcontextprotocol/server/stdio';
 import { checkLilGuysConnection, lilGuysAppUrl } from './src/mcp/apiClient';
 import { createLilGuysMcpServer } from './src/mcp/server';
 
-let child: ChildProcessWithoutNullStreams | null = null;
+let child: ChildProcess | null = null;
 let shuttingDown = false;
 
 function isLocalDefaultTarget(): boolean {
@@ -16,11 +16,11 @@ function npmCommand(): string {
   return process.platform === 'win32' ? 'npm.cmd' : 'npm';
 }
 
-function pipeChildToStderr(proc: ChildProcessWithoutNullStreams): void {
-  proc.stdout.on('data', (chunk) => {
+function pipeChildToStderr(proc: ChildProcess): void {
+  proc.stdout?.on('data', (chunk) => {
     process.stderr.write('[Lil Guys app] ' + String(chunk));
   });
-  proc.stderr.on('data', (chunk) => {
+  proc.stderr?.on('data', (chunk) => {
     process.stderr.write('[Lil Guys app] ' + String(chunk));
   });
 }
