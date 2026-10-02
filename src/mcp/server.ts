@@ -317,6 +317,54 @@ export function createLilGuysMcpServer(): McpServer {
   );
 
   server.registerTool(
+    'lab_plan',
+    {
+      description:
+        'Preview a named experiment as a generation-by-generation plan without making any Lil Guys or Gemini generation calls.',
+      inputSchema: z.object({
+        mode: experimentModeSchema.default('petri-dish'),
+        population: z.number().int().min(1).max(12).optional(),
+        depth: z.number().int().min(1).max(12).optional(),
+        fuckAround: z.number().int().min(0).max(100).default(65),
+      }),
+    },
+    async ({ mode, population, depth, fuckAround }) => {
+      try {
+        const recipe = getLabRecipe(mode as ExperimentModeId);
+        const resolvedPopulation = population ?? recipe.defaultPopulation;
+        const resolvedDepth = depth ?? recipe.defaultDepth;
+        const generations = Array.from({ length: resolvedDepth }, (_, generation) => ({
+          generation,
+          phase: recipePhase(recipe, generation),
+          suggestedDirectives: suggestedDirectives(
+            recipe,
+            generation,
+            resolvedPopulation,
+            fuckAround,
+          ),
+        }));
+
+        return textResult({
+          mode: recipe.id,
+          name: recipe.name,
+          purpose: recipe.purpose,
+          population: resolvedPopulation,
+          depth: resolvedDepth,
+          fuckAround,
+          maximumGenerationCalls: resolvedPopulation * resolvedDepth,
+          selectionPressure: recipe.selectionPressure,
+          stopRule: recipe.stopRule,
+          generations,
+          note:
+            'This is a maximum-call plan. A session may stop earlier when its stop rule is satisfied. Planning itself makes zero generation calls.',
+        });
+      } catch (error) {
+        return errorResult(error);
+      }
+    },
+  );
+
+  server.registerTool(
     'lab_catalog',
     {
       description:
