@@ -60,14 +60,23 @@ function clipSignal(value: string, limit = 850): string {
 }
 
 function resultSignal(result: LabResult): string {
+  const lyricDNA = (result.response.lyrics || '')
+    .replace(/\[[^\]]*\]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 220);
+  const styleDNA = (result.response.style || '').replace(/\s+/g, ' ').trim().slice(0, 220);
   const pieces = [
-    result.response.caption ? 'CAPTION: ' + result.response.caption : '',
+    'PARENT DIRECTIVE: ' + result.directive,
+    result.response.caption ? 'CAPTION DNA: ' + result.response.caption : '',
+    styleDNA ? 'STYLE DNA: ' + styleDNA : '',
+    lyricDNA ? 'LYRIC DNA: ' + lyricDNA : '',
     result.feedback ? 'USER FEEDBACK: ' + result.feedback : '',
     result.response.fingerprint
       ? 'FINGERPRINT: ' + Object.values(result.response.fingerprint).filter(Boolean).join(' | ')
       : '',
   ].filter(Boolean);
-  return clipSignal('ANCESTOR SIGNAL — ' + pieces.join(' — '));
+  return clipSignal('ANCESTOR SIGNAL — preserve the useful mechanism, not the exact wording. ' + pieces.join(' — '));
 }
 
 function favoriteSignals(results: LabResult[]): string[] {
@@ -803,7 +812,11 @@ export function createLilGuysMcpServer(): McpServer {
 
         if (onlyStarred) results = results.filter((item) => item.starred);
         if (onlySurvivors) {
-          const survivorIds = new Set(session.generations.flatMap((generation) => generation.survivorIds));
+          const finalSelectedGeneration = session.generations
+            .slice()
+            .reverse()
+            .find((generation) => generation.survivorIds.length > 0);
+          const survivorIds = new Set(finalSelectedGeneration?.survivorIds || []);
           const survivors = results.filter((item) => survivorIds.has(item.id));
           if (survivors.length) results = survivors;
         }
