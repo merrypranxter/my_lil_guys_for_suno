@@ -213,6 +213,12 @@ Checks that the MCP process can reach Lil Guys.
 
 Lists the experiment recipes, selection pressures, phases, and stop rules.
 
+### `lab_plan`
+
+Previews the generations, phases, mutation directives, stop rule, and maximum generation-call budget for a session **without making any generation calls**.
+
+This is useful when you want to design the experiment first and only run it after the shape looks right.
+
 ### `lab_catalog`
 
 Lets the connected AI browse the real IDs and rules already inside Lil Guys:
@@ -236,6 +242,7 @@ Starts a persistent experiment. Important inputs include:
 - `fuckAround` from 0–100
 - `selectionMode`: assistant, human, or mixed
 - optional Little Guys / Reality / Composition engine IDs
+- optional real Music mechanism IDs and Music recipe IDs discovered through `lab_catalog`
 
 ### `lab_generate_generation`
 
@@ -279,7 +286,7 @@ Marks the experiment completed or abandoned without deleting its history.
 
 ### `lab_export_suno`
 
-Harvests the selected/starred branches as Suno-ready Markdown packages.
+Harvests the **latest selected generation** by default as Suno-ready Markdown packages, so intermediate ancestors do not flood the final handoff. Star-only export is also available.
 
 ## Seed sovereignty
 
