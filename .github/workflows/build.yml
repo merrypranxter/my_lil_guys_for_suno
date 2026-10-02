@@ -126,6 +126,9 @@ jobs:
       - name: Specialty recipe regression smoke
         run: npm run verify:specialty-recipes
 
+      - name: MCP Lab recipe regression smoke
+        run: npm run verify:mcp-lab
+
       - name: Build
         run: npm run build
 
