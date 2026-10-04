@@ -19,6 +19,65 @@ function recipeItem(refId: string, strength = 100, locked = true): MusicStackIte
 
 export const SPECIALTY_WHOLE_STACK_RECIPES: SpecialtyWholeStackRecipe[] = [
   {
+    id: 'builtin-specialty-lithops-face',
+    name: 'LITHOPS FACE',
+    description:
+      'One-click image-sonification machine for the mineral-botanical split face. It translates fracture, bilateral mimicry, capillary leakage, wet median material, Lithops crypsis, flower eruptions, and macro grain into separate musical jurisdictions instead of treating the picture as a mood.',
+    vibeSummary:
+      'Clinical macro, brittle outside / wet center, high-contrast, propulsive, bodily, legible, unsentimental. Never generic haunting ambient, cathedral wash, pretty flower pads, or mineral drone.',
+    instrumentSummary:
+      'contact-mic surface • gravel clicks • prepared piano • glass harmonica • bowed piano strings • modular synth • granular sand • dry oboe',
+    guyIds: [
+      'sensory-freak',
+      'flow-ghoul',
+      'taxonomy-goblin',
+      'symmetry-shiv',
+      'retcon-rat',
+    ],
+    realityEngineIds: [
+      'role-scientist',
+      'tone-clinical',
+    ],
+    compositionEngineIds: [
+      'transduction-shape-rhythm',
+      'rhythm-additive-meter',
+      'rhythm-entrainment-conflict',
+      'spatial-stereo-mirror',
+      'tuning-two-reference-frames',
+      'constraint-one-rhythm-cell',
+      'constraint-anti-symmetry',
+      'constraint-anchor-every-section',
+      'sound-contact-mic-table',
+      'sound-gravel-foot',
+      'sound-prepared-piano',
+      'sound-glass-harmonica',
+      'sound-bowed-piano-strings',
+      'sound-modular-synth',
+      'sound-sand-pour',
+      'sound-oboe',
+    ],
+    musicStack: [
+      recipeItem('lithops-face', 100),
+    ],
+    musicControls: {
+      stemminess: 96,
+      kineticDensity: 82,
+      socialInfection: 8,
+      coupling: 97,
+      interruption: 56,
+      anchorStrength: 98,
+      castSize: 18,
+      mouthFreakery: 18,
+      techniqueMutation: 58,
+      vocalLegibility: 92,
+      vocalPopulation: 28,
+    },
+    realityChaos: 2,
+    mouthPromptMode: 'bracketed',
+    mouthSemanticMode: 'inherit',
+    createdAt: 0,
+  },
+  {
     id: 'builtin-specialty-mouth-riot',
     name: 'MOUTH RIOT',
     description:
