@@ -149,6 +149,96 @@ assert.match(riotGenerated.lyrics, /VOCAL LEGIBILITY 64\/100/);
 assert.match(riotGenerated.lyrics, /RESTRAINT \/ FUCK-OFF THRESHOLD/);
 assert.doesNotMatch(riotGenerated.lyrics, /91\s*BPM/i, 'Kinetic density must never compile as BPM');
 
+
+const lithopsFace = SPECIALTY_WHOLE_STACK_RECIPES.find((item) => item.id === 'builtin-specialty-lithops-face');
+assert.ok(lithopsFace, 'LITHOPS FACE specialty recipe should exist');
+assert.equal(lithopsFace.musicStack?.[0]?.refId, 'lithops-face', 'LITHOPS FACE should load its dedicated music recipe');
+
+for (const id of lithopsFace.guyIds) {
+  assert.ok(guyIds.has(id), 'LITHOPS FACE references unknown Little Guy: ' + id);
+}
+for (const id of lithopsFace.compositionEngineIds) {
+  assert.ok(engineIds.has(id), 'LITHOPS FACE references unknown composition engine: ' + id);
+}
+assert.deepEqual(
+  normalizeCompositionEngineIds(lithopsFace.compositionEngineIds),
+  lithopsFace.compositionEngineIds,
+  'LITHOPS FACE should obey per-dimension composition limits without silently dropping engines',
+);
+
+for (const id of [
+  'transduction-shape-rhythm',
+  'rhythm-additive-meter',
+  'rhythm-entrainment-conflict',
+  'spatial-stereo-mirror',
+  'tuning-two-reference-frames',
+  'constraint-one-rhythm-cell',
+  'constraint-anti-symmetry',
+  'constraint-anchor-every-section',
+  'sound-contact-mic-table',
+  'sound-gravel-foot',
+  'sound-prepared-piano',
+  'sound-glass-harmonica',
+  'sound-bowed-piano-strings',
+  'sound-modular-synth',
+  'sound-sand-pour',
+  'sound-oboe',
+]) {
+  assert.ok(lithopsFace.compositionEngineIds.includes(id), 'LITHOPS FACE missing composition engine: ' + id);
+}
+
+const lithopsMusic = getMusicSeedRecipe('lithops-face');
+assert.ok(lithopsMusic, 'LITHOPS FACE music recipe should exist');
+for (const mechanismId of lithopsMusic!.mechanismIds) {
+  assert.ok(getMusicMechanism(mechanismId), 'LITHOPS FACE references unknown mechanism: ' + mechanismId);
+}
+for (const id of [
+  'lithops-bilateral-click',
+  'lithops-split-speed',
+  'lithops-fissure-delay',
+  'lithops-capillary-gate',
+  'lithops-median-seam',
+  'lithops-crypsis-reveal',
+  'lithops-flower-powder',
+  'lithops-fracture-branch',
+  'lithops-macro-grain',
+  'lithops-fixed-gaze',
+]) {
+  assert.ok(lithopsMusic!.mechanismIds.includes(id), 'LITHOPS FACE missing music mechanism: ' + id);
+}
+
+assert.equal(lithopsFace.musicControls?.stemminess, 96);
+assert.equal(lithopsFace.musicControls?.coupling, 97);
+assert.equal(lithopsFace.musicControls?.anchorStrength, 98);
+assert.equal(lithopsFace.musicControls?.vocalLegibility, 92);
+assert.equal(lithopsFace.realityChaos, 2);
+
+const lithopsGenerated = generateProceduralTrack({
+  guyIds: lithopsFace.guyIds,
+  realityEngineIds: lithopsFace.realityEngineIds,
+  compositionEngineIds: lithopsFace.compositionEngineIds,
+  musicStack: lithopsFace.musicStack,
+  musicControls: lithopsFace.musicControls,
+  realityChaos: lithopsFace.realityChaos,
+  energy: 5,
+  seed: 'My face is being resorbed into flowering stone.',
+  mouthPromptMode: lithopsFace.mouthPromptMode,
+  mouthSemanticMode: lithopsFace.mouthSemanticMode,
+});
+assert.ok(lithopsGenerated.style.length >= TARGETS.style.min && lithopsGenerated.style.length <= TARGETS.style.max);
+assert.ok(lithopsGenerated.lyrics.length >= TARGETS.lyrics.min && lithopsGenerated.lyrics.length <= TARGETS.lyrics.max);
+assert.ok(lithopsGenerated.caption.length >= TARGETS.caption.min && lithopsGenerated.caption.length <= TARGETS.caption.max);
+
+console.log('Lithops Face verification passed:', {
+  minds: lithopsFace.guyIds.length,
+  engines: lithopsFace.compositionEngineIds.length,
+  mechanisms: lithopsMusic!.mechanismIds.length,
+  controls: lithopsFace.musicControls,
+  style: lithopsGenerated.style.length,
+  lyrics: lithopsGenerated.lyrics.length,
+  caption: lithopsGenerated.caption.length,
+});
+
 console.log('MOUTH RIOT verification passed:', {
   controls: mouthRiot.musicControls,
   style: riotGenerated.style.length,
