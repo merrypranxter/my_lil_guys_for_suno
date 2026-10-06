@@ -78,6 +78,52 @@ export const SPECIALTY_WHOLE_STACK_RECIPES: SpecialtyWholeStackRecipe[] = [
     createdAt: 0,
   },
   {
+    id: 'builtin-specialty-detroit-assembly-line-possession',
+    name: 'DETROIT ASSEMBLY-LINE POSSESSION',
+    description:
+      'One-click bright Detroit-soul machine: electric bass, kick, snare/clap, clipped clean guitar, piano, horns, lead and group voices. The rhythm-section pocket is quarantined from chaos; negative space triggers replies; every source gets a narrow assembly-line job; outer layers become progressively stranger without sacrificing danceability.',
+    vibeSummary:
+      'Warm, punchy, joyous, dry, extremely groovy and human. Weirdness lives around the pocket, never instead of it. No slow retro museum piece, no generic cinematic soul, no washed-out vintage mush.',
+    instrumentSummary:
+      'electric bass • kick drum • snare drum • hand claps • clean electric guitar • grand piano • trumpet • tenor saxophone',
+    guyIds: ['utility-demon', 'loop-ferret', 'property-thief'],
+    realityEngineIds: [],
+    compositionEngineIds: [
+      'ensemble-leader-echo',
+      'gesture-clap-grid',
+      'roleexchange-bass-narrates',
+      'roleexchange-silence-downbeat',
+      'sound-electric-bass',
+      'sound-kick-drum',
+      'sound-snare-drum',
+      'sound-hand-claps',
+      'sound-electric-guitar-clean',
+      'sound-grand-piano',
+      'sound-trumpet',
+      'sound-tenor-sax',
+    ],
+    musicStack: [
+      recipeItem('detroit-assembly-line-possession', 100),
+    ],
+    musicControls: {
+      stemminess: 90,
+      kineticDensity: 78,
+      socialInfection: 76,
+      coupling: 42,
+      interruption: 48,
+      anchorStrength: 98,
+      castSize: 72,
+      mouthFreakery: 30,
+      techniqueMutation: 68,
+      vocalLegibility: 88,
+      vocalPopulation: 74,
+    },
+    realityChaos: 2,
+    mouthPromptMode: 'bracketed',
+    mouthSemanticMode: 'inherit',
+    createdAt: 0,
+  },
+  {
     id: 'builtin-specialty-mouth-opera',
     name: 'MOUTH OPERA',
     description:
