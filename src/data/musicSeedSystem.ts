@@ -309,6 +309,51 @@ export const MUSIC_MECHANISMS: MusicMechanism[] = [
   },
 
 
+
+  {
+    id: 'pocket-quarantine',
+    family: 'arrangement',
+    name: 'POCKET QUARANTINE',
+    shortExplanation: 'Bass, kick, and snare form a protected rhythmic civilization that refuses to follow outer-layer instability.',
+    instruction:
+      'Define a compact bass + kick + snare/clap pocket as protected infrastructure. It may use ghost notes, fills, and human microtiming, but its core pulse, bass contour logic, and backbeat remain stable while vocals, horns, piano, and guitar undergo stranger timing, role, or phrase behavior. Outer-layer mutations may react to the pocket; the pocket must not chase them into instability.',
+    tags: ['groove', 'bass', 'backbeat', 'protected-anchor', 'soul'],
+    stemValue: 5,
+    chaos: 2,
+  },
+  {
+    id: 'negative-space-replies',
+    family: 'form',
+    name: 'NEGATIVE-SPACE REPLIES',
+    shortExplanation: 'Horns and background voices answer gaps, cutoffs, and withheld attacks instead of merely echoing sounded phrases.',
+    instruction:
+      'Treat rests and phrase-end vacancies as explicit cues. Short horn punches, group-vocal answers, guitar punctuation, or piano figures may enter primarily because another part stopped. Preserve the gap-first causality: the answer should occupy or outline negative space rather than constantly overlapping the lead.',
+    tags: ['negative-space', 'call-response', 'horns', 'background-vocals'],
+    stemValue: 5,
+    chaos: 3,
+  },
+  {
+    id: 'assembly-line-microjobs',
+    family: 'arrangement',
+    name: 'ASSEMBLY-LINE MICRO-JOBS',
+    shortExplanation: 'Each source owns a tiny repeatable job; complexity comes from precise handoffs and interlock rather than everybody doing everything.',
+    instruction:
+      'Give each active source one narrow, repeatable production-line job: bass owns low melodic propulsion; kick owns floor pulse; snare/clap owns backbeat; clean guitar owns clipped offbeat punctuation; piano owns compact chord punches; horns own short replies; background voices own answer fragments. Build richness by handoff, overlap, and timing between jobs. Do not blur responsibilities into a generic full-band wall.',
+    tags: ['jurisdiction', 'interlock', 'role-separation', 'groove'],
+    stemValue: 5,
+    chaos: 2,
+  },
+  {
+    id: 'outer-layer-possession',
+    family: 'performance',
+    name: 'OUTER-LAYER POSSESSION',
+    shortExplanation: 'The groove stays socially normal while non-rhythm layers gradually acquire increasingly strange behavior.',
+    instruction:
+      'Begin with clean, joyous, disciplined soul-pop behavior. Keep the protected pocket intact, but let one outer layer at a time acquire a controlled abnormality: a background-vocal phrase enters early, horns answer silence, piano withholds expected chord attacks, guitar migrates a vocal rhythm, or a choir response stretches across a barline. Escalate by layer, never by destroying the danceable foundation.',
+    tags: ['escalation', 'groove-preservation', 'layer-mutation', 'soul'],
+    stemValue: 4,
+    chaos: 4,
+  },
   {
     id: 'body-only-orchestra',
     family: 'texture',
@@ -518,6 +563,35 @@ export const MUSIC_SEED_RECIPES: MusicSeedRecipe[] = [
       interruption: 18,
       anchorStrength: 90,
       castSize: 100,
+    },
+  },
+  {
+    id: 'detroit-assembly-line-possession',
+    name: 'DETROIT ASSEMBLY-LINE POSSESSION',
+    description: 'A bright Detroit-soul pocket is protected like civic infrastructure while guitar, piano, horns, and group vocals acquire incompatible but disciplined behaviors around it. The bass stays civilization.',
+    startHere: 'You want an immaculate dancing pocket that absolutely refuses to fall apart while everything around it gets increasingly possessed? Start here.',
+    mechanismIds: [
+      'pocket-quarantine',
+      'negative-space-replies',
+      'assembly-line-microjobs',
+      'outer-layer-possession',
+      'call-response',
+      'communal-infection',
+      'dry-separation',
+      'anchor-survival',
+    ],
+    defaultControls: {
+      stemminess: 90,
+      kineticDensity: 78,
+      socialInfection: 76,
+      coupling: 42,
+      interruption: 48,
+      anchorStrength: 98,
+      castSize: 72,
+      mouthFreakery: 30,
+      techniqueMutation: 68,
+      vocalLegibility: 88,
+      vocalPopulation: 74,
     },
   },
   {
