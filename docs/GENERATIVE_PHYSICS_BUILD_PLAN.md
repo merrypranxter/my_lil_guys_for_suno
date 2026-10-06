@@ -7,7 +7,7 @@ Goal: ship immediately playable one-click stacks using the existing Minds + Comp
 
 Jobs:
 1. **MOUTH OPERA** — COMPLETE
-2. DETROIT ASSEMBLY-LINE POSSESSION
+2. **DETROIT ASSEMBLY-LINE POSSESSION — COMPLETE**
 3. BLUEGRASS PARTICLE ACCELERATOR
 4. LOOSE-MOUTH POCKET MONSTER
 5. RUBBER-THROAT FUNK CABARET
@@ -130,4 +130,35 @@ Implemented:
 Design constraint:
 > If the generator wants a conventional instrument, it must transfer that musical job to anatomy instead of sneaking the instrument back in.
 
-Next recommended job: **DETROIT ASSEMBLY-LINE POSSESSION**, specifically because it proves that the new preset family can preserve a devastatingly normal groove while letting other jurisdictions become strange.
+## Job 2 handoff — DETROIT ASSEMBLY-LINE POSSESSION
+
+Implemented:
+- Music mechanisms:
+  - POCKET QUARANTINE
+  - NEGATIVE-SPACE REPLIES
+  - ASSEMBLY-LINE MICRO-JOBS
+  - OUTER-LAYER POSSESSION
+- Music Seed recipe: DETROIT ASSEMBLY-LINE POSSESSION
+- Specialty Whole-Stack preset: DETROIT ASSEMBLY-LINE POSSESSION
+- Minds: UTILITY DEMON + LOOP FERRET + PROPERTY THIEF
+- No Reality Engine requirement
+- Sound palette:
+  - electric bass
+  - kick drum
+  - snare drum
+  - hand claps
+  - clean electric guitar
+  - grand piano
+  - trumpet
+  - tenor saxophone
+- Structural support:
+  - bass narrates
+  - silence functions as a downbeat/trigger
+  - leader + transformed echo group
+  - clap grid
+- Verification added.
+
+Design constraint:
+> The pocket is protected infrastructure. Weirdness may orbit it, answer it, steal jobs around it, and escalate against it, but the bass/backbeat cannot be bullied into generic experimental mush.
+
+Next recommended job: **BLUEGRASS PARTICLE ACCELERATOR** — keep acoustic virtuosity and a strong string-band identity while splitting base pulse from insane activity density.
