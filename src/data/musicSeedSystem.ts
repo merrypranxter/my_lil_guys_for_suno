@@ -308,6 +308,51 @@ export const MUSIC_MECHANISMS: MusicMechanism[] = [
     chaos: 3,
   },
 
+
+  {
+    id: 'body-only-orchestra',
+    family: 'texture',
+    name: 'BODY-ONLY ORCHESTRA',
+    shortExplanation: 'Every musical function must come from a human body or voice; conventional instruments are forbidden.',
+    instruction:
+      'Use only human vocal/body sources: sung tone, speech, breath, hum, chest resonance, tongue click, teeth chatter, lip or mouth pop, whisper, clap, snap, stomp, heartbeat-like pulse, and related physically plausible body sound. Do not add conventional acoustic/electronic instruments. If a familiar instrumental job is needed, reassign that job to a body source instead of quietly importing an instrument.',
+    tags: ['body', 'voice', 'instrument-ban', 'physical'],
+    stemValue: 5,
+    chaos: 3,
+  },
+  {
+    id: 'anatomical-jurisdictions',
+    family: 'arrangement',
+    name: 'ANATOMICAL JURISDICTIONS',
+    shortExplanation: 'Different parts of the vocal/body apparatus own different musical jobs and must negotiate without collapsing into one generic vocal texture.',
+    instruction:
+      'Assign separate jurisdictions to anatomy. Example: lungs/breath own phrase length and dynamics; tongue/teeth/lips own transient subdivision; vowels/formants own sustained harmony; laryngeal register owns melodic contour; hands/torso/feet may own low or impact pulse. Keep ownership legible and let conflicts happen at the borders. Do not let every body source perform every job.',
+    tags: ['anatomy', 'jurisdiction', 'voice', 'role-separation'],
+    stemValue: 5,
+    chaos: 4,
+  },
+  {
+    id: 'vocal-phase-transitions',
+    family: 'form',
+    name: 'VOCAL PHASE TRANSITIONS',
+    shortExplanation: 'The same human material repeatedly changes state: speech becomes song, song becomes percussion, percussion becomes ensemble behavior.',
+    instruction:
+      'Use explicit vocal state changes as form. Move through states such as dry speech → sustained singing → consonant percussion → chant/unison → hocket/canon → whisper/breath → operatic return. Each transition must preserve at least one traceable property from the previous state so the listener hears transformation rather than unrelated sections.',
+    tags: ['voice', 'phase-change', 'form', 'transformation'],
+    stemValue: 5,
+    chaos: 4,
+  },
+  {
+    id: 'bel-canto-vowel-anchor',
+    family: 'performance',
+    name: 'BEL-CANTO VOWEL ANCHOR',
+    shortExplanation: 'One committed operatic open-vowel tone or interval keeps returning as the stable reference while the mouth ecosystem mutates.',
+    instruction:
+      'Choose one clearly sung operatic open-vowel anchor: a sustained vowel, compact interval, or short coloratura cell with full breath support and committed classical projection. Return to it after mouth-percussion, whisper, hocket, chatter, and register mutations. It may acquire scars or changed surrounding harmony, but it must remain unmistakably sung rather than turning into generic screaming.',
+    tags: ['opera', 'vowel', 'anchor', 'classical-vocal'],
+    stemValue: 4,
+    chaos: 2,
+  },
   {
     id: 'lithops-bilateral-click',
     family: 'arrangement',
@@ -473,6 +518,35 @@ export const MUSIC_SEED_RECIPES: MusicSeedRecipe[] = [
       interruption: 18,
       anchorStrength: 90,
       castSize: 100,
+    },
+  },
+  {
+    id: 'mouth-opera',
+    name: 'MOUTH OPERA',
+    description: 'A zero-conventional-instrument opera where lungs, vowels, consonants, tongue, teeth, lips, whispers, body impacts, and distinct vocal populations own separate musical jobs. The body is the orchestra.',
+    startHere: 'You want an opera performed by anatomy itself — bel canto colliding with clicks, breath, chatter, pops, hockets, and body pulse without importing a normal band? Start here.',
+    mechanismIds: [
+      'body-only-orchestra',
+      'anatomical-jurisdictions',
+      'vocal-phase-transitions',
+      'bel-canto-vowel-anchor',
+      'phonetic-percussion',
+      'hocket-relay',
+      'body-percussion',
+      'anchor-survival',
+    ],
+    defaultControls: {
+      stemminess: 94,
+      kineticDensity: 76,
+      socialInfection: 72,
+      coupling: 70,
+      interruption: 58,
+      anchorStrength: 90,
+      castSize: 88,
+      mouthFreakery: 100,
+      techniqueMutation: 94,
+      vocalLegibility: 62,
+      vocalPopulation: 96,
     },
   },
   {
