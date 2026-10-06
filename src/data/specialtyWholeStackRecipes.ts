@@ -78,6 +78,53 @@ export const SPECIALTY_WHOLE_STACK_RECIPES: SpecialtyWholeStackRecipe[] = [
     createdAt: 0,
   },
   {
+    id: 'builtin-specialty-mouth-opera',
+    name: 'MOUTH OPERA',
+    description:
+      'One-click human-instrument opera. No conventional instruments: anatomy itself is orchestrated. Breath owns phrasing and dynamics; vowels own sustained harmony; consonants, tongue, teeth, lips, claps, and body pulse own transient rhythm; operatic tone remains the recurring anchor while vocal states transform around it.',
+    vibeSummary:
+      'Committed opera technique colliding with dry mouth percussion, whispers, body pulse, hocketing, strange register work, and bodily mechanics. Funny and physical when it wants to be, but never novelty a-cappella mush and never a normal band hiding underneath.',
+    instrumentSummary:
+      'operatic voices • breathing • heartbeat/body pulse • hand claps • tongue clicks • teeth chatter • mouth pops • whisper cloud • synchronized inhale',
+    guyIds: ['property-thief', 'sensory-freak', 'loop-ferret'],
+    realityEngineIds: [],
+    compositionEngineIds: [
+      'ensemble-antiphonal-choirs',
+      'gesture-breath-gated',
+      'gesture-tongue-click-rhythm',
+      'roleexchange-consonants-drumkit',
+      'roleexchange-vowels-harmony',
+      'sound-breathing',
+      'sound-heartbeat',
+      'sound-hand-claps',
+      'sound-tongue-clicks',
+      'sound-teeth-chatter',
+      'sound-mouth-pops',
+      'sound-whisper-cloud',
+      'sound-group-inhale',
+    ],
+    musicStack: [
+      recipeItem('mouth-opera', 100),
+    ],
+    musicControls: {
+      stemminess: 94,
+      kineticDensity: 76,
+      socialInfection: 72,
+      coupling: 70,
+      interruption: 58,
+      anchorStrength: 90,
+      castSize: 88,
+      mouthFreakery: 100,
+      techniqueMutation: 94,
+      vocalLegibility: 62,
+      vocalPopulation: 96,
+    },
+    realityChaos: 2,
+    mouthPromptMode: 'bracketed',
+    mouthSemanticMode: 'mixed',
+    createdAt: 0,
+  },
+  {
     id: 'builtin-specialty-mouth-riot',
     name: 'MOUTH RIOT',
     description:
