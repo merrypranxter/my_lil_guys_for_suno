@@ -113,6 +113,60 @@ assert.match(generated.lyrics, /resolution|cadence|suspension/i);
 assert.match(generated.lyrics, /glass|Cristal|vibraphone|saw|Martenot|piano/i);
 
 
+const detroit = SPECIALTY_WHOLE_STACK_RECIPES.find(
+  (item) => item.id === 'builtin-specialty-detroit-assembly-line-possession',
+);
+assert.ok(detroit, 'DETROIT ASSEMBLY-LINE POSSESSION specialty recipe should exist');
+assert.equal(
+  detroit.musicStack?.[0]?.refId,
+  'detroit-assembly-line-possession',
+  'Detroit preset should load its dedicated music recipe',
+);
+for (const id of detroit.guyIds) {
+  assert.ok(guyIds.has(id), 'Detroit preset references unknown Little Guy: ' + id);
+}
+for (const id of detroit.compositionEngineIds) {
+  assert.ok(engineIds.has(id), 'Detroit preset references unknown composition engine: ' + id);
+}
+assert.deepEqual(
+  normalizeCompositionEngineIds(detroit.compositionEngineIds),
+  detroit.compositionEngineIds,
+  'Detroit preset should obey composition dimension limits without silently dropping groove infrastructure',
+);
+for (const id of [
+  'sound-electric-bass',
+  'sound-kick-drum',
+  'sound-snare-drum',
+  'sound-hand-claps',
+  'sound-electric-guitar-clean',
+  'sound-grand-piano',
+  'sound-trumpet',
+  'sound-tenor-sax',
+  'roleexchange-bass-narrates',
+  'roleexchange-silence-downbeat',
+  'ensemble-leader-echo',
+]) {
+  assert.ok(detroit.compositionEngineIds.includes(id), 'Detroit preset missing composition engine: ' + id);
+}
+const detroitMusic = getMusicSeedRecipe('detroit-assembly-line-possession');
+assert.ok(detroitMusic, 'Detroit music recipe should exist');
+for (const id of [
+  'pocket-quarantine',
+  'negative-space-replies',
+  'assembly-line-microjobs',
+  'outer-layer-possession',
+  'call-response',
+  'communal-infection',
+  'dry-separation',
+  'anchor-survival',
+]) {
+  assert.ok(detroitMusic!.mechanismIds.includes(id), 'Detroit recipe missing music mechanism: ' + id);
+}
+assert.equal(detroit.musicControls?.anchorStrength, 98);
+assert.equal(detroit.musicControls?.stemminess, 90);
+assert.ok((detroit.musicControls?.coupling || 100) < 50, 'Detroit pocket should favor one strong shared groove rather than maximum multi-clock coupling');
+assert.ok((detroit.musicControls?.vocalLegibility || 0) >= 85, 'Detroit preset should keep lead/group vocals highly legible');
+
 const mouthOpera = SPECIALTY_WHOLE_STACK_RECIPES.find((item) => item.id === 'builtin-specialty-mouth-opera');
 assert.ok(mouthOpera, 'MOUTH OPERA specialty recipe should exist');
 assert.equal(mouthOpera.musicStack?.[0]?.refId, 'mouth-opera', 'MOUTH OPERA should load its dedicated music recipe');
