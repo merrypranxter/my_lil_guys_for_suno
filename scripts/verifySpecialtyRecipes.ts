@@ -113,6 +113,55 @@ assert.match(generated.lyrics, /resolution|cadence|suspension/i);
 assert.match(generated.lyrics, /glass|Cristal|vibraphone|saw|Martenot|piano/i);
 
 
+const mouthOpera = SPECIALTY_WHOLE_STACK_RECIPES.find((item) => item.id === 'builtin-specialty-mouth-opera');
+assert.ok(mouthOpera, 'MOUTH OPERA specialty recipe should exist');
+assert.equal(mouthOpera.musicStack?.[0]?.refId, 'mouth-opera', 'MOUTH OPERA should load its dedicated music recipe');
+for (const id of mouthOpera.guyIds) {
+  assert.ok(guyIds.has(id), 'MOUTH OPERA references unknown Little Guy: ' + id);
+}
+for (const id of mouthOpera.compositionEngineIds) {
+  assert.ok(engineIds.has(id), 'MOUTH OPERA references unknown composition engine: ' + id);
+}
+assert.deepEqual(
+  normalizeCompositionEngineIds(mouthOpera.compositionEngineIds),
+  mouthOpera.compositionEngineIds,
+  'MOUTH OPERA should obey composition limits without silently dropping anatomy engines',
+);
+for (const id of [
+  'sound-breathing',
+  'sound-heartbeat',
+  'sound-hand-claps',
+  'sound-tongue-clicks',
+  'sound-teeth-chatter',
+  'sound-mouth-pops',
+  'sound-whisper-cloud',
+  'sound-group-inhale',
+  'roleexchange-consonants-drumkit',
+  'roleexchange-vowels-harmony',
+  'gesture-breath-gated',
+  'gesture-tongue-click-rhythm',
+  'ensemble-antiphonal-choirs',
+]) {
+  assert.ok(mouthOpera.compositionEngineIds.includes(id), 'MOUTH OPERA missing composition engine: ' + id);
+}
+const mouthOperaMusic = getMusicSeedRecipe('mouth-opera');
+assert.ok(mouthOperaMusic, 'MOUTH OPERA music recipe should exist');
+for (const id of [
+  'body-only-orchestra',
+  'anatomical-jurisdictions',
+  'vocal-phase-transitions',
+  'bel-canto-vowel-anchor',
+  'phonetic-percussion',
+  'hocket-relay',
+  'body-percussion',
+  'anchor-survival',
+]) {
+  assert.ok(mouthOperaMusic!.mechanismIds.includes(id), 'MOUTH OPERA missing music mechanism: ' + id);
+}
+assert.equal(mouthOpera.musicControls?.mouthFreakery, 100);
+assert.equal(mouthOpera.musicControls?.techniqueMutation, 94);
+assert.equal(mouthOpera.musicControls?.anchorStrength, 90);
+
 const mouthRiot = SPECIALTY_WHOLE_STACK_RECIPES.find((item) => item.id === 'builtin-specialty-mouth-riot');
 assert.ok(mouthRiot, 'MOUTH RIOT specialty recipe should exist');
 assert.equal(mouthRiot.musicStack?.[0]?.refId, 'mouth-riot', 'MOUTH RIOT should load its music recipe');
