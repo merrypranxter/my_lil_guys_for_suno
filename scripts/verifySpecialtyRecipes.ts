@@ -113,6 +113,61 @@ assert.match(generated.lyrics, /resolution|cadence|suspension/i);
 assert.match(generated.lyrics, /glass|Cristal|vibraphone|saw|Martenot|piano/i);
 
 
+const bluegrass = SPECIALTY_WHOLE_STACK_RECIPES.find(
+  (item) => item.id === 'builtin-specialty-bluegrass-particle-accelerator',
+);
+assert.ok(bluegrass, 'BLUEGRASS PARTICLE ACCELERATOR specialty recipe should exist');
+assert.equal(
+  bluegrass.musicStack?.[0]?.refId,
+  'bluegrass-particle-accelerator',
+  'Bluegrass preset should load its dedicated music recipe',
+);
+for (const id of bluegrass.guyIds) {
+  assert.ok(guyIds.has(id), 'Bluegrass preset references unknown Little Guy: ' + id);
+}
+for (const id of bluegrass.compositionEngineIds) {
+  assert.ok(engineIds.has(id), 'Bluegrass preset references unknown composition engine: ' + id);
+}
+assert.deepEqual(
+  normalizeCompositionEngineIds(bluegrass.compositionEngineIds),
+  bluegrass.compositionEngineIds,
+  'Bluegrass preset should obey composition dimension limits without silently dropping temporal or acoustic sources',
+);
+for (const id of [
+  'sound-banjo',
+  'sound-violin',
+  'sound-mandolin',
+  'sound-resonator-guitar-dobro',
+  'sound-upright-bass',
+  'sound-acoustic-guitar',
+  'rhythm-tempo-canon',
+  'rhythm-polymeter',
+  'roleexchange-rhythm-to-melody',
+  'roleexchange-accompaniment-lead',
+  'ensemble-rotating-soloist',
+]) {
+  assert.ok(bluegrass.compositionEngineIds.includes(id), 'Bluegrass preset missing composition engine: ' + id);
+}
+const bluegrassMusic = getMusicSeedRecipe('bluegrass-particle-accelerator');
+assert.ok(bluegrassMusic, 'Bluegrass Particle Accelerator music recipe should exist');
+for (const id of [
+  'string-band-clock-split',
+  'acoustic-activity-separation',
+  'acoustic-handoff-collider',
+  'breakdown-exposure-rebuild',
+  'double-time-activity',
+  'hocket-relay',
+  'exposure-windows',
+  'dry-separation',
+  'anchor-survival',
+]) {
+  assert.ok(bluegrassMusic!.mechanismIds.includes(id), 'Bluegrass recipe missing music mechanism: ' + id);
+}
+assert.equal(bluegrass.musicControls?.stemminess, 96);
+assert.equal(bluegrass.musicControls?.kineticDensity, 94);
+assert.ok((bluegrass.musicControls?.coupling || 0) >= 85, 'Bluegrass preset should preserve several explicit temporal truths');
+assert.ok((bluegrass.musicControls?.anchorStrength || 0) >= 80, 'Bluegrass preset should keep the tune/groove legible under high activity');
+
 const detroit = SPECIALTY_WHOLE_STACK_RECIPES.find(
   (item) => item.id === 'builtin-specialty-detroit-assembly-line-possession',
 );
