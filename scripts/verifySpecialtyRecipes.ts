@@ -113,6 +113,61 @@ assert.match(generated.lyrics, /resolution|cadence|suspension/i);
 assert.match(generated.lyrics, /glass|Cristal|vibraphone|saw|Martenot|piano/i);
 
 
+const looseMouth = SPECIALTY_WHOLE_STACK_RECIPES.find(
+  (item) => item.id === 'builtin-specialty-loose-mouth-pocket-monster',
+);
+assert.ok(looseMouth, 'LOOSE-MOUTH POCKET MONSTER specialty recipe should exist');
+assert.equal(
+  looseMouth.musicStack?.[0]?.refId,
+  'loose-mouth-pocket-monster',
+  'Loose-Mouth preset should load its dedicated music recipe',
+);
+for (const id of looseMouth.guyIds) {
+  assert.ok(guyIds.has(id), 'Loose-Mouth preset references unknown Little Guy: ' + id);
+}
+for (const id of looseMouth.compositionEngineIds) {
+  assert.ok(engineIds.has(id), 'Loose-Mouth preset references unknown composition engine: ' + id);
+}
+assert.deepEqual(
+  normalizeCompositionEngineIds(looseMouth.compositionEngineIds),
+  looseMouth.compositionEngineIds,
+  'Loose-Mouth preset should obey composition limits without silently dropping pocket or vocal control engines',
+);
+for (const id of [
+  'language-mode-conversational',
+  'ensemble-leader-echo',
+  'gesture-breath-gated',
+  'roleexchange-bass-narrates',
+  'authority-bass-player',
+  'constraint-anchor-every-section',
+  'sound-electric-bass',
+  'sound-kick-drum',
+  'sound-snare-drum',
+  'sound-wurlitzer',
+  'sound-electric-guitar-clean',
+  'sound-hand-claps',
+]) {
+  assert.ok(looseMouth.compositionEngineIds.includes(id), 'Loose-Mouth preset missing composition engine: ' + id);
+}
+const looseMouthMusic = getMusicSeedRecipe('loose-mouth-pocket-monster');
+assert.ok(looseMouthMusic, 'Loose-Mouth Pocket Monster music recipe should exist');
+for (const id of [
+  'pocket-quarantine',
+  'vocal-pocket-trespass',
+  'landing-zone-discipline',
+  'articulation-slippage',
+  'pitch-wander-snapback',
+  'call-response',
+  'dry-separation',
+  'anchor-survival',
+]) {
+  assert.ok(looseMouthMusic!.mechanismIds.includes(id), 'Loose-Mouth recipe missing music mechanism: ' + id);
+}
+assert.ok((looseMouth.musicControls?.anchorStrength || 0) >= 95, 'Loose-Mouth groove must remain a hard reference');
+assert.ok((looseMouth.musicControls?.coupling || 100) <= 30, 'Loose-Mouth voice and band should not be over-coupled');
+assert.ok((looseMouth.musicControls?.mouthFreakery || 0) >= 80, 'Loose-Mouth needs strong vocal physicality');
+assert.ok((looseMouth.musicControls?.vocalLegibility || 100) >= 60, 'Loose-Mouth must stay semantically trackable despite damaged articulation');
+
 const bluegrass = SPECIALTY_WHOLE_STACK_RECIPES.find(
   (item) => item.id === 'builtin-specialty-bluegrass-particle-accelerator',
 );
