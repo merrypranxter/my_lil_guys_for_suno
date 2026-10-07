@@ -310,6 +310,51 @@ export const MUSIC_MECHANISMS: MusicMechanism[] = [
 
 
 
+
+  {
+    id: 'string-band-clock-split',
+    family: 'rhythm',
+    name: 'STRING-BAND CLOCK SPLIT',
+    shortExplanation: 'Upright bass, mandolin, banjo, fiddle, and resonator guitar experience the same tune through different temporal responsibilities.',
+    instruction:
+      'Keep one shared acoustic performance with distinct temporal jurisdictions. Upright bass owns the moderate base pulse and may not accelerate to match ornament density. Mandolin owns short chop punctuation and subdivision boundaries. Banjo owns continuous high-rate motor activity. Fiddle owns longer phrase-grouping arcs that may cut across the banjo grid. Resonator guitar / Dobro owns elastic slide-linked replies and delayed cadential answers. Their clocks must remain separately audible while still sharing recurring alignment points.',
+    tags: ['bluegrass', 'multi-rate', 'string-band', 'jurisdiction', 'acoustic'],
+    stemValue: 5,
+    chaos: 4,
+  },
+  {
+    id: 'acoustic-activity-separation',
+    family: 'rhythm',
+    name: 'ACOUSTIC ACTIVITY ≠ BPM',
+    shortExplanation: 'Picking density may become ridiculous while the actual base tempo remains moderate and graspable.',
+    instruction:
+      'Separate tempo from attack density. Keep the upright-bass pulse and broad phrase motion moderate, while banjo rolls, mandolin tremolo/chops, fiddle ornaments, vocal syllables, or passing figures can operate at roughly double or quadruple the local event rate. Do not solve excitement by simply increasing BPM.',
+    tags: ['bluegrass', 'activity-rate', 'picking', 'tempo-separation'],
+    stemValue: 4,
+    chaos: 3,
+  },
+  {
+    id: 'acoustic-handoff-collider',
+    family: 'arrangement',
+    name: 'ACOUSTIC HANDOFF COLLIDER',
+    shortExplanation: 'One phrase is thrown between string-band instruments, each preserving identity while mutating technique.',
+    instruction:
+      'Pass one compact melodic/rhythmic cell between banjo, fiddle, mandolin, resonator guitar, upright bass, and optional voices. Every handoff must preserve at least one recognizable invariant such as contour, accent map, or cadence point while changing articulation: roll → bow → chop/tremolo → slide → pizzicato → hocketed voice. Never let all sources double the phrase simultaneously.',
+    tags: ['handoff', 'bluegrass', 'role-migration', 'acoustic'],
+    stemValue: 5,
+    chaos: 4,
+  },
+  {
+    id: 'breakdown-exposure-rebuild',
+    family: 'form',
+    name: 'BREAKDOWN EXPOSURE / REBUILD',
+    shortExplanation: 'Hyper-dense ensemble motion periodically collapses to one exposed acoustic actor, then regrows without resetting its accumulated rhythmic state.',
+    instruction:
+      'At selected high-density moments, abruptly expose one or two dry sources nearly alone: bass + banjo, fiddle + voice, mandolin + Dobro, etc. The exposed part must continue the current temporal problem rather than restarting the song. Reintroduce the ensemble by handing accumulated subdivisions and accents back across players one layer at a time.',
+    tags: ['breakdown', 'exposure', 'rebuild', 'acoustic', 'stems'],
+    stemValue: 5,
+    chaos: 3,
+  },
   {
     id: 'pocket-quarantine',
     family: 'arrangement',
@@ -563,6 +608,36 @@ export const MUSIC_SEED_RECIPES: MusicSeedRecipe[] = [
       interruption: 18,
       anchorStrength: 90,
       castSize: 100,
+    },
+  },
+  {
+    id: 'bluegrass-particle-accelerator',
+    name: 'BLUEGRASS PARTICLE ACCELERATOR',
+    description: 'A serious acoustic string band keeps a moderate bodily pulse while banjo, mandolin, fiddle, resonator guitar, vocals, and passing figures operate at violently higher activity rates. The point is virtuoso temporal disagreement, not novelty hillbilly speed.',
+    startHere: 'You want the bass to walk like a sane person while the rest of the string band becomes a beautifully coordinated particle collision? Start here.',
+    mechanismIds: [
+      'string-band-clock-split',
+      'acoustic-activity-separation',
+      'acoustic-handoff-collider',
+      'breakdown-exposure-rebuild',
+      'double-time-activity',
+      'hocket-relay',
+      'exposure-windows',
+      'dry-separation',
+      'anchor-survival',
+    ],
+    defaultControls: {
+      stemminess: 96,
+      kineticDensity: 94,
+      socialInfection: 58,
+      coupling: 88,
+      interruption: 54,
+      anchorStrength: 84,
+      castSize: 56,
+      mouthFreakery: 38,
+      techniqueMutation: 82,
+      vocalLegibility: 78,
+      vocalPopulation: 52,
     },
   },
   {
