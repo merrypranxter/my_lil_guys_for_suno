@@ -311,6 +311,51 @@ export const MUSIC_MECHANISMS: MusicMechanism[] = [
 
 
 
+
+  {
+    id: 'vocal-pocket-trespass',
+    family: 'vocal',
+    name: 'VOCAL POCKET TRESPASS',
+    shortExplanation: 'The band keeps an immovable groove while the lead voice is allowed to arrive early, late, smeared, or crooked around it.',
+    instruction:
+      'Protect the instrumental pocket as a stable external reference. Let the lead vocal deliberately move ahead of or behind the beat, enter between expected subdivisions, drag across barlines, or compress several syllables into one late burst. The band must not chase these deviations. Vocal looseness is measured against the stable groove, not achieved by making everybody sloppy.',
+    tags: ['vocal', 'microtiming', 'pocket', 'lag', 'lead'],
+    stemValue: 5,
+    chaos: 4,
+  },
+  {
+    id: 'landing-zone-discipline',
+    family: 'performance',
+    name: 'LANDING-ZONE DISCIPLINE',
+    shortExplanation: 'A damaged-looking vocal phrase must still hit exact structural checkpoints.',
+    instruction:
+      'Define recurring landing zones such as a downbeat, bass turnaround, snare backbeat, hook word, or cadence pitch. Between checkpoints the lead may slur, rush, drag, mutter, crack, half-sing, or wander slightly off-center, but it must repeatedly arrive at the designated landmark cleanly enough to prove the disorder was controlled.',
+    tags: ['vocal', 'anchor', 'timing', 'cadence', 'control'],
+    stemValue: 4,
+    chaos: 3,
+  },
+  {
+    id: 'articulation-slippage',
+    family: 'vocal',
+    name: 'ARTICULATION SLIPPAGE',
+    shortExplanation: 'Diction changes physical state mid-phrase without losing the underlying thought.',
+    instruction:
+      'Rotate through controlled articulation states inside the lead: clear speech-like attack, slurred connection, muttered compression, cracked onset, half-sung pitch, dry spoken fragment, and brief rough-edged emphasis. Preserve semantic continuity and enough consonant landmarks for the line to remain trackable. Do not turn the whole vocal into incomprehensible mumble or a single gimmick.',
+    tags: ['diction', 'slur', 'mutter', 'half-sung', 'vocal'],
+    stemValue: 5,
+    chaos: 4,
+  },
+  {
+    id: 'pitch-wander-snapback',
+    family: 'vocal',
+    name: 'PITCH WANDER / SNAPBACK',
+    shortExplanation: 'The lead can bend away from melodic center as long as it repeatedly snaps back to a recognizable target.',
+    instruction:
+      'Allow the lead to scoop, flatten, overshoot, undercut, speak-pitch, or hover near rather than on a melodic target during interior phrase motion. At selected hooks or cadence points, snap back to a clean recognizable pitch or contour. The contrast between local pitch looseness and exact return is the feature.',
+    tags: ['pitch', 'vocal', 'scoop', 'snapback', 'anchor'],
+    stemValue: 4,
+    chaos: 3,
+  },
   {
     id: 'string-band-clock-split',
     family: 'rhythm',
@@ -608,6 +653,35 @@ export const MUSIC_SEED_RECIPES: MusicSeedRecipe[] = [
       interruption: 18,
       anchorStrength: 90,
       castSize: 100,
+    },
+  },
+  {
+    id: 'loose-mouth-pocket-monster',
+    name: 'LOOSE-MOUTH POCKET MONSTER',
+    description: 'A brutally dependable funk pocket acts as the sidewalk while the lead vocal behaves like a loose shopping cart: early, late, slurred, muttered, cracked, half-sung, pitch-bent, and somehow always arriving at the correct corner.',
+    startHere: 'You want the groove to be disciplined as hell while the singer sounds almost irresponsible until every impossible landing proves it was on purpose? Start here.',
+    mechanismIds: [
+      'pocket-quarantine',
+      'vocal-pocket-trespass',
+      'landing-zone-discipline',
+      'articulation-slippage',
+      'pitch-wander-snapback',
+      'call-response',
+      'dry-separation',
+      'anchor-survival',
+    ],
+    defaultControls: {
+      stemminess: 88,
+      kineticDensity: 80,
+      socialInfection: 46,
+      coupling: 28,
+      interruption: 58,
+      anchorStrength: 96,
+      castSize: 42,
+      mouthFreakery: 86,
+      techniqueMutation: 88,
+      vocalLegibility: 66,
+      vocalPopulation: 44,
     },
   },
   {
