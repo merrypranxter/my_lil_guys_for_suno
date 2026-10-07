@@ -9,7 +9,7 @@ Jobs:
 1. **MOUTH OPERA** — COMPLETE
 2. **DETROIT ASSEMBLY-LINE POSSESSION — COMPLETE**
 3. **BLUEGRASS PARTICLE ACCELERATOR — COMPLETE**
-4. LOOSE-MOUTH POCKET MONSTER
+4. **LOOSE-MOUTH POCKET MONSTER — COMPLETE**
 5. RUBBER-THROAT FUNK CABARET
 6. OPERA IN A TOOL SHED
 7. THE CHOIR HAS UNIONIZED
@@ -197,3 +197,39 @@ Design constraint:
 > Do not confuse event density with BPM. The upright bass can remain at a sane human pulse while the high-rate acoustic machinery becomes absurd.
 
 Next recommended job: **LOOSE-MOUTH POCKET MONSTER** — a rigidly excellent groove underneath a lead vocal whose timing, diction, register, and pitch behavior are allowed to behave like a loose shopping cart with supernatural pocket awareness.
+
+
+## Job 4 handoff — LOOSE-MOUTH POCKET MONSTER
+
+Implemented:
+- Music mechanisms:
+  - VOCAL POCKET TRESPASS
+  - LANDING-ZONE DISCIPLINE
+  - ARTICULATION SLIPPAGE
+  - PITCH WANDER / SNAPBACK
+- Reused protected groove law:
+  - POCKET QUARANTINE
+- Music Seed recipe: LOOSE-MOUTH POCKET MONSTER
+- Specialty Whole-Stack preset: LOOSE-MOUTH POCKET MONSTER
+- Minds: ALIEN RULER + UTILITY DEMON + LOOP FERRET
+- No Reality Engine requirement
+- Palette:
+  - electric bass
+  - kick drum
+  - snare drum
+  - Wurlitzer electric piano
+  - clean electric guitar
+  - hand claps
+- Structural support:
+  - conversational language mode
+  - leader + transformed echo group
+  - breath-gated phrasing
+  - bass narrates
+  - bass player controls major structural changes
+  - recognizable anchor required every section
+- Verification added.
+
+Design constraint:
+> The band is the ruler. Vocal looseness only reads as exciting if the groove stays clean enough to measure it against.
+
+Next recommended job: **RUBBER-THROAT FUNK CABARET** — make vocal anatomy itself the melodic control surface: register, phonation, resonance, and articulation mutate while the funk band remains tight and theatrical.
