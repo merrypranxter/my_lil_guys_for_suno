@@ -78,6 +78,52 @@ export const SPECIALTY_WHOLE_STACK_RECIPES: SpecialtyWholeStackRecipe[] = [
     createdAt: 0,
   },
   {
+    id: 'builtin-specialty-loose-mouth-pocket-monster',
+    name: 'LOOSE-MOUTH POCKET MONSTER',
+    description:
+      'One-click rigid-pocket / feral-lead preset. Bass and drums refuse to follow the singer; the lead voice may rush, drag, slur, mutter, crack, half-sing, scoop, and wander off-center between exact landing zones. The apparent mess is measured against an immaculate groove.',
+    vibeSummary:
+      'Heavy, dry, funny, nasty, confident, body-first funk pocket with a highly idiosyncratic lead vocal. Loose is not sleepy; raw is not muddy; weird diction must still land musically.',
+    instrumentSummary:
+      'electric bass • kick drum • snare drum • Wurlitzer electric piano • clean electric guitar • hand claps',
+    guyIds: ['alien-ruler', 'utility-demon', 'loop-ferret'],
+    realityEngineIds: [],
+    compositionEngineIds: [
+      'language-mode-conversational',
+      'ensemble-leader-echo',
+      'gesture-breath-gated',
+      'roleexchange-bass-narrates',
+      'authority-bass-player',
+      'constraint-anchor-every-section',
+      'sound-electric-bass',
+      'sound-kick-drum',
+      'sound-snare-drum',
+      'sound-wurlitzer',
+      'sound-electric-guitar-clean',
+      'sound-hand-claps',
+    ],
+    musicStack: [
+      recipeItem('loose-mouth-pocket-monster', 100),
+    ],
+    musicControls: {
+      stemminess: 88,
+      kineticDensity: 80,
+      socialInfection: 46,
+      coupling: 28,
+      interruption: 58,
+      anchorStrength: 96,
+      castSize: 42,
+      mouthFreakery: 86,
+      techniqueMutation: 88,
+      vocalLegibility: 66,
+      vocalPopulation: 44,
+    },
+    realityChaos: 2,
+    mouthPromptMode: 'bracketed',
+    mouthSemanticMode: 'inherit',
+    createdAt: 0,
+  },
+  {
     id: 'builtin-specialty-bluegrass-particle-accelerator',
     name: 'BLUEGRASS PARTICLE ACCELERATOR',
     description:
