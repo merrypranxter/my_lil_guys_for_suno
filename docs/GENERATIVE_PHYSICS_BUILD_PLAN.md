@@ -8,7 +8,7 @@ Goal: ship immediately playable one-click stacks using the existing Minds + Comp
 Jobs:
 1. **MOUTH OPERA** — COMPLETE
 2. **DETROIT ASSEMBLY-LINE POSSESSION — COMPLETE**
-3. BLUEGRASS PARTICLE ACCELERATOR
+3. **BLUEGRASS PARTICLE ACCELERATOR — COMPLETE**
 4. LOOSE-MOUTH POCKET MONSTER
 5. RUBBER-THROAT FUNK CABARET
 6. OPERA IN A TOOL SHED
@@ -162,3 +162,38 @@ Design constraint:
 > The pocket is protected infrastructure. Weirdness may orbit it, answer it, steal jobs around it, and escalate against it, but the bass/backbeat cannot be bullied into generic experimental mush.
 
 Next recommended job: **BLUEGRASS PARTICLE ACCELERATOR** — keep acoustic virtuosity and a strong string-band identity while splitting base pulse from insane activity density.
+
+
+## Job 3 handoff — BLUEGRASS PARTICLE ACCELERATOR
+
+Implemented:
+- New Sound Source:
+  - RESONATOR GUITAR / DOBRO
+- Music mechanisms:
+  - STRING-BAND CLOCK SPLIT
+  - ACOUSTIC ACTIVITY ≠ BPM
+  - ACOUSTIC HANDOFF COLLIDER
+  - BREAKDOWN EXPOSURE / REBUILD
+- Music Seed recipe: BLUEGRASS PARTICLE ACCELERATOR
+- Specialty Whole-Stack preset: BLUEGRASS PARTICLE ACCELERATOR
+- Minds: MINORITY MUTANT + FLOW GHOUL + PROPERTY THIEF
+- No Reality Engine requirement
+- Acoustic palette:
+  - banjo
+  - fiddle / violin
+  - mandolin
+  - resonator guitar / Dobro
+  - upright bass
+  - acoustic guitar
+- Composition physics:
+  - tempo canon
+  - polymeter
+  - rhythm → melodic contour
+  - accompaniment takes lead
+  - rotating soloist
+- Verification added.
+
+Design constraint:
+> Do not confuse event density with BPM. The upright bass can remain at a sane human pulse while the high-rate acoustic machinery becomes absurd.
+
+Next recommended job: **LOOSE-MOUTH POCKET MONSTER** — a rigidly excellent groove underneath a lead vocal whose timing, diction, register, and pitch behavior are allowed to behave like a loose shopping cart with supernatural pocket awareness.
