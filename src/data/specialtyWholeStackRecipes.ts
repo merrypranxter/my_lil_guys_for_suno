@@ -78,6 +78,51 @@ export const SPECIALTY_WHOLE_STACK_RECIPES: SpecialtyWholeStackRecipe[] = [
     createdAt: 0,
   },
   {
+    id: 'builtin-specialty-bluegrass-particle-accelerator',
+    name: 'BLUEGRASS PARTICLE ACCELERATOR',
+    description:
+      'One-click acoustic string-band overdrive. Upright bass keeps a moderate human base pulse while banjo, mandolin, fiddle, resonator guitar, acoustic guitar, and voices run separate high-density temporal jobs. Fast does not mean the BPM itself has to become stupid.',
+    vibeSummary:
+      'Dry, close, bright, virtuosic, physical, joyous, slightly dangerous. Serious bluegrass/string-band technique pushed into multi-rate temporal physics; never country-pop gloss, novelty hayseed caricature, or generic cinematic Americana.',
+    instrumentSummary:
+      'banjo • fiddle/violin • mandolin • resonator guitar/Dobro • upright bass • acoustic guitar',
+    guyIds: ['minority-mutant', 'flow-ghoul', 'property-thief'],
+    realityEngineIds: [],
+    compositionEngineIds: [
+      'ensemble-rotating-soloist',
+      'rhythm-tempo-canon',
+      'rhythm-polymeter',
+      'roleexchange-rhythm-to-melody',
+      'roleexchange-accompaniment-lead',
+      'sound-banjo',
+      'sound-violin',
+      'sound-mandolin',
+      'sound-resonator-guitar-dobro',
+      'sound-upright-bass',
+      'sound-acoustic-guitar',
+    ],
+    musicStack: [
+      recipeItem('bluegrass-particle-accelerator', 100),
+    ],
+    musicControls: {
+      stemminess: 96,
+      kineticDensity: 94,
+      socialInfection: 58,
+      coupling: 88,
+      interruption: 54,
+      anchorStrength: 84,
+      castSize: 56,
+      mouthFreakery: 38,
+      techniqueMutation: 82,
+      vocalLegibility: 78,
+      vocalPopulation: 52,
+    },
+    realityChaos: 2,
+    mouthPromptMode: 'bracketed',
+    mouthSemanticMode: 'inherit',
+    createdAt: 0,
+  },
+  {
     id: 'builtin-specialty-detroit-assembly-line-possession',
     name: 'DETROIT ASSEMBLY-LINE POSSESSION',
     description:
