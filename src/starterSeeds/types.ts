@@ -7,7 +7,8 @@ export type StarterSeedCategory =
   | 'social'
   | 'instrumentPack'
   | 'worldPackage'
-  | 'texture';
+  | 'texture'
+  | 'tuning';
 
 export type StarterSeedJurisdiction =
   | 'emotionalValence'
@@ -28,7 +29,8 @@ export type StarterSeedJurisdiction =
   | 'cast'
   | 'medium'
   | 'eventLogic'
-  | 'instrumentation';
+  | 'instrumentation'
+  | 'pitchReference';
 
 export type StarterSeedCollisionMode = 'negotiate' | 'protect' | 'exclusive';
 
