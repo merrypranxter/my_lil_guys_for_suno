@@ -69,4 +69,25 @@ assert(prompt.userPrompt.includes('DIVINE EXULTATION'));
 assert(prompt.userPrompt.includes('the host keeps trying to conduct an ordinary live radio show'));
 assert(prompt.systemInstruction.includes('STARTER SEEDS ARE INITIAL CONDITIONS'));
 
+const pitchStack = normalizeStarterSeedStack([{ instanceId: 'pitch', seedId: 'tuning-prestandard-432', intensity: 85, muted: false, locked: true }]);
+assert.equal(pitchStack.length, 1);
+const pitchApplied = applyStarterSeedStackToLab(pitchStack, {
+  realityEngineIds: [],
+  compositionEngineIds: ['tuning-pythagorean'],
+  musicStack: [],
+  musicControls: { ...DEFAULT_MUSIC_CONTROLS },
+  realityChaos: 2,
+});
+assert.deepEqual(pitchApplied.compositionEngineIds, ['tuning-pythagorean']);
+const pitchPrompt = buildMasterPrompt({
+  guyIds: ['taxonomy-goblin'],
+  starterSeedStack: pitchStack,
+  compositionEngineIds: pitchApplied.compositionEngineIds,
+  seed: 'a frantic vocal quartet',
+  energy: 4,
+});
+assert(pitchPrompt.userPrompt.includes('A4=432 Hz'));
+assert(pitchPrompt.userPrompt.includes('PYTHAGOREAN TUNING'));
+assert(!starterSeedPromptBlock([{ ...pitchStack[0], muted: true }]).includes('A4=432 Hz'));
+
 console.log('Starter Seed UI/runtime verification passed.');

@@ -5,6 +5,53 @@ function instrumentRoles(entries: Array<[string, string, string]>): StarterSeedI
 }
 
 export const STARTER_SEEDS: StarterSeedDefinition[] = [
+  {
+    "schemaVersion": 1,
+    "id": "tuning-prestandard-432",
+    "name": "432 Hz / PRESTANDARD PITCH LAB",
+    "category": "tuning",
+    "description": "A4=432 Hz as the pitch anchor; old temperaments, rival interval geometries, and audible resonance without a compulsory genre.",
+    "defaultIntensity": 85,
+    "tags": [
+      "432-hz",
+      "reference-pitch",
+      "historical-temperament",
+      "microtonal",
+      "beating"
+    ],
+    "owns": [
+      "pitchReference"
+    ],
+    "biases": [
+      "pure integer-ratio consonances",
+      "historical and alternative temperaments",
+      "ringing close harmonies",
+      "pitch negotiation between performers"
+    ],
+    "protects": [
+      "A4=432 Hz remains the intended reference for the anchor ensemble; retain a recognizable melodic or rhythmic invariant as interval systems change."
+    ],
+    "forbids": [
+      "claiming 432 Hz was the universal historical standard or has special healing properties",
+      "automatic drift into meditation, ambient, spiritual or New Age aesthetics unless requested",
+      "treating 432 Hz as a continuous drone, an EQ setting, or a substitute for specifying temperament",
+      "silently replacing a manually selected pitch-world engine"
+    ],
+    "operators": [
+      "Use A4=432 Hz as a reference pitch, not a mandatory tonic or sustained tone; preserve the selected tempo, mood, world and instrumental jobs.",
+      "If a tuning engine is selected, keep its interval grammar and anchor its reference to 432 Hz wherever compatible. If none is selected, choose a coherent interval grammar per run: 5- or 7-limit just intonation, Pythagorean fifths, quarter-comma meantone, harmonic-series ratios, or 12-TET at A4=432 Hz.",
+      "At higher intensity, assign a secondary voice or instrument a different interval grammar while the anchor ensemble keeps its reference; expose beating between nearby partials, then converge toward a shared pitch or pure interval at a marked cadence.",
+      "Retain a short hook or pulse through changes of interval geometry; let a whistled, sung or instrumental answer reinterpret its pitches without erasing its contour.",
+      "Exploit ringing overtone reinforcement, sympathetic resonance, and difference-tone targets where the sound sources support them; give them a structural role rather than a mystical explanation."
+    ],
+    "collisionMode": "protect",
+    "outputs": {
+      "promptDirectives": [
+        "PITCH REFERENCE / TEMPERAMENT ARE SEPARATE: request A4=432 Hz explicitly in the concise Suno style prompt; express the chosen interval grammar and audible pitch behavior in the arrangement instructions. If another explicit reference conflicts, isolate it in a named secondary layer or obey the user's explicit override; never average reference frequencies.",
+        "This is a prompt-level musical target, not a verified audio tuning or frequency guarantee. Do not make claims about the actual rendered frequency without measuring it."
+      ]
+    }
+  },
   // ---------------------------------------------------------------------------
   // POSITIVE AFFECT — different species of FUCK YES, never generic "happy"
   // ---------------------------------------------------------------------------

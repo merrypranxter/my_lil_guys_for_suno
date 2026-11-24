@@ -166,7 +166,7 @@ export function starterSeedPromptBlock(stackValue: StarterSeedStackItem[]): stri
   const compiled = compileStarterSeedStackV2(STARTER_SEEDS, stack);
   const eventBridge = compileStarterEventBridge(compiled, stack);
   const lines = [
-    'STARTER SEEDS ARE INITIAL-CONDITION LAWS. They may shape affect, perception, motion, social behavior, instrumentation roles, or semantic world framing, but they may not replace the sovereign user subject.',
+    'STARTER SEEDS ARE INITIAL-CONDITION LAWS. They may shape affect, perception, motion, social behavior, pitch reference, instrumentation roles, or semantic world framing, but they may not replace the sovereign user subject.',
     ...compiled.activeSeeds.map(({ seed, intensity, locked }) =>
       '[' + seed.category.toUpperCase() + ' — ' + seed.name + ' | ' + intensity + '/100' + (locked ? ' | LOCKED' : '') + '] ' + seed.description
     ),

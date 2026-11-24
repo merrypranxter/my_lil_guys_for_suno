@@ -18,6 +18,16 @@ assert.equal(STARTER_SEEDS_BY_CATEGORY.social.length, 6);
 assert.equal(STARTER_SEEDS_BY_CATEGORY.worldPackage.length, 8);
 assert.equal(STARTER_SEEDS_BY_CATEGORY.instrumentPack.length, 4);
 assert.equal(STARTER_SEEDS_BY_CATEGORY.texture.length, 13);
+const pitchSeed = STARTER_SEEDS_BY_CATEGORY.tuning.find((seed) => seed.id === 'tuning-prestandard-432');
+assert(pitchSeed, '432 Hz pitch starter must be available in the tuning category');
+assert.deepEqual(pitchSeed.owns, ['pitchReference']);
+const pitchItem = { instanceId: 'pitch', seedId: pitchSeed.id, intensity: 85, muted: false, locked: true };
+const pitchCompiled = compileStarterSeedStackV2(STARTER_SEEDS, [pitchItem]);
+assert(pitchCompiled.protectedInvariants.some((line) => line.includes('A4=432 Hz')));
+assert(pitchCompiled.directives.some((line) => line.includes('Pythagorean')));
+assert(pitchCompiled.directives.some((line) => line.includes('concise Suno style prompt')));
+assert.equal(pitchCompiled.compositionEngineIds.length, 0, 'Reference pitch must not replace a manually chosen temperament');
+assert.equal(compileStarterSeedStackV2(STARTER_SEEDS, [{ ...pitchItem, muted: true }]).activeSeeds.length, 0);
 
 const requiredEmotionalSpectrum = [
   'affect-righteous-fury',
